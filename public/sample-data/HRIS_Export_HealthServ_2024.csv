@@ -1,0 +1,131 @@
+employee_id,first_name,last_name,department,role_level,job_title,hire_date,termination_date,employment_status,manager_id,salary,performance_rating,gender,ethnicity,age
+EMP001,Sarah,Johnson,Clinical Operations,Director,Director of Clinical Operations,2019-03-15,,Active,CEO001,95000,Exceeds,Female,White,42
+EMP002,Michael,Chen,Patient Services,Manager,Patient Services Manager,2020-07-22,,Active,EMP001,72000,Meets,Male,Asian,38
+EMP003,Jennifer,Williams,Administration,Manager,Operations Manager,2018-11-08,,Active,CEO001,68000,Exceeds,Female,Black,35
+EMP004,David,Rodriguez,IT,Manager,IT Manager,2021-02-14,,Active,CEO001,78000,Meets,Male,Hispanic,41
+EMP005,Lisa,Thompson,Finance,Manager,Finance Manager,2019-09-30,,Active,CEO001,75000,Exceeds,Female,White,39
+EMP006,James,Anderson,HR,Manager,HR Manager,2020-01-20,,Active,CEO001,70000,Meets,Male,White,44
+EMP007,Maria,Garcia,Clinical Operations,Coordinator,Clinical Coordinator,2022-05-16,,Active,EMP001,52000,Meets,Female,Hispanic,29
+EMP008,Robert,Taylor,Patient Services,Coordinator,Patient Care Coordinator,2021-08-03,,Active,EMP002,48000,Meets,Male,White,33
+EMP009,Amanda,Brown,Administration,Coordinator,Administrative Coordinator,2023-01-12,,Active,EMP003,45000,Meets,Female,Black,27
+EMP010,Christopher,Davis,IT,Specialist,IT Specialist,2022-11-07,,Active,EMP004,58000,Meets,Male,White,31
+EMP011,Jessica,Miller,Finance,Specialist,Financial Analyst,2023-03-20,,Active,EMP005,55000,Meets,Female,Asian,26
+EMP012,Daniel,Wilson,HR,Specialist,HR Specialist,2021-12-13,,Active,EMP006,50000,Meets,Male,Black,30
+EMP013,Ashley,Moore,Clinical Operations,Assistant,Clinical Assistant,2024-02-05,,Active,EMP007,38000,Meets,Female,White,24
+EMP014,Matthew,Jackson,Patient Services,Assistant,Patient Services Assistant,2024-01-15,,Active,EMP008,36000,Meets,Male,Hispanic,23
+EMP015,Emily,White,Administration,Assistant,Administrative Assistant,2023-09-18,,Active,EMP009,35000,Meets,Female,White,25
+EMP016,Joshua,Harris,Clinical Operations,Specialist,Clinical Specialist,2020-04-27,,Active,EMP001,56000,Exceeds,Male,Black,34
+EMP017,Stephanie,Martin,Patient Services,Specialist,Patient Relations Specialist,2021-06-14,,Active,EMP002,51000,Meets,Female,White,32
+EMP018,Kevin,Thompson,Administration,Specialist,Operations Specialist,2022-08-29,,Active,EMP003,49000,Meets,Male,Asian,28
+EMP019,Rachel,Garcia,IT,Assistant,IT Support Assistant,2024-03-11,,Active,EMP004,42000,Meets,Female,Hispanic,26
+EMP020,Brandon,Lee,Finance,Assistant,Finance Assistant,2023-11-06,,Active,EMP005,40000,Meets,Male,Asian,24
+EMP021,Nicole,Anderson,HR,Assistant,HR Assistant,2024-04-22,,Active,EMP006,38000,Meets,Female,White,23
+EMP022,Tyler,Rodriguez,Clinical Operations,Coordinator,Quality Coordinator,2019-12-09,,Active,EMP001,54000,Meets,Male,Hispanic,36
+EMP023,Samantha,Johnson,Patient Services,Coordinator,Scheduling Coordinator,2020-10-26,,Active,EMP002,47000,Meets,Female,Black,31
+EMP024,Andrew,Williams,Administration,Coordinator,Facilities Coordinator,2021-03-15,,Active,EMP003,46000,Meets,Male,White,29
+EMP025,Megan,Brown,Clinical Operations,Assistant,Medical Assistant,2024-05-13,,Active,EMP007,37000,Meets,Female,White,22
+EMP026,Justin,Davis,Patient Services,Assistant,Registration Assistant,2024-06-03,,Active,EMP008,35000,Meets,Male,Black,21
+EMP027,Brittany,Miller,Administration,Assistant,Data Entry Assistant,2023-12-11,,Active,EMP009,34000,Meets,Female,Hispanic,24
+EMP028,Ryan,Wilson,IT,Specialist,Network Specialist,2021-09-20,,Active,EMP004,60000,Meets,Male,White,33
+EMP029,Kimberly,Moore,Finance,Specialist,Accounting Specialist,2022-02-07,,Active,EMP005,53000,Meets,Female,Asian,30
+EMP030,Jonathan,Jackson,HR,Specialist,Recruitment Specialist,2020-11-30,,Active,EMP006,52000,Exceeds,Male,Black,35
+EMP031,Lauren,White,Clinical Operations,Specialist,Compliance Specialist,2019-08-19,,Active,EMP001,57000,Meets,Female,White,37
+EMP032,Nathan,Harris,Patient Services,Specialist,Insurance Specialist,2021-01-25,,Active,EMP002,50000,Meets,Male,Hispanic,32
+EMP033,Courtney,Martin,Administration,Specialist,HR Information Specialist,2022-07-11,,Active,EMP003,48000,Meets,Female,Black,28
+EMP034,Gregory,Thompson,Clinical Operations,Manager,Clinical Services Manager,2018-05-14,,Active,EMP001,74000,Exceeds,Male,White,43
+EMP035,Vanessa,Garcia,Patient Services,Manager,Patient Experience Manager,2019-10-07,,Active,EMP002,69000,Meets,Female,Hispanic,40
+EMP036,Scott,Lee,Administration,Manager,Administrative Services Manager,2020-12-21,,Active,EMP003,66000,Meets,Male,Asian,38
+EMP037,Tiffany,Anderson,Clinical Operations,Coordinator,Training Coordinator,2023-04-17,,Active,EMP001,51000,Meets,Female,White,27
+EMP038,Marcus,Rodriguez,Patient Services,Coordinator,Discharge Coordinator,2022-09-26,,Active,EMP002,49000,Meets,Male,Hispanic,30
+EMP039,Crystal,Johnson,Administration,Coordinator,Communications Coordinator,2021-11-15,,Active,EMP003,47000,Meets,Female,Black,29
+EMP040,Derek,Williams,IT,Coordinator,Systems Coordinator,2023-02-28,,Active,EMP004,56000,Meets,Male,White,31
+EMP041,Jasmine,Brown,Finance,Coordinator,Budget Coordinator,2022-06-13,,Active,EMP005,54000,Meets,Female,Black,28
+EMP042,Trevor,Davis,HR,Coordinator,Benefits Coordinator,2021-04-05,,Active,EMP006,51000,Meets,Male,White,33
+EMP043,Alexis,Miller,Clinical Operations,Assistant,Scheduling Assistant,2024-07-08,,Active,EMP007,36000,Meets,Female,Asian,22
+EMP044,Jordan,Wilson,Patient Services,Assistant,Billing Assistant,2024-08-19,,Active,EMP008,37000,Meets,Male,Black,23
+EMP045,Danielle,Moore,Administration,Assistant,Reception Assistant,2023-10-30,,Active,EMP009,33000,Meets,Female,White,25
+EMP046,Cameron,Jackson,Clinical Operations,Specialist,Laboratory Specialist,2020-06-08,,Active,EMP001,58000,Meets,Male,Hispanic,34
+EMP047,Heather,White,Patient Services,Specialist,Social Services Specialist,2021-07-19,,Active,EMP002,52000,Meets,Female,White,31
+EMP048,Austin,Harris,Administration,Specialist,Policy Specialist,2022-10-03,,Active,EMP003,50000,Meets,Male,Black,29
+EMP049,Michelle,Martin,IT,Assistant,Help Desk Assistant,2024-09-02,,Active,EMP004,41000,Meets,Female,Hispanic,24
+EMP050,Zachary,Thompson,Finance,Assistant,Payroll Assistant,2023-08-14,,Active,EMP005,39000,Meets,Male,White,26
+EMP051,Kayla,Garcia,HR,Assistant,Training Assistant,2024-01-29,,Active,EMP006,37000,Meets,Female,Hispanic,23
+EMP052,Ian,Lee,Clinical Operations,Coordinator,Equipment Coordinator,2019-07-22,,Active,EMP001,53000,Exceeds,Male,Asian,38
+EMP053,Monique,Anderson,Patient Services,Coordinator,Referral Coordinator,2020-09-14,,Active,EMP002,48000,Meets,Female,Black,33
+EMP054,Blake,Rodriguez,Administration,Coordinator,Project Coordinator,2021-12-06,,Active,EMP003,49000,Meets,Male,Hispanic,30
+EMP055,Alicia,Johnson,Clinical Operations,Assistant,Clinical Research Assistant,2024-03-25,,Active,EMP007,38000,Meets,Female,Black,24
+EMP056,Cole,Williams,Patient Services,Assistant,Transport Assistant,2024-04-15,,Active,EMP008,36000,Meets,Male,White,22
+EMP057,Destiny,Brown,Administration,Assistant,Mail Assistant,2023-07-03,,Active,EMP009,32000,Meets,Female,Black,25
+EMP058,Garrett,Davis,IT,Specialist,Database Specialist,2021-05-17,,Active,EMP004,61000,Meets,Male,White,32
+EMP059,Sabrina,Miller,Finance,Specialist,Tax Specialist,2022-01-31,,Active,EMP005,56000,Meets,Female,Asian,29
+EMP060,Caleb,Wilson,HR,Specialist,Compensation Specialist,2020-08-23,,Active,EMP006,54000,Meets,Male,Black,34
+EMP061,Erica,Moore,Clinical Operations,Specialist,Infection Control Specialist,2019-11-11,,Active,EMP001,59000,Exceeds,Female,White,36
+EMP062,Mason,Jackson,Patient Services,Specialist,Utilization Review Specialist,2021-02-28,,Active,EMP002,53000,Meets,Male,Hispanic,31
+EMP063,Amber,White,Administration,Specialist,Records Specialist,2022-04-18,,Active,EMP003,47000,Meets,Female,White,28
+EMP064,Logan,Harris,Clinical Operations,Manager,Quality Assurance Manager,2018-09-03,,Active,EMP001,76000,Exceeds,Male,Black,41
+EMP065,Sierra,Martin,Patient Services,Manager,Case Management Manager,2019-12-16,,Active,EMP002,71000,Meets,Female,Hispanic,39
+EMP066,Hunter,Thompson,Administration,Manager,Information Systems Manager,2020-03-09,,Active,EMP003,73000,Meets,Male,White,37
+EMP067,Bianca,Garcia,Clinical Operations,Coordinator,Safety Coordinator,2023-05-22,,Active,EMP001,52000,Meets,Female,Hispanic,26
+EMP068,Tristan,Lee,Patient Services,Coordinator,Admissions Coordinator,2022-11-28,,Active,EMP002,50000,Meets,Male,Asian,29
+EMP069,Mariah,Anderson,Administration,Coordinator,Vendor Coordinator,2021-08-16,,Active,EMP003,48000,Meets,Female,Black,30
+EMP070,Devin,Rodriguez,IT,Coordinator,Security Coordinator,2023-01-09,,Active,EMP004,57000,Meets,Male,Hispanic,28
+EMP071,Cheyenne,Johnson,Finance,Coordinator,Audit Coordinator,2022-03-21,,Active,EMP005,55000,Meets,Female,White,27
+EMP072,Bryce,Williams,HR,Coordinator,Employee Relations Coordinator,2021-06-07,,Active,EMP006,52000,Meets,Male,White,32
+EMP073,Jada,Brown,Clinical Operations,Assistant,Pharmacy Assistant,2024-10-14,,Active,EMP007,39000,Meets,Female,Black,21
+EMP074,Colton,Davis,Patient Services,Assistant,Therapy Assistant,2024-11-05,,Active,EMP008,38000,Meets,Male,White,22
+EMP075,Kiara,Miller,Administration,Assistant,Supply Assistant,2023-06-19,,Active,EMP009,34000,Meets,Female,Hispanic,24
+EMP076,Wyatt,Wilson,Clinical Operations,Specialist,Radiology Specialist,2020-10-12,,Active,EMP001,60000,Meets,Male,White,33
+EMP077,Tierra,Moore,Patient Services,Specialist,Nutrition Specialist,2021-09-06,,Active,EMP002,54000,Meets,Female,Black,30
+EMP078,Dalton,Jackson,Administration,Specialist,Contract Specialist,2022-12-19,,Active,EMP003,51000,Meets,Male,Hispanic,28
+EMP079,Raven,White,IT,Assistant,Technical Assistant,2024-02-26,,Active,EMP004,43000,Meets,Female,Black,25
+EMP080,Braxton,Harris,Finance,Assistant,Collections Assistant,2023-09-11,,Active,EMP005,41000,Meets,Male,White,26
+EMP081,Ciara,Martin,HR,Assistant,Onboarding Assistant,2024-05-06,,Active,EMP006,39000,Meets,Female,Hispanic,23
+EMP082,Landon,Thompson,Clinical Operations,Coordinator,Research Coordinator,2019-04-29,,Active,EMP001,55000,Exceeds,Male,White,37
+EMP083,Imani,Garcia,Patient Services,Coordinator,Volunteer Coordinator,2020-11-23,,Active,EMP002,46000,Meets,Female,Black,32
+EMP084,Peyton,Lee,Administration,Coordinator,Event Coordinator,2021-10-11,,Active,EMP003,47000,Meets,Female,Asian,29
+EMP085,Jaxon,Anderson,Clinical Operations,Assistant,Lab Assistant,2024-06-17,,Active,EMP007,37000,Meets,Male,Black,22
+EMP086,Skylar,Rodriguez,Patient Services,Assistant,Dietary Assistant,2024-07-29,,Active,EMP008,35000,Meets,Female,Hispanic,21
+EMP087,Kendall,Johnson,Administration,Assistant,Filing Assistant,2023-05-08,,Active,EMP009,33000,Meets,Female,White,24
+EMP088,Brayden,Williams,IT,Specialist,Software Specialist,2021-03-22,,Active,EMP004,62000,Meets,Male,White,31
+EMP089,Zoe,Brown,Finance,Specialist,Investment Specialist,2022-08-15,,Active,EMP005,57000,Meets,Female,Asian,28
+EMP090,Hayden,Davis,HR,Specialist,Training Specialist,2020-12-07,,Active,EMP006,53000,Meets,Male,Black,33
+EMP091,Layla,Miller,Clinical Operations,Specialist,Therapy Specialist,2019-06-03,,Active,EMP001,58000,Exceeds,Female,White,35
+EMP092,Carson,Wilson,Patient Services,Specialist,Discharge Planning Specialist,2021-04-26,,Active,EMP002,52000,Meets,Male,Hispanic,30
+EMP093,Ava,Moore,Administration,Specialist,Compliance Specialist,2022-07-04,,Active,EMP003,49000,Meets,Female,Black,27
+EMP094,Easton,Jackson,Clinical Operations,Manager,Emergency Services Manager,2018-02-19,,Active,EMP001,77000,Exceeds,Male,White,42
+EMP095,Mya,White,Patient Services,Manager,Rehabilitation Manager,2019-05-27,,Active,EMP002,72000,Meets,Female,Hispanic,38
+EMP096,Grayson,Harris,Administration,Manager,Risk Management Manager,2020-08-10,,Active,EMP003,70000,Meets,Male,Black,36
+EMP097,Nyla,Martin,Clinical Operations,Coordinator,Outreach Coordinator,2023-03-06,,Active,EMP001,51000,Meets,Female,Black,26
+EMP098,Parker,Thompson,Patient Services,Coordinator,Education Coordinator,2022-05-30,,Active,EMP002,49000,Meets,Male,White,28
+EMP099,Zara,Garcia,Administration,Coordinator,Marketing Coordinator,2021-07-26,,Active,EMP003,48000,Meets,Female,Hispanic,29
+EMP100,Jace,Lee,IT,Coordinator,Infrastructure Coordinator,2023-04-10,,Active,EMP004,58000,Meets,Male,Asian,27
+EMP101,Kyla,Anderson,Finance,Coordinator,Revenue Coordinator,2022-09-05,,Active,EMP005,56000,Meets,Female,Black,28
+EMP102,Knox,Rodriguez,HR,Coordinator,Wellness Coordinator,2021-11-22,,Active,EMP006,53000,Meets,Male,Hispanic,31
+EMP103,Lila,Johnson,Clinical Operations,Assistant,Surgical Assistant,2024-08-12,,Active,EMP007,40000,Meets,Female,White,23
+EMP104,Cruz,Williams,Patient Services,Assistant,Maintenance Assistant,2024-09-23,,Active,EMP008,36000,Meets,Male,Hispanic,22
+EMP105,Aria,Brown,Administration,Assistant,Archive Assistant,2023-04-17,,Active,EMP009,32000,Meets,Female,Black,25
+EMP106,Finn,Davis,Clinical Operations,Specialist,Cardiology Specialist,2020-07-13,,Active,EMP001,61000,Meets,Male,White,32
+EMP107,Kaia,Miller,Patient Services,Specialist,Pediatric Specialist,2021-10-04,,Active,EMP002,55000,Meets,Female,Asian,29
+EMP108,Rowan,Wilson,Administration,Specialist,Legal Specialist,2022-01-16,,Active,EMP003,52000,Meets,Male,Black,27
+EMP109,Nova,Moore,IT,Assistant,Documentation Assistant,2024-01-08,,Active,EMP004,44000,Meets,Female,Hispanic,24
+EMP110,River,Jackson,Finance,Assistant,Reporting Assistant,2023-10-02,,Active,EMP005,42000,Meets,Male,White,25
+EMP111,Luna,White,HR,Assistant,Communications Assistant,2024-03-18,,Active,EMP006,40000,Meets,Female,Black,22
+EMP112,Atlas,Harris,Clinical Operations,Coordinator,Transplant Coordinator,2019-01-28,,Active,EMP001,56000,Exceeds,Male,Hispanic,36
+EMP113,Sage,Martin,Patient Services,Coordinator,Hospice Coordinator,2020-06-15,,Active,EMP002,47000,Meets,Female,White,31
+EMP114,Phoenix,Thompson,Administration,Coordinator,Sustainability Coordinator,2021-09-27,,Active,EMP003,46000,Meets,Male,Asian,28
+EMP115,Ivy,Garcia,Clinical Operations,Assistant,Oncology Assistant,2024-04-08,,Active,EMP007,38000,Meets,Female,Hispanic,23
+EMP116,Orion,Lee,Patient Services,Assistant,Security Assistant,2024-05-20,,Active,EMP008,37000,Meets,Male,Asian,21
+EMP117,Willow,Anderson,Administration,Assistant,Inventory Assistant,2023-08-07,,Active,EMP009,33000,Meets,Female,White,24
+EMP118,Kai,Rodriguez,IT,Specialist,Cloud Specialist,2021-12-20,,Active,EMP004,63000,Meets,Male,Hispanic,30
+EMP119,Hazel,Johnson,Finance,Specialist,Risk Specialist,2022-11-14,,Active,EMP005,58000,Meets,Female,Black,27
+EMP120,Axel,Williams,HR,Specialist,Analytics Specialist,2020-04-06,,Active,EMP006,55000,Meets,Male,White,32
+TERM001,Taylor,Smith,Clinical Operations,Assistant,Clinical Assistant,2024-01-22,2024-03-15,Terminated,EMP007,37000,Below,Female,White,26
+TERM002,Jordan,Jones,Patient Services,Assistant,Patient Services Assistant,2023-11-13,2024-01-08,Terminated,EMP008,35000,Below,Male,Black,24
+TERM003,Casey,Davis,Administration,Coordinator,Administrative Coordinator,2023-09-04,2024-02-20,Terminated,EMP003,46000,Below,Female,Hispanic,28
+TERM004,Riley,Wilson,IT,Assistant,IT Support Assistant,2024-02-12,2024-04-30,Terminated,EMP004,41000,Below,Male,White,25
+TERM005,Avery,Taylor,Finance,Assistant,Finance Assistant,2023-12-18,2024-03-25,Terminated,EMP005,39000,Below,Female,Asian,23
+TERM006,Quinn,Brown,HR,Assistant,HR Assistant,2024-03-04,2024-05-15,Terminated,EMP006,37000,Below,Male,Black,22
+TERM007,Reese,Johnson,Clinical Operations,Specialist,Clinical Specialist,2022-08-22,2024-01-30,Terminated,EMP001,55000,Below,Female,White,29
+TERM008,Emery,Williams,Patient Services,Coordinator,Patient Care Coordinator,2021-10-11,2024-02-14,Terminated,EMP002,48000,Below,Male,Hispanic,31
+TERM009,Sage,Miller,Administration,Assistant,Administrative Assistant,2024-01-08,2024-04-02,Terminated,EMP009,34000,Below,Female,Black,25
+TERM010,Drew,Garcia,Clinical Operations,Assistant,Medical Assistant,2023-10-30,2024-01-22,Terminated,EMP007,36000,Below,Male,Hispanic,24
