@@ -113,7 +113,8 @@ export function KPIsStep() {
   const handleNext = () => {
     // Store selected KPIs in localStorage or context
     localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
-    setStep(4)
+    // setStep(4)
+    setStep(3)
   }
 
   const groupedKPIs = AVAILABLE_KPIS.reduce(

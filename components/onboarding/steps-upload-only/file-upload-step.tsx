@@ -56,6 +56,7 @@ export function FileUploadStep() {
     setUploadedFile({ file: sampleFile, metadata: sampleMetadata })
 
     setStep(3)
+    // setStep(4)
   }
 
   const downloadSampleFile = () => {
@@ -279,7 +280,8 @@ export function FileUploadStep() {
                 Skip file upload
               </Button>
               <Button
-                onClick={handleContinue}
+                // onClick={handleContinue}
+                onClick={() => skipToStep(3)}
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
                 disabled={!uploadedFile && !hasBrowsedFiles}
               >

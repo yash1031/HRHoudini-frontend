@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
+import { v4 as uuidv4 } from "uuid";
 
 interface FileUploadProps {
   onFileUpload: (file: File, metadata: any) => void
@@ -47,6 +48,36 @@ export function FileUpload({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [fileMetadata, setFileMetadata] = useState<FileMetadata | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [uuid] = useState<string>(uuidv4());
+
+  // Helper: upload with progress using XMLHttpRequest
+  const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url, true);
+      xhr.setRequestHeader("Content-Type", contentType);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percent);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          console.log(`Upload succeded with status ${xhr.status} & response is ${xhr.response}`)
+          resolve(xhr.response);
+        } else {
+          console.log(`Upload failed with status ${xhr.status}`)
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.send(file);
+    });
+  };
 
   const processFile = async (file: File) => {
     setIsUploading(true)
@@ -55,18 +86,18 @@ export function FileUpload({
 
     try {
       // Simulate file processing with progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
-          }
-          return prev + 10
-        })
-      }, 200)
+      // const progressInterval = setInterval(() => {
+      //   setUploadProgress((prev) => {
+      //     if (prev >= 90) {
+      //       clearInterval(progressInterval)
+      //       return 90
+      //     }
+      //     return prev + 10
+      //   })
+      // }, 200)
 
       // Simulate file analysis
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Mock metadata extraction
       const metadata: FileMetadata = {
@@ -81,10 +112,61 @@ export function FileUpload({
 
       console.log("Metadata is: "+ JSON.stringify(metadata));
 
-      clearInterval(progressInterval)
-      setUploadProgress(100)
+      // clearInterval(progressInterval)
+      // setUploadProgress(100)
       setFileMetadata(metadata)
       setUploadedFile(file)
+
+      // 1️⃣ Get presigned URL
+      const response = await fetch(
+        "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/upload-docs",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            userId: localStorage.getItem("user_id"),
+            uuid: uuid,
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to get presigned URL");
+
+      const data = await response.json();
+      console.log("Data after generating presigned URL is ", JSON.stringify(data))
+      const body = JSON.parse(data.body);
+      const { uploadUrl, sessionId, fileKey } = body;
+      console.log("uploadUrl", uploadUrl, "sessionId", sessionId, "fileKey", fileKey)
+      // setSessionId(sessionId);
+
+
+      // 2️⃣ Upload file with progress
+      await uploadFileWithProgress(uploadUrl, file, file.type);
+
+      // Convert CSV to parquet
+      const resCSVToParq = await fetch(
+        "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/csv-parquet-processor",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: localStorage.getItem("user_id"),
+            session_id: uuid,
+          }),
+        }
+      );
+
+      if (!resCSVToParq.ok) throw new Error("Failed to convert CSV to parquet");
+
+      const data1 = await resCSVToParq.json();
+      console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
+
+      // setStatus({
+      //   type: "success",
+      //   message: `✅ File uploaded successfully! (Key: ${fileKey || file.name})`,
+      // });
 
       // Call the parent callback
       onFileUpload(file, metadata)
