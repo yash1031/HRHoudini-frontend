@@ -27,15 +27,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 })
     }
 
-    const response = await processQuery(message.toLowerCase(), context)
+    // const response = await processQuery(message.toLowerCase(), context)
+    // const response= "Response is awesome"
+    // console.log("Response is: ", response)
+
+    const response = await fetch(
+      "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/nl-to-athena",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: message,
+          user_id: "41ec5a3d-b522-4b86-aae8-6f4cfc658b8d",
+          session_id: "7db0da0c-0e88-40ec-a514-7f40919cb305"
+          // user_id: localStorage.getItem("user_id"),
+          // session_id: localStorage.getItem("session_id")
+        }),
+      }
+    );
+
+    const data = await response.json();
+    const queryResponse = await JSON.parse(data.body);
+
+    console.log("queryResponse is", queryResponse)
 
     return NextResponse.json({
-      message: response,
+      message: queryResponse,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error("Error processing chat message:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.log("Error processing chat message:", error)
+    return NextResponse.json({ error: "It's Internal server error" }, { status: 500 })
   }
 }
 

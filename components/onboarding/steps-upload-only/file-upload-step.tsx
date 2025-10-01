@@ -95,35 +95,7 @@ export function FileUploadStep() {
 
   const handleContinue = async() => {
 
-    // Create KPIs
-  //   const resCreateKPIs = await fetch(
-  //     "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
-  //     {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         user_id: localStorage.getItem("user_id"),
-  //         session_id: localStorage.getItem("session_id"),
-  //       }),
-  //     }
-  //   );
-  //   if (!resCreateKPIs.ok) throw new Error("Failed to Create KPIs");
-  //   const data = await resCreateKPIs.json();
-  //   console.log("Successfully created KPIs. Result is ", JSON.stringify(data))
-  //   // ✅ Parse the string inside `body`
-  //   const parsedBody = JSON.parse(data.body);
-  //   console.log("Parsed body:", parsedBody);
-  //   console.log("KPI Questions are:", parsedBody.kpi_items);
-
-  //   // Transform kpi_items to include actual icon components
-  // const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
-  //   ...item,
-  //   icon: Clock, // fallback to Clock
-  // }));
-
-    // ✅ Set KPIs from parsed response
-    // setKpis(parsedBody.kpi_items);
-    // setKpis(kpisWithIcons);
+    
     skipToStep(3)
     // const params = new URLSearchParams({
     //   persona: userContext?.persona || "hr-generalist",

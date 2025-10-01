@@ -46,62 +46,89 @@ export const MinimalChatInput = forwardRef<MinimalChatInputRef, MinimalChatInput
     const handleSend = async (messageToSend?: string) => {
       const message = messageToSend || input.trim()
       console.log("The Message to be send is", messageToSend)
-      // if (!message || isLoading) return
+      if (!message || isLoading) return
 
-      // setIsLoading(true)
-      // setInput("")
-      // setResponse(null)
-      // setCurrentQuestion(message)
+      setIsLoading(true)
+      setInput("")
+      setResponse(null)
+      setCurrentQuestion(message)
 
-      // try {
-      //   const res = await fetch("/api/chat", {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({
-      //       message: message,
-      //       context: {
-      //         company: "Sharp Median",
-      //         persona: "hr-analyst",
-      //       },
-      //     }),
-      //   })
+      try {
+        // const res = await fetch("/api/chat", {
+        //   method: "POST",
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //   },
+        //   body: JSON.stringify({
+        //     message: message,
+        //     context: {
+        //       company: "Sharp Median",
+        //       persona: "hr-analyst",
+        //     },
+        //   }),
+        // })
 
-      //   if (!res.ok) {
-      //     throw new Error("Failed to get response")
-      //   }
+        // if (!res.ok) {
+        //   // setResponse("It contains 380 records")
+        //   console.log("Failed to get the response as per expectations")
+        //   // throw new Error("Failed to get response from server")
+        // }
 
-      //   const data = await res.json()
-      //   setResponse(data.message)
+        // const data = await res.json()
+        // console.log("Response to sample question is", data.message);
+        // setResponse(data.message)
 
-      //   try {
-      //     await fetch("/api/chat-history", {
-      //       method: "POST",
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //       },
-      //       body: JSON.stringify({
-      //         sessionId,
-      //         userMessage: message,
-      //         assistantMessage: data.message,
-      //         conversationId: currentConversationId,
-      //       }),
-      //     })
-      //   } catch (historyError) {
-      //     console.error("Error saving to history:", historyError)
-      //     // Don't fail the main chat if history save fails
-      //   }
+        const response = await fetch(
+          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/nl-to-athena",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: message,
+              // user_id: "41ec5a3d-b522-4b86-aae8-6f4cfc658b8d",
+              // session_id: "7db0da0c-0e88-40ec-a514-7f40919cb305"
+              user_id: localStorage.getItem("user_id"),
+              session_id: localStorage.getItem("session_id")
+            }),
+          }
+        );
 
-      //   if (onSend) {
-      //     onSend(message)
-      //   }
-      // } catch (error) {
-      //   console.error("Error sending message:", error)
-      //   setResponse("I encountered an issue processing your request. Please try again.")
-      // } finally {
-      //   setIsLoading(false)
-      // }
+      if (!response.ok) throw new Error("Failed to get response for the query");
+
+      const data = await response.json();
+      const queryResponse = await JSON.parse(data.body);
+      console.log("queryResponse is", queryResponse.natural_language_response)
+      setResponse(queryResponse.natural_language_response)
+      // setResponse(queryResponse)
+        return;
+
+        try {
+          await fetch("/api/chat-history", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sessionId,
+              userMessage: message,
+              assistantMessage: data.message,
+              conversationId: currentConversationId,
+            }),
+          })
+        } catch (historyError) {
+          console.error("Error saving to history:", historyError)
+          // Don't fail the main chat if history save fails
+        }
+
+        if (onSend) {
+          onSend(message)
+        }
+      } catch (error) {
+        console.error("Error sending message")
+        setResponse("I encountered an issue processing your request. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     const handleSelectConversation = (conversation: ChatConversation, messages: ChatMessage[]) => {
@@ -193,7 +220,8 @@ export const MinimalChatInput = forwardRef<MinimalChatInputRef, MinimalChatInput
                 />
               </div>
               <Button
-                onClick={(e) => handleSend("Hello Brother")}
+                onClick={(e) => handleSend(input)}
+                // onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 size="lg"
                 className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-xl shadow-lg border-2 border-white/20 transition-all duration-200"

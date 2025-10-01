@@ -21,6 +21,7 @@ import {
   Calendar,
   Briefcase,
 } from "lucide-react"
+import Papa from "papaparse"
 
 interface FileUploadProps {
   onFileUpload: (file: File, metadata: any) => void
@@ -78,12 +79,12 @@ export function FileUpload({
       xhr.open("PUT", url, true);
       xhr.setRequestHeader("Content-Type", contentType);
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(percent);
-        }
-      };
+      // xhr.upload.onprogress = (event) => {
+      //   if (event.lengthComputable) {
+      //     const percent = Math.round((event.loaded / event.total) * 100);
+      //     setUploadProgress(percent);
+      //   }
+      // };
 
       xhr.onload = () => {
         if (xhr.status === 200) {
@@ -99,6 +100,21 @@ export function FileUpload({
       xhr.send(file);
     });
   };
+
+  const parseCsvFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const columns = results.meta.fields || []
+        const rowCount = results.data.length
+        resolve({ columns, rowCount })
+      },
+      error: (err) => reject(err),
+    })
+  })
+}
 
   const processFile = async (file: File) => {
     setIsUploading(true)
@@ -121,13 +137,26 @@ export function FileUpload({
       // await new Promise((resolve) => setTimeout(resolve, 2000))
 
       // Mock metadata extraction
+
+      const { columns, rowCount } = await parseCsvFile(file)
+
+      // const metadata: FileMetadata = {
+      //   name: file.name,
+      //   size: file.size,
+      //   type: file.type || "application/octet-stream",
+      //   lastModified: file.lastModified,
+      //   rowCount: Math.floor(Math.random() * 1000) + 100,
+      //   columns: ["employee_id", "name", "department", "hire_date", "salary", "manager_id"],
+      //   dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
+      // }
+
       const metadata: FileMetadata = {
         name: file.name,
         size: file.size,
         type: file.type || "application/octet-stream",
         lastModified: file.lastModified,
-        rowCount: Math.floor(Math.random() * 1000) + 100,
-        columns: ["employee_id", "name", "department", "hire_date", "salary", "manager_id"],
+        rowCount,
+        columns,
         dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
       }
 
@@ -155,6 +184,7 @@ export function FileUpload({
 
       if (!response.ok) throw new Error("Failed to get presigned URL");
 
+      setUploadProgress(20)
       const data = await response.json();
       console.log("Data after generating presigned URL is ", JSON.stringify(data))
       const body = JSON.parse(data.body);
@@ -166,6 +196,7 @@ export function FileUpload({
       // 2️⃣ Upload file with progress
       await uploadFileWithProgress(uploadUrl, file, file.type);
 
+      setUploadProgress(40)
       // Convert CSV to parquet
       const resCSVToParq = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/csv-parquet-processor",
@@ -183,6 +214,7 @@ export function FileUpload({
 
       const data1 = await resCSVToParq.json();
       console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
+      setUploadProgress(60)
 
       // Create Athena Table
       const resCreateAthena = await fetch(
@@ -201,7 +233,7 @@ export function FileUpload({
 
       const data2 = await resCreateAthena.json();
       console.log("Successfully converted athena table. Result is ", JSON.stringify(data1))
-
+      setUploadProgress(80)
       localStorage.setItem("session_id", uuid)
 
       // Create KPIs
@@ -233,6 +265,8 @@ export function FileUpload({
     // ✅ Set KPIs from parsed response
     // setKpis(parsedBody.kpi_items);
     setKpis(kpisWithIcons);
+
+    setUploadProgress(100)
 
       // setStatus({
       //   type: "success",
@@ -361,7 +395,7 @@ export function FileUpload({
           <div className="space-y-4">
             <Alert>
               <CheckCircle className="h-4 w-4" />
-              <AlertDescription>File uploaded and processed successfully!</AlertDescription>
+              <AlertDescription>File uploaded and getting processed...!</AlertDescription>
             </Alert>
 
             <Card>

@@ -223,11 +223,12 @@ export default function LoginPage() {
         console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data), "res status:", res.status)
         localStorage.setItem("access_token", data.access_token)
         localStorage.setItem("user_id", data.user_id)
+        localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
         window.location.href = `/onboarding-upload-only?${paramsDemoPerson.toString()}`;
         setIsVerifying(false);
         console.log("Magic code verified successfully")
       } else {
-        setIsVerifying(true);
+        setIsVerifying(false);
         setErrorMessage("The code is incorrect. Please check your email.");
         setTimeout(() => {
           // Check if this is a persona login that should go to onboarding
