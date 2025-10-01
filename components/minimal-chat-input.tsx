@@ -45,62 +45,63 @@ export const MinimalChatInput = forwardRef<MinimalChatInputRef, MinimalChatInput
 
     const handleSend = async (messageToSend?: string) => {
       const message = messageToSend || input.trim()
-      if (!message || isLoading) return
+      console.log("Message to be send is", messageToSend)
+      // if (!message || isLoading) return
 
-      setIsLoading(true)
-      setInput("")
-      setResponse(null)
-      setCurrentQuestion(message)
+      // setIsLoading(true)
+      // setInput("")
+      // setResponse(null)
+      // setCurrentQuestion(message)
 
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: message,
-            context: {
-              company: "Sharp Median",
-              persona: "hr-analyst",
-            },
-          }),
-        })
+      // try {
+      //   const res = await fetch("/api/chat", {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       message: message,
+      //       context: {
+      //         company: "Sharp Median",
+      //         persona: "hr-analyst",
+      //       },
+      //     }),
+      //   })
 
-        if (!res.ok) {
-          throw new Error("Failed to get response")
-        }
+      //   if (!res.ok) {
+      //     throw new Error("Failed to get response")
+      //   }
 
-        const data = await res.json()
-        setResponse(data.message)
+      //   const data = await res.json()
+      //   setResponse(data.message)
 
-        try {
-          await fetch("/api/chat-history", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sessionId,
-              userMessage: message,
-              assistantMessage: data.message,
-              conversationId: currentConversationId,
-            }),
-          })
-        } catch (historyError) {
-          console.error("Error saving to history:", historyError)
-          // Don't fail the main chat if history save fails
-        }
+      //   try {
+      //     await fetch("/api/chat-history", {
+      //       method: "POST",
+      //       headers: {
+      //         "Content-Type": "application/json",
+      //       },
+      //       body: JSON.stringify({
+      //         sessionId,
+      //         userMessage: message,
+      //         assistantMessage: data.message,
+      //         conversationId: currentConversationId,
+      //       }),
+      //     })
+      //   } catch (historyError) {
+      //     console.error("Error saving to history:", historyError)
+      //     // Don't fail the main chat if history save fails
+      //   }
 
-        if (onSend) {
-          onSend(message)
-        }
-      } catch (error) {
-        console.error("Error sending message:", error)
-        setResponse("I encountered an issue processing your request. Please try again.")
-      } finally {
-        setIsLoading(false)
-      }
+      //   if (onSend) {
+      //     onSend(message)
+      //   }
+      // } catch (error) {
+      //   console.error("Error sending message:", error)
+      //   setResponse("I encountered an issue processing your request. Please try again.")
+      // } finally {
+      //   setIsLoading(false)
+      // }
     }
 
     const handleSelectConversation = (conversation: ChatConversation, messages: ChatMessage[]) => {

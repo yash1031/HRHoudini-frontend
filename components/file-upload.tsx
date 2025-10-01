@@ -163,6 +163,25 @@ export function FileUpload({
       const data1 = await resCSVToParq.json();
       console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
 
+      // Create Athena Table
+      const resCreateAthena = await fetch(
+        "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/create-athena-ddl",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: localStorage.getItem("user_id"),
+            session_id: uuid,
+          }),
+        }
+      );
+
+      if (!resCreateAthena.ok) throw new Error("Failed to Create Athena Table");
+
+      const data2 = await resCreateAthena.json();
+      console.log("Successfully converted athena table. Result is ", JSON.stringify(data1))
+
+
       // setStatus({
       //   type: "success",
       //   message: `✅ File uploaded successfully! (Key: ${fileKey || file.name})`,

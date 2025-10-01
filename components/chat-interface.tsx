@@ -58,6 +58,7 @@ export function ChatInterface({
   }, [messages])
 
   const handleSend = async (message?: string) => {
+    console.log("Sending the message to get back the results")
     const messageToSend = message || input.trim()
     if (!messageToSend || isLoading) return
 

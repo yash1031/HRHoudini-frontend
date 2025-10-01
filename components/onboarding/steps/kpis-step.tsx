@@ -93,6 +93,8 @@ const AVAILABLE_KPIS = [
   },
 ]
 
+// const AVAILABLE_KPIS = []
+
 // Role-specific KPI recommendations
 const ROLE_KPI_RECOMMENDATIONS = {
   "hr-generalist": ["turnover-rate", "engagement-score", "cost-per-hire", "absenteeism-rate", "salary-increase"],
@@ -113,7 +115,6 @@ export function KPIsStep() {
   const handleNext = () => {
     // Store selected KPIs in localStorage or context
     localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
-    // setStep(4)
     setStep(3)
   }
 

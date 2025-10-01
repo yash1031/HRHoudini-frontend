@@ -534,7 +534,6 @@ export default function LoginPage() {
                           <Button 
                             disabled={isVerifying}
                             onClick={handleVerifyCode} 
-                            disabled={code.length !== 10}
                             className="flex-1 bg-gray-600 hover:bg-gray-700 text-white disabled:bg-gray-300"
                           >
                             {isVerifying ? "Verifying..." : "Verify"}
