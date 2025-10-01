@@ -9,6 +9,18 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
 import { v4 as uuidv4 } from "uuid";
+import { useUserContext } from "@/contexts/user-context"
+import {
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Clock,
+  Target,
+  Award,
+  Calendar,
+  Briefcase,
+} from "lucide-react"
 
 interface FileUploadProps {
   onFileUpload: (file: File, metadata: any) => void
@@ -32,6 +44,14 @@ interface FileMetadata {
   dataType?: string
 }
 
+interface KpiItem {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ElementType; // since you're storing component references like TrendingDown
+  category: string;
+}
+
 export function FileUpload({
   onFileUpload,
   acceptedTypes = [".csv", ".xlsx", ".xls"],
@@ -49,6 +69,7 @@ export function FileUpload({
   const [fileMetadata, setFileMetadata] = useState<FileMetadata | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uuid] = useState<string>(uuidv4());
+  const {setKpis } = useUserContext()
 
   // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
@@ -182,6 +203,36 @@ export function FileUpload({
       console.log("Successfully converted athena table. Result is ", JSON.stringify(data1))
 
       localStorage.setItem("session_id", uuid)
+
+      // Create KPIs
+    const resCreateKPIs = await fetch(
+      "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: localStorage.getItem("user_id"),
+          session_id: localStorage.getItem("session_id"),
+        }),
+      }
+    );
+    if (!resCreateKPIs.ok) throw new Error("Failed to Create KPIs");
+    const data3 = await resCreateKPIs.json();
+    console.log("Successfully created KPIs. Result is ", JSON.stringify(data))
+    // ✅ Parse the string inside `body`
+    const parsedBody = JSON.parse(data3.body);
+    console.log("Parsed body:", parsedBody);
+    console.log("KPI Questions are:", parsedBody.kpi_items);
+
+    // Transform kpi_items to include actual icon components
+  const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
+    ...item,
+    icon: Clock, // fallback to Clock
+  }));
+
+    // ✅ Set KPIs from parsed response
+    // setKpis(parsedBody.kpi_items);
+    setKpis(kpisWithIcons);
 
       // setStatus({
       //   type: "success",
