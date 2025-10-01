@@ -65,7 +65,7 @@ export default function OnboardingUploadOnlyPage() {
             console.log("Creating tokens is successful, data is:", JSON.stringify(data), "res status:", res.status)
             localStorage.setItem("access_token", data.access_token)
             localStorage.setItem("user_id", data.user_id)
-            localStorage.setItem("user_name", data.user_name)
+            localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
 
             const context = { name:"Maya Jackson" , email: "maya.jackson@healthserv.com", company: "HealthServ Solutions", role: "hr-generalist---upload-only" };
             setUserContext(context);
