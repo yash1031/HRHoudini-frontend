@@ -21,7 +21,8 @@ export default function DashboardUploadOnlyLayout({
   // }, []);
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavigationHeader userName={localStorage.getItem("user_name")|| "Maya Jackson"} />
+      {/* <NavigationHeader userName={localStorage.getItem("user_name")|| "Maya Jackson"} /> */}
+      <NavigationHeader userName={"Maya Jackson"} />
       <main className="flex-1">{children}</main>
     </div>
   )
