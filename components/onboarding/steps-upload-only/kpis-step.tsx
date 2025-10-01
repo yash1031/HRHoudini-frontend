@@ -19,80 +19,81 @@ import {
 } from "lucide-react"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
+import { useUserContext } from "@/contexts/user-context"
 
 // Available KPI panels
-const AVAILABLE_KPIS = [
-  {
-    id: "turnover-rate",
-    label: "Turnover Rate",
-    description: "Monthly/quarterly employee turnover",
-    icon: TrendingDown,
-    category: "retention",
-  },
-  {
-    id: "employee-productivity",
-    label: "Employee Productivity Rate",
-    description: "Output per employee metrics",
-    icon: TrendingUp,
-    category: "performance",
-  },
-  {
-    id: "salary-increase",
-    label: "Salary Increase Rate",
-    description: "Compensation growth trends",
-    icon: DollarSign,
-    category: "compensation",
-  },
-  {
-    id: "engagement-score",
-    label: "Employee Engagement Score",
-    description: "Survey-based engagement metrics",
-    icon: Users,
-    category: "engagement",
-  },
-  {
-    id: "training-cost",
-    label: "Training Cost Per Employee",
-    description: "L&D investment per person",
-    icon: Award,
-    category: "development",
-  },
-  {
-    id: "revenue-per-employee",
-    label: "Revenue Per Employee",
-    description: "Business impact per person",
-    icon: DollarSign,
-    category: "business",
-  },
-  {
-    id: "cost-per-hire",
-    label: "Cost Per Hire",
-    description: "Total recruiting investment",
-    icon: Briefcase,
-    category: "recruiting",
-  },
-  {
-    id: "absenteeism-rate",
-    label: "Absenteeism Rate",
-    description: "Unplanned absence tracking",
-    icon: Calendar,
-    category: "wellness",
-  },
-  {
-    id: "offer-acceptance",
-    label: "Offer Acceptance Rate",
-    description: "Recruiting conversion success",
-    icon: Target,
-    category: "recruiting",
-  },
-  {
-    id: "time-to-fill",
-    label: "Time to Fill",
-    description: "Days to fill open positions",
-    icon: Clock,
-    category: "recruiting",
-  },
-]
+// const AVAILABLE_KPIS = [
+//   {
+//     id: "turnover-rate",
+//     label: "Turnover Rate",
+//     description: "Monthly/quarterly employee turnover",
+//     icon: TrendingDown,
+//     category: "retention",
+//   },
+//   {
+//     id: "employee-productivity",
+//     label: "Employee Productivity Rate",
+//     description: "Output per employee metrics",
+//     icon: TrendingUp,
+//     category: "performance",
+//   },
+//   {
+//     id: "salary-increase",
+//     label: "Salary Increase Rate",
+//     description: "Compensation growth trends",
+//     icon: DollarSign,
+//     category: "compensation",
+//   },
+//   {
+//     id: "engagement-score",
+//     label: "Employee Engagement Score",
+//     description: "Survey-based engagement metrics",
+//     icon: Users,
+//     category: "engagement",
+//   },
+//   {
+//     id: "training-cost",
+//     label: "Training Cost Per Employee",
+//     description: "L&D investment per person",
+//     icon: Award,
+//     category: "development",
+//   },
+//   {
+//     id: "revenue-per-employee",
+//     label: "Revenue Per Employee",
+//     description: "Business impact per person",
+//     icon: DollarSign,
+//     category: "business",
+//   },
+//   {
+//     id: "cost-per-hire",
+//     label: "Cost Per Hire",
+//     description: "Total recruiting investment",
+//     icon: Briefcase,
+//     category: "recruiting",
+//   },
+//   {
+//     id: "absenteeism-rate",
+//     label: "Absenteeism Rate",
+//     description: "Unplanned absence tracking",
+//     icon: Calendar,
+//     category: "wellness",
+//   },
+//   {
+//     id: "offer-acceptance",
+//     label: "Offer Acceptance Rate",
+//     description: "Recruiting conversion success",
+//     icon: Target,
+//     category: "recruiting",
+//   },
+//   {
+//     id: "time-to-fill",
+//     label: "Time to Fill",
+//     description: "Days to fill open positions",
+//     icon: Clock,
+//     category: "recruiting",
+//   },
+// ]
 
 // Role-specific KPI recommendations
 const ROLE_KPI_RECOMMENDATIONS = {
@@ -112,6 +113,8 @@ export function KPIsStep() {
     setSelectedKPIs((prev) => (prev.includes(kpiId) ? prev.filter((id) => id !== kpiId) : [...prev, kpiId]))
   }
 
+  const { kpis } = useUserContext()
+
   const handleNext = () => {
     // Store selected KPIs in localStorage
     localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
@@ -129,13 +132,13 @@ export function KPIsStep() {
     router.push(`/dashboard-upload-only?${params.toString()}`)
   }
 
-  const groupedKPIs = AVAILABLE_KPIS.reduce(
+  const groupedKPIs = kpis.reduce(
     (acc, kpi) => {
       if (!acc[kpi.category]) acc[kpi.category] = []
       acc[kpi.category].push(kpi)
       return acc
     },
-    {} as Record<string, typeof AVAILABLE_KPIS>,
+    {} as Record<string, typeof kpis>,
   )
 
   return (
@@ -146,7 +149,7 @@ export function KPIsStep() {
           <CardTitle className="text-lg font-semibold text-blue-900">Which KPIs matter most to you?</CardTitle>
         </div>
         <CardDescription>
-          Select the metrics you track regularly to get personalized insights and automated alerts when trends change.
+          Select all the metrics those you track regularly to get personalized insights and automated alerts when trends change.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -175,7 +178,7 @@ export function KPIsStep() {
                         onChange={() => handleKPIToggle(kpi.id)}
                         className="mt-0.5"
                       />
-                      <IconComponent className="h-4 w-4 text-gray-600 mt-0.5" />
+                      {/* <IconComponent className="h-4 w-4 text-gray-600 mt-0.5" /> */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <p className="text-sm font-medium text-gray-900">{kpi.label}</p>
@@ -197,7 +200,7 @@ export function KPIsStep() {
 
         <div className="bg-gray-50 rounded-lg p-3 mb-4">
           <p className="text-sm text-gray-600">
-            <strong>Selected:</strong> {selectedKPIs.length} of {AVAILABLE_KPIS.length} KPIs. Your dashboard will show
+            <strong>Selected:</strong> {selectedKPIs.length} of {kpis.length} KPIs. Your dashboard will show
             tiles for these metrics, and you can add or remove them later.
           </p>
         </div>

@@ -7,12 +7,33 @@ import { FileUpload } from "@/components/file-upload"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { useUserContext } from "@/contexts/user-context"
+import {
+  ArrowLeft,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Clock,
+  Target,
+  Award,
+  Calendar,
+  Briefcase,
+} from "lucide-react"
+
+interface KpiItem {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ElementType; // since you're storing component references like TrendingDown
+  category: string;
+}
 
 export function FileUploadStep() {
   const { step, setStep, uploadedFile, setUploadedFile, userContext, scenarioConfig } = useOnboarding()
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
+  const {setKpis } = useUserContext()
 
   const handleFileUpload = (file: File, metadata: any) => {
     setUploadedFile({ file, metadata })
@@ -72,26 +93,57 @@ export function FileUploadStep() {
     setStep(targetStep)
   }
 
-  const handleContinue = () => {
-    const params = new URLSearchParams({
-      persona: userContext?.persona || "hr-generalist",
-      company: userContext?.company || "default",
-      hasFile: "true",
-      onboarding: "completed",
-      showWelcome: "true",
-    })
+  const handleContinue = async() => {
 
-    let dashboardUrl
-    if (uploadedFile?.metadata?.isSample) {
-      params.set("sampleFile", "true")
-      params.set("company", "Sharp Median")
-      dashboardUrl = `/dashboard-uo-2?${params.toString()}`
-    } else {
-      params.set("company", "HealthServ")
-      dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-    }
+    // Create KPIs
+    const resCreateKPIs = await fetch(
+      "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: localStorage.getItem("user_id"),
+          session_id: localStorage.getItem("session_id"),
+        }),
+      }
+    );
+    if (!resCreateKPIs.ok) throw new Error("Failed to Create KPIs");
+    const data = await resCreateKPIs.json();
+    console.log("Successfully created KPIs. Result is ", JSON.stringify(data))
+    // ✅ Parse the string inside `body`
+    const parsedBody = JSON.parse(data.body);
+    console.log("Parsed body:", parsedBody);
+    console.log("KPI Questions are:", parsedBody.kpi_items);
 
-    router.push(dashboardUrl)
+    // Transform kpi_items to include actual icon components
+  const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
+    ...item,
+    icon: Clock, // fallback to Clock
+  }));
+
+    // ✅ Set KPIs from parsed response
+    // setKpis(parsedBody.kpi_items);
+    setKpis(kpisWithIcons);
+    skipToStep(3)
+    // const params = new URLSearchParams({
+    //   persona: userContext?.persona || "hr-generalist",
+    //   company: userContext?.company || "default",
+    //   hasFile: "true",
+    //   onboarding: "completed",
+    //   showWelcome: "true",
+    // })
+
+    // let dashboardUrl
+    // if (uploadedFile?.metadata?.isSample) {
+    //   params.set("sampleFile", "true")
+    //   params.set("company", "Sharp Median")
+    //   dashboardUrl = `/dashboard-uo-2?${params.toString()}`
+    // } else {
+    //   params.set("company", "HealthServ")
+    //   dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    // }
+
+    // router.push(dashboardUrl)
   }
 
   const resetSelection = () => {
@@ -280,8 +332,8 @@ export function FileUploadStep() {
                 Skip file upload
               </Button>
               <Button
-                // onClick={handleContinue}
-                onClick={() => skipToStep(3)}
+                onClick={handleContinue}
+                // onClick={() => skipToStep(3)}
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
                 disabled={!uploadedFile && !hasBrowsedFiles}
               >

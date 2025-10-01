@@ -181,6 +181,7 @@ export function FileUpload({
       const data2 = await resCreateAthena.json();
       console.log("Successfully converted athena table. Result is ", JSON.stringify(data1))
 
+      localStorage.setItem("session_id", uuid)
 
       // setStatus({
       //   type: "success",

@@ -1,0 +1,102 @@
+{
+  "user_id": "123456",
+  "session_id": "6b3ad016-214c-4b86-a51c-e46d7be404fd",
+  "file_name": "SharpMedian.csv",
+  "headers": [
+    "Employee ID",
+    "Employee Status",
+    "Employee Type",
+    "Employee Name",
+    "Original Hire Date",
+    "Last Hire Date",
+    "Seniority Date",
+    "Termination Date",
+    "Termination Reason Code",
+    "Termination Reason",
+    "Termination Type",
+    "Company",
+    "Organization",
+    "Department",
+    "Job Code",
+    "Job Title",
+    "Supervisor Employee Number",
+    "Supervisor Name",
+    "Location",
+    "Region",
+    "Address - Work",
+    "City - Work",
+    "StateOrProvince - Work",
+    "PostalCode - Work",
+    "Country - Work",
+    "Address - Home",
+    "City - Home",
+    "StateOrProvince - Home",
+    "PostalCode - Home",
+    "Country - Home",
+    "Salary or Hourly",
+    "Hourly Rate",
+    "Annual Salary",
+    "Local Currency Code",
+    "Gender",
+    "Ethnicity",
+    "Date of Birth",
+    "Email Address",
+    "RemoteFlag"
+  ],
+  "kpi_questions": [
+    {
+      "category": "Turnover & Retention",
+      "questions": [
+        "What is the overall employee turnover rate by department and region?",
+        "What are the top 3 termination reasons contributing to voluntary vs involuntary turnover?",
+        "Which departments have the highest turnover rate within the first year of employment?",
+        "What is the average employee tenure by job title and employee type?"
+      ]
+    },
+    {
+      "category": "Workforce Composition",
+      "questions": [
+        "What is the distribution of employee types (full-time, part-time, contract) across departments?",
+        "What percentage of the workforce works remotely vs on-site by location and job title?",
+        "How many employees are currently active vs terminated by organization and region?",
+        "What is the headcount growth trend based on hire dates by quarter and year?"
+      ]
+    },
+    {
+      "category": "Diversity & Inclusion",
+      "questions": [
+        "What is the gender distribution across different job titles and seniority levels?",
+        "How diverse is the leadership team (supervisors) in terms of gender and ethnicity?",
+        "What is the ethnic diversity breakdown by department and location?",
+        "Are there gender pay gaps within the same job titles when controlling for seniority?"
+      ]
+    },
+    {
+      "category": "Compensation Analysis",
+      "questions": [
+        "What is the average annual salary by department, job title, and region?",
+        "How does compensation compare between employee types (salary vs hourly) across departments?",
+        "What is the salary range distribution for each job title and how does it vary by location?",
+        "Is there compensation parity between genders and ethnicities within the same job codes?"
+      ]
+    },
+    {
+      "category": "Organizational Structure",
+      "questions": [
+        "What is the average span of control (direct reports) per supervisor across departments?",
+        "How many organizational layers exist from entry-level to top management?",
+        "Which locations and regions have the largest employee concentrations?",
+        "What is the distribution of employees across different companies and organizations?"
+      ]
+    },
+    {
+      "category": "Workforce Demographics",
+      "questions": [
+        "What is the average age of employees by department and job title?",
+        "What percentage of the workforce is approaching retirement age (55+) by department?",
+        "How does the age distribution differ between remote and on-site workers?",
+        "What is the geographic distribution of employees' home locations vs work locations?"
+      ]
+    }
+  ]
+}

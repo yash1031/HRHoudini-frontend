@@ -45,7 +45,7 @@ export const MinimalChatInput = forwardRef<MinimalChatInputRef, MinimalChatInput
 
     const handleSend = async (messageToSend?: string) => {
       const message = messageToSend || input.trim()
-      console.log("Message to be send is", messageToSend)
+      console.log("The Message to be send is", messageToSend)
       // if (!message || isLoading) return
 
       // setIsLoading(true)
@@ -193,7 +193,7 @@ export const MinimalChatInput = forwardRef<MinimalChatInputRef, MinimalChatInput
                 />
               </div>
               <Button
-                onClick={handleSend}
+                onClick={(e) => handleSend("Hello Brother")}
                 disabled={!input.trim() || isLoading}
                 size="lg"
                 className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold rounded-xl shadow-lg border-2 border-white/20 transition-all duration-200"
