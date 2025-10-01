@@ -1,28 +1,25 @@
 "use client"
 import type React from "react"
 import { NavigationHeader } from "@/components/navigation-header"
-import { useEffect } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function DashboardUploadOnlyLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-    // const [userName, setUserName] = useState(localStorage.getItem("user_name"));
-    // const [userName, setUserName] = useState("Maya Jackson");
+    const [userName, setUserName] = useState<string>("")
 
-  // useEffect(() => {
-  //   // Runs only in the browser
-  //   const storedName = localStorage.getItem("user_name");
-  //   if (storedName) {
-  //     setUserName(storedName);
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedName = localStorage.getItem("user_name")
+      setUserName(storedName || "Maya Jackson")
+    }
+  }, [])
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* <NavigationHeader userName={localStorage.getItem("user_name")|| "Maya Jackson"} /> */}
-      <NavigationHeader userName={"Maya Jackson"} />
+      <NavigationHeader userName={userName || "Maya Jackson"} />
+      {/* <NavigationHeader userName={"Maya Jackson"} /> */}
       <main className="flex-1">{children}</main>
     </div>
   )
