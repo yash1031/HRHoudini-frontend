@@ -286,6 +286,7 @@ export default function UploadOnlyDashboard() {
         "What insights can you provide for our next leadership meeting?",
       ]
 
+      
   if (designVersion === "v2") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 pb-24">

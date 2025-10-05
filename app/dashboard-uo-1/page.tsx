@@ -1,12 +1,13 @@
 "use client"
 
-import type React from "react"
+// import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Script from 'next/script'
 import {
   Users,
   TrendingUp,
@@ -22,6 +23,18 @@ import {
 import { ChatInterface } from "@/components/chat-interface"
 import { HeroInsightsTile } from "@/components/hero-insights-tile"
 import { getDashboardConfig, saveDashboardConfig, getDefaultDashboardConfig } from "@/lib/dashboard-config"
+import { useDashboard } from '@/contexts/DashboardContext';
+import { Loader2 } from 'lucide-react';
+import * as Recharts from 'recharts'
+import * as LucideIcons from 'lucide-react'
+
+declare global {
+  interface Window {
+    React: typeof React;
+    Recharts: typeof Recharts;
+    LucideIcons: typeof LucideIcons;
+  }
+}
 
 const FileProcessingTooltip = ({
   children,
@@ -82,6 +95,11 @@ export default function DashboardUO1() {
   const [chatHeight, setChatHeight] = useState(400)
   const [employeeData, setEmployeeData] = useState<any[]>([])
   const kpiGridRef = useRef<HTMLDivElement>(null)
+  const { dashboardCode, setDashboardCode, isLoading, errorDash } = useDashboard();
+  const [isDashboardCode, setIsDashboardCode]= useState<boolean>(false)
+  const EmptyComponent: React.FC = () => <div />;
+  const [DynamicComponent, setDynamicComponent] = useState<React.ComponentType>(() => EmptyComponent);
+  
 
   const designVersion = searchParams.get("design") || "v1"
 
@@ -145,7 +163,7 @@ export default function DashboardUO1() {
         setLoading(false)
       }
     }
-
+    setDashboardCode(localStorage.getItem("component_code"))
     loadDashboardData()
   }, [])
 
@@ -489,21 +507,113 @@ export default function DashboardUO1() {
     "What insights can you provide for our next leadership meeting?",
   ]
 
+    useEffect(() => {
+
+      if(!dashboardCode) return;
+    // Make dependencies globally available
+    window.React = React;
+    window.Recharts = Recharts;
+    window.LucideIcons = LucideIcons;
+
+    const loadDashboard = async () => {
+      console.log("loadDashboard is running")
+      try {
+        
+        // *** ADD THIS LINE - Strip import statements ***
+      let code = dashboardCode.replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '');
+      
+      // Also remove 'export default' if present
+      code = code.replace(/export\s+default\s+/g, '');
+
+        // Add code to destructure from window
+        const setupCode = `
+          const { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } = window.Recharts;
+          const { Users, UserCheck, UserX, Briefcase, MapPin, DollarSign, TrendingUp, Home } = window.LucideIcons;
+          const React = window.React;
+        `;
+        
+        // Combine and execute
+         // Use Babel to transform JSX
+        const { Babel } = window as any;
+        if (!Babel) {
+          console.error('Babel not loaded');
+          return;
+        }
+        
+        const transformed = Babel.transform(setupCode + code, {
+          presets: ['react']
+        }).code;
+        
+        const Component = eval(`(() => { ${transformed}; return Generated_Dashboard; })()`)
+        setDynamicComponent(() => Component)
+        
+        setDynamicComponent(() => Component)
+      } catch (err) {
+        console.error('Error loading dashboard:', err)
+        // setError(err.message)
+      } finally {
+        // setIsLoading(false)
+        console.log("All is done well you should see dashboard")
+      }
+    }
+
+    loadDashboard()
+
+    // Cleanup
+      // return () => {
+      //   delete window.React
+      //   delete window.Recharts
+      //   delete window.LucideIcons
+      // }
+  }, [dashboardCode])
+
   return (
+    <>
+    <Script 
+        src="https://unpkg.com/@babel/standalone/babel.min.js"
+        strategy="beforeInteractive"
+        onLoad={() => console.log('Babel loaded')}
+      />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       {/* DesignVersionToggle is hidden */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-6">
         {/* Hero Insights Tile */}
-        {employeeData.length > 0 && (
+        {/* {employeeData.length > 0 && (
           <div className="mb-8">
             <HeroInsightsTile employeeData={employeeData} onPromptClick={handlePromptClick} />
           </div>
-        )}
+        )} */}
+        { isLoading?
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-slate-600">Generating your dashboard...</p>
+              </div>
+            </div>:
+      
+
+        errorDash?
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <p className="text-red-600">{errorDash}</p>
+              </div>
+            </div>:
+
+        // Pass the component code from API to GeneratedDashboard
+        
+        // {!isLoading && !errorDash && DynamicComponent && (
+        <DynamicComponent />
+        // )}
+        //  <Generated_Dashboard componentCode={dashboardCode} />
+          // <Generated_Dashboard_Static></Generated_Dashboard_Static>
+        }
+
+        {/* <Generated_Dashboard_Static></Generated_Dashboard_Static> */}
 
         {/* KPI Grid */}
-        <div ref={kpiGridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* <div ref={kpiGridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {renderKPITiles()}
-        </div>
+        </div> */}
 
         {/* Chat Interface */}
         <div className="w-full">
@@ -567,5 +677,6 @@ export default function DashboardUO1() {
         </div>
       )}
     </div>
+    </>
   )
 }

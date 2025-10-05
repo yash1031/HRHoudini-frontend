@@ -54,53 +54,26 @@ export const MinimalChatInput = forwardRef<MinimalChatInputRef, MinimalChatInput
       setCurrentQuestion(message)
 
       try {
-        // const res = await fetch("/api/chat", {
-        //   method: "POST",
-        //   headers: {
-        //     "Content-Type": "application/json",
-        //   },
-        //   body: JSON.stringify({
-        //     message: message,
-        //     context: {
-        //       company: "Sharp Median",
-        //       persona: "hr-analyst",
-        //     },
-        //   }),
-        // })
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: message,
+            context: {
+              company: "Sharp Median",
+              persona: "hr-analyst",
+            },
+          }),
+        })
 
-        // if (!res.ok) {
-        //   // setResponse("It contains 380 records")
-        //   console.log("Failed to get the response as per expectations")
-        //   // throw new Error("Failed to get response from server")
-        // }
+        if (!res.ok) {
+          throw new Error("Failed to get response")
+        }
 
-        // const data = await res.json()
-        // console.log("Response to sample question is", data.message);
-        // setResponse(data.message)
-
-        const response = await fetch(
-          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/nl-to-athena",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              question: message,
-              // user_id: "41ec5a3d-b522-4b86-aae8-6f4cfc658b8d",
-              // session_id: "7db0da0c-0e88-40ec-a514-7f40919cb305"
-              user_id: localStorage.getItem("user_id"),
-              session_id: localStorage.getItem("session_id")
-            }),
-          }
-        );
-
-      if (!response.ok) throw new Error("Failed to get response for the query");
-
-      const data = await response.json();
-      const queryResponse = await JSON.parse(data.body);
-      console.log("queryResponse is", queryResponse.natural_language_response)
-      setResponse(queryResponse.natural_language_response)
-      // setResponse(queryResponse)
-        return;
+        const data = await res.json()
+        setResponse(data.message)
 
         try {
           await fetch("/api/chat-history", {

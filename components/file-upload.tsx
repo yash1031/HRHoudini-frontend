@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
 import { v4 as uuidv4 } from "uuid";
+import { useDashboard } from '@/contexts/DashboardContext';
 import { useUserContext } from "@/contexts/user-context"
 import {
   ArrowLeft,
@@ -71,6 +72,7 @@ export function FileUpload({
   const [error, setError] = useState<string | null>(null)
   const [uuid] = useState<string>(uuidv4());
   const {setKpis } = useUserContext()
+  const { setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
 
   // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
@@ -167,6 +169,20 @@ export function FileUpload({
       setFileMetadata(metadata)
       setUploadedFile(file)
 
+      // 5. Create KPIs
+      const resCreateKPIs = fetch(
+        "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: localStorage.getItem("user_id"),
+            session_id: uuid,
+            column_headers: columns
+          }),
+        }
+      );
+
       // 1️⃣ Get presigned URL
       const response = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/upload-docs",
@@ -188,16 +204,17 @@ export function FileUpload({
       const data = await response.json();
       console.log("Data after generating presigned URL is ", JSON.stringify(data))
       const body = JSON.parse(data.body);
-      const { uploadUrl, sessionId, fileKey } = body;
-      console.log("uploadUrl", uploadUrl, "sessionId", sessionId, "fileKey", fileKey)
+      const { uploadUrl, s3Key } = body;
+      console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
       // setSessionId(sessionId);
-
+      localStorage.setItem("s3Key", s3Key)
 
       // 2️⃣ Upload file with progress
       await uploadFileWithProgress(uploadUrl, file, file.type);
 
       setUploadProgress(40)
-      // Convert CSV to parquet
+
+      // 3. Convert CSV to parquet
       const resCSVToParq = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/csv-parquet-processor",
         {
@@ -216,7 +233,7 @@ export function FileUpload({
       console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
       setUploadProgress(60)
 
-      // Create Athena Table
+      // 4. Create Athena Table
       const resCreateAthena = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/create-athena-ddl",
         {
@@ -236,37 +253,58 @@ export function FileUpload({
       setUploadProgress(80)
       localStorage.setItem("session_id", uuid)
 
-      // Create KPIs
-    const resCreateKPIs = await fetch(
-      "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: localStorage.getItem("user_id"),
-          session_id: localStorage.getItem("session_id"),
-        }),
-      }
-    );
-    if (!resCreateKPIs.ok) throw new Error("Failed to Create KPIs");
-    const data3 = await resCreateKPIs.json();
-    console.log("Successfully created KPIs. Result is ", JSON.stringify(data))
+      const fileName= file.name.toLowerCase().split(".")[0]
+      const first8_session_id = uuid.substring(0, 8)
+      const table_name= fileName+ '_' + first8_session_id
+
+      console.log("table_name is", table_name)
+
+    //   // 5. Create KPIs
+    // const resCreateKPIs = await fetch(
+    //   "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
+    //   {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({
+    //       user_id: localStorage.getItem("user_id"),
+    //       session_id: localStorage.getItem("session_id"),
+    //     }),
+    //   }
+    // );
+    const data3 = await resCreateKPIs;
+    if (!data3.ok) throw new Error("Failed to Create KPIs");
+    const kpisData=   await data3.json();
+    console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
     // ✅ Parse the string inside `body`
-    const parsedBody = JSON.parse(data3.body);
+    const parsedBody = JSON.parse(kpisData.body);
     console.log("Parsed body:", parsedBody);
     console.log("KPI Questions are:", parsedBody.kpi_items);
 
     // Transform kpi_items to include actual icon components
-  const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
-    ...item,
-    icon: Clock, // fallback to Clock
-  }));
+    const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
+      ...item,
+      icon: Clock, // fallback to Clock
+    }));
 
-    // ✅ Set KPIs from parsed response
-    // setKpis(parsedBody.kpi_items);
-    setKpis(kpisWithIcons);
+      // ✅ Set KPIs from parsed response
+      // setKpis(parsedBody.kpi_items);
+      setKpis(kpisWithIcons);
 
-    setUploadProgress(100)
+      setUploadProgress(100)
+
+      // // Insights Dashboard Generation
+      // const resCreateDashboard = fetch(
+      //   "https://v36uzfxwsrpukszsof3d2aczzi0xuqeo.lambda-url.us-east-1.on.aws/",
+      //   {
+      //     method: "POST",
+      //     // headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify({
+      //       s3_file_key: s3Key,
+      //     }),
+      //   }
+      // );
+
+      // setIsLoading(true)
 
       // setStatus({
       //   type: "success",
@@ -275,6 +313,24 @@ export function FileUpload({
 
       // Call the parent callback
       onFileUpload(file, metadata)
+
+      // const createDashboardData = await resCreateDashboard;
+      // const dataCreateDashboard = await createDashboardData.json();
+      
+      // if (dataCreateDashboard.success && dataCreateDashboard.component_code) {
+      //   // THIS IS THE KEY LINE - Pass the code to context
+      //   setIsLoading(false)
+      //   localStorage.setItem("component_code", dataCreateDashboard.component_code)
+      //   setDashboardCode(dataCreateDashboard.component_code);
+      //   console.log("Component code received")
+        
+      //   // Navigate to dashboard page
+      //   // navigate('/dashboard');
+      // } else {
+      //   setIsLoading(false)
+      //   setErrorDash('Failed to generate dashboard');
+      // }
+
     } catch (err) {
       setError("Failed to process file. Please try again.")
       console.error("File processing error:", err)

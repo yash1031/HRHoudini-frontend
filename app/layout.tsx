@@ -8,6 +8,7 @@ import { UserContextProvider } from "@/contexts/user-context"
 // import { AmplifyProvider } from "@/components/AmplifyProvider"
 import { Amplify, ResourcesConfig } from 'aws-amplify';
 import amplifyConfig from '../lib/amplify-config';
+import { DashboardProvider } from '@/contexts/DashboardContext';
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,7 +32,8 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* <AmplifyProvider> */}
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <UserContextProvider>{children}</UserContextProvider>
+            <UserContextProvider>
+              <DashboardProvider>{children}</DashboardProvider></UserContextProvider>
           </ThemeProvider>
         {/* </AmplifyProvider> */}
       </body>

@@ -20,81 +20,93 @@ import {
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
 import { useUserContext } from "@/contexts/user-context"
+import { useDashboard } from '@/contexts/DashboardContext';
 
 // Available KPI panels
-// const AVAILABLE_KPIS = [
-//   {
-//     id: "turnover-rate",
-//     label: "Turnover Rate",
-//     description: "Monthly/quarterly employee turnover",
-//     icon: TrendingDown,
-//     category: "retention",
-//   },
-//   {
-//     id: "employee-productivity",
-//     label: "Employee Productivity Rate",
-//     description: "Output per employee metrics",
-//     icon: TrendingUp,
-//     category: "performance",
-//   },
-//   {
-//     id: "salary-increase",
-//     label: "Salary Increase Rate",
-//     description: "Compensation growth trends",
-//     icon: DollarSign,
-//     category: "compensation",
-//   },
-//   {
-//     id: "engagement-score",
-//     label: "Employee Engagement Score",
-//     description: "Survey-based engagement metrics",
-//     icon: Users,
-//     category: "engagement",
-//   },
-//   {
-//     id: "training-cost",
-//     label: "Training Cost Per Employee",
-//     description: "L&D investment per person",
-//     icon: Award,
-//     category: "development",
-//   },
-//   {
-//     id: "revenue-per-employee",
-//     label: "Revenue Per Employee",
-//     description: "Business impact per person",
-//     icon: DollarSign,
-//     category: "business",
-//   },
-//   {
-//     id: "cost-per-hire",
-//     label: "Cost Per Hire",
-//     description: "Total recruiting investment",
-//     icon: Briefcase,
-//     category: "recruiting",
-//   },
-//   {
-//     id: "absenteeism-rate",
-//     label: "Absenteeism Rate",
-//     description: "Unplanned absence tracking",
-//     icon: Calendar,
-//     category: "wellness",
-//   },
-//   {
-//     id: "offer-acceptance",
-//     label: "Offer Acceptance Rate",
-//     description: "Recruiting conversion success",
-//     icon: Target,
-//     category: "recruiting",
-//   },
-//   {
-//     id: "time-to-fill",
-//     label: "Time to Fill",
-//     description: "Days to fill open positions",
-//     icon: Clock,
-//     category: "recruiting",
-//   },
-// ]
+const AVAILABLE_KPIS = [
+  {
+    id: "turnover-rate",
+    label: "Turnover Rate",
+    description: "Monthly/quarterly employee turnover",
+    icon: TrendingDown,
+    category: "retention",
+  },
+  {
+    id: "employee-productivity",
+    label: "Employee Productivity Rate",
+    description: "Output per employee metrics",
+    icon: TrendingUp,
+    category: "performance",
+  },
+  {
+    id: "salary-increase",
+    label: "Salary Increase Rate",
+    description: "Compensation growth trends",
+    icon: DollarSign,
+    category: "compensation",
+  },
+  {
+    id: "engagement-score",
+    label: "Employee Engagement Score",
+    description: "Survey-based engagement metrics",
+    icon: Users,
+    category: "engagement",
+  },
+  {
+    id: "training-cost",
+    label: "Training Cost Per Employee",
+    description: "L&D investment per person",
+    icon: Award,
+    category: "development",
+  },
+  {
+    id: "revenue-per-employee",
+    label: "Revenue Per Employee",
+    description: "Business impact per person",
+    icon: DollarSign,
+    category: "business",
+  },
+  {
+    id: "cost-per-hire",
+    label: "Cost Per Hire",
+    description: "Total recruiting investment",
+    icon: Briefcase,
+    category: "recruiting",
+  },
+  {
+    id: "absenteeism-rate",
+    label: "Absenteeism Rate",
+    description: "Unplanned absence tracking",
+    icon: Calendar,
+    category: "wellness",
+  },
+  {
+    id: "offer-acceptance",
+    label: "Offer Acceptance Rate",
+    description: "Recruiting conversion success",
+    icon: Target,
+    category: "recruiting",
+  },
+  {
+    id: "time-to-fill",
+    label: "Time to Fill",
+    description: "Days to fill open positions",
+    icon: Clock,
+    category: "recruiting",
+  },
+]
 
+interface SelectedKPIInfo {
+  label: string;
+  description: string;
+}
+interface KPI {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  category: string;
+}
 // Role-specific KPI recommendations
 const ROLE_KPI_RECOMMENDATIONS = {
   "hr-generalist": ["turnover-rate", "engagement-score", "cost-per-hire", "absenteeism-rate", "salary-increase"],
@@ -104,20 +116,45 @@ const ROLE_KPI_RECOMMENDATIONS = {
 
 export function KPIsStep() {
   const { setStep, userContext, scenarioConfig, uploadedFile } = useOnboarding()
+  const { setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
     ROLE_KPI_RECOMMENDATIONS[userContext.role as keyof typeof ROLE_KPI_RECOMMENDATIONS] || [],
   )
+  // State to hold full info (label + description)
+  const [selectedKPIWithDesc, setSelectedKPIWithDesc] = useState<SelectedKPIInfo[]>([]);
 
   const handleKPIToggle = (kpiId: string) => {
     setSelectedKPIs((prev) => (prev.includes(kpiId) ? prev.filter((id) => id !== kpiId) : [...prev, kpiId]))
+    setSelectedKPIWithDesc((prev) => {
+    // Get currently selected KPIs after toggle
+    const updatedSelected =
+      selectedKPIs.includes(kpiId)
+        ? selectedKPIs.filter((id) => id !== kpiId)
+        : [...selectedKPIs, kpiId];
+
+    // Build detail objects from global kpis array
+    const selectedDetails = updatedSelected
+      .map((id) => kpis.find((kpi) => kpi.id === id))
+      .filter((kpi) => !!kpi)
+      .map(({ label, description }) => ({ label, description }));
+
+    return selectedDetails;
+  });
   }
 
   const { kpis } = useUserContext()
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // Store selected KPIs in localStorage
+    // const selectedDetails = selectedKPIs
+    //   .map((id) => kpis.find((kpi) => kpi.id === id))
+    //   .filter((kpi) => !!kpi) // Type guard to remove undefineds
+    //   .map(({ label, description }) => ({ label, description }));
+
+    // setSelectedKPIWithDesc(selectedDetails);
     localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
+    localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
 
     // Navigate to dashboard-upload-only with specified parameters
     const params = new URLSearchParams({
@@ -128,6 +165,50 @@ export function KPIsStep() {
       showWelcome: "true",
       challenges: "[object+Object],[object+Object],[object+Object],[object+Object],[object+Object],[object+Object]",
     })
+
+    // console.log("kpis", kpis)
+    // console.log("AVAILABLE_KPIS", AVAILABLE_KPIS)
+
+    if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
+      console.log("API Dashboard call is in progress")
+      console.log("Selected KPIs are", selectedKPIs)
+      // Insights Dashboard Generation
+      const resCreateDashboard = fetch(
+        "https://v36uzfxwsrpukszsof3d2aczzi0xuqeo.lambda-url.us-east-1.on.aws/",
+        {
+          method: "POST",
+          // headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            s3_file_key: localStorage.getItem("s3Key"),
+            // selected_kpis: selectedKPIWithDesc
+          }),
+        }
+      );
+
+      setIsLoading(true)
+      params.set("company", "HealthServ")
+      params.set("hasFile", "true")
+      let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+      router.push(dashboardUrl)
+
+      const createDashboardData = await resCreateDashboard;
+      const dataCreateDashboard = await createDashboardData.json();
+      
+      if (dataCreateDashboard.success && dataCreateDashboard.component_code) {
+        // THIS IS THE KEY LINE - Pass the code to context
+        setIsLoading(false)
+        localStorage.setItem("component_code", dataCreateDashboard.component_code)
+        setDashboardCode(dataCreateDashboard.component_code);
+        console.log("API Dashboard call is completed")
+        
+        // Navigate to dashboard page
+        // navigate('/dashboard');
+      } else {
+        setIsLoading(false)
+        setErrorDash('Failed to generate dashboard');
+      }
+      return
+    }
 
     router.push(`/dashboard-upload-only?${params.toString()}`)
   }

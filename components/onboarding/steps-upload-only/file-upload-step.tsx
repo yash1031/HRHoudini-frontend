@@ -95,27 +95,25 @@ export function FileUploadStep() {
 
   const handleContinue = async() => {
 
-    
-    skipToStep(3)
-    // const params = new URLSearchParams({
-    //   persona: userContext?.persona || "hr-generalist",
-    //   company: userContext?.company || "default",
-    //   hasFile: "true",
-    //   onboarding: "completed",
-    //   showWelcome: "true",
-    // })
+    const params = new URLSearchParams({
+      persona: userContext?.persona || "hr-generalist",
+      company: userContext?.company || "default",
+      hasFile: "true",
+      onboarding: "completed",
+      showWelcome: "true",
+    })
 
-    // let dashboardUrl
-    // if (uploadedFile?.metadata?.isSample) {
-    //   params.set("sampleFile", "true")
-    //   params.set("company", "Sharp Median")
-    //   dashboardUrl = `/dashboard-uo-2?${params.toString()}`
-    // } else {
-    //   params.set("company", "HealthServ")
-    //   dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-    // }
+    let dashboardUrl
+    if (uploadedFile?.metadata?.isSample) {
+      params.set("sampleFile", "true")
+      params.set("company", "Sharp Median")
+      dashboardUrl = `/dashboard-uo-2?${params.toString()}`
+    } else {
+      params.set("company", "HealthServ")
+      dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    }
 
-    // router.push(dashboardUrl)
+    router.push(dashboardUrl)
   }
 
   const resetSelection = () => {
@@ -304,8 +302,8 @@ export function FileUploadStep() {
                 Skip file upload
               </Button>
               <Button
-                onClick={handleContinue}
-                // onClick={() => skipToStep(3)}
+                // onClick={handleContinue}
+                onClick={() => skipToStep(3)}
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
                 disabled={!uploadedFile && !hasBrowsedFiles}
               >

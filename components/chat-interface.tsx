@@ -73,17 +73,38 @@ export function ChatInterface({
     setInput("")
     setIsLoading(true)
 
+    const response = await fetch(
+          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/nl-to-athena",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: messageToSend,
+              user_id: localStorage.getItem("user_id"),
+              session_id: localStorage.getItem("session_id")
+            }),
+          }
+        );
+
+      if (!response.ok) throw new Error("Failed to get response for the query");
+
+      const data = await response.json();
+      const queryResponse = await JSON.parse(data.body);
+      console.log("queryResponse is", queryResponse.natural_language_response)
+      // setResponse(queryResponse.natural_language_response)
+
     // Simulate AI response
-    setTimeout(() => {
+    // setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
+        // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
+        content: queryResponse.natural_language_response,
         sender: "assistant",
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-    }, 1500)
+    // }, 1500)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
