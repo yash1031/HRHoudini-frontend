@@ -156,7 +156,7 @@ export default function HomePage() {
           company: "HealthServ Solutions",
           role: "hr-generalist---upload-only",
           onboarding: "true",
-        })
+  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -167,7 +167,7 @@ export default function HomePage() {
           </div>
           <p className="text-xl text-gray-600 mb-6">Transform your HR data into actionable insights</p>
           <div className="flex items-center justify-center space-x-4">
-            <Link href={isUserLoggedIn? `/onboarding-upload-only?${paramsDemoPerson.toString()}`: "/login"}>
+            <Link href={isUserLoggedIn? `/onboarding-upload-only?${localStorage.getItem("loggedInUser") || paramsDemoPerson.toString()}`: "/login"}>
               <Button size="lg" className="bg-blue-500 hover:bg-blue-600">
                 <BarChart3 className="w-5 h-5 mr-2" />
                 Account Creation & Sign-In

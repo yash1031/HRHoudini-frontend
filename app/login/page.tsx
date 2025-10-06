@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,6 +46,15 @@ export default function LoginPage() {
   const [emailExistError, setEmailExistError] = useState("");
   const [emailNotExistError, setEmailNotExistError] = useState("");
   const { setIsUserGoogleLoggedIn } = useUserContext()
+  // const paramsDemoPerson = useRef<URLSearchParams>(
+  //   new URLSearchParams({
+  //     name: "Maya Jackson",
+  //     email: "maya.jackson@healthserv.com",
+  //     company: "HealthServ Solutions",
+  //     role: "hr-generalist---upload-only",
+  //     onboarding: "true",
+  //   })
+  // );
 
   const [isVerifying, setIsVerifying] = useState(false);
   const [formData, setFormData] = useState({
@@ -118,7 +127,7 @@ export default function LoginPage() {
           // Check if this is a persona login that should go to onboarding
           setEmailNotExistError("");
         }, 5000)
-        console.error("Sign-in error: Account does");
+        console.error("Sign-in error: Account does not exists");
       }
     }catch (err) {
       console.error("Unexpected error:", err);
@@ -143,14 +152,6 @@ export default function LoginPage() {
 
   const handleCreateAccount = () => {
     setIsSignup(true)
-    // After a brief delay, animate back to login with persona email
-    // setTimeout(() => {
-    //   setIsSignup(false)
-    //   // Keep the selected persona email if one was chosen
-    //   if (selectedPersona) {
-    //     // Email is already set from persona selection
-    //   }
-    // }, 2000)
   }
 
   const handleBackToLogin = () => {
@@ -224,7 +225,15 @@ export default function LoginPage() {
         localStorage.setItem("access_token", data.access_token)
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
-        window.location.href = `/onboarding-upload-only?${paramsDemoPerson.toString()}`;
+        const loggedInUser = new URLSearchParams({
+          name: `${data.first_name} ${data.last_name}`,
+          email: email,
+          company: "HealthServ Solutions",
+          role: "hr-generalist---upload-only",
+          onboarding: "true",
+        });
+        localStorage.setItem("loggedInUser", loggedInUser.toString());
+        window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
         setIsVerifying(false);
         console.log("Magic code verified successfully")
       } else {
@@ -562,69 +571,6 @@ export default function LoginPage() {
                     </CardContent>
                   </div>
                 )}
-
-                {/* --- Success Screen --- */}
-                {/* {!isSignup && magicCodeRequested && isCodeVerRequest && (
-                  <div className="transition-all duration-700 opacity-100 scale-100">
-                    <CardHeader className="text-center pb-2">
-                      <div className="mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                        <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      
-                      <CardTitle className="text-2xl font-bold text-gray-900 mb-2">Login Successful!</CardTitle>
-                      <CardDescription className="text-gray-600">
-                        Welcome back, Yash Goyal!
-                      </CardDescription>
-                    </CardHeader>
-                    
-                    <CardContent className="w-full space-y-6">
-                      <div className="space-y-4">
-                        <div className="flex items-start space-x-2">
-                          <svg className="w-4 h-4 text-gray-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">User Information</p>
-                            <p className="text-sm text-gray-600">Email: {email}</p>
-                            <p className="text-sm text-gray-600">Session expires: 2025-09-27T14:46:35.526123</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                        <div className="flex items-start">
-                          <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="ml-2">
-                            <p className="text-sm text-green-700">
-                              Your session is now securely stored and protected from XSS attacks.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex space-x-3">
-                        <Button
-                          variant="outline"
-                          onClick={handleBackToLoginFromMagicCode}
-                          className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
-                        >
-                          Back
-                        </Button>
-                        <Button
-                          onClick={handleContinueToDashboard}
-                          className="flex-1 bg-black hover:bg-gray-800 text-white"
-                        >
-                          Continue to Dashboard
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </div>
-                )} */}
 
                 {/* Signup Form - Back Side */}
                 <div
