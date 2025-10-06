@@ -1,7 +1,6 @@
 "use client"
 
 // import type React from "react"
-
 import React, { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -565,6 +564,7 @@ export default function DashboardUO1() {
       //   delete window.Recharts
       //   delete window.LucideIcons
       // }
+      // the script tag has been updated
   }, [dashboardCode])
 
   return (
