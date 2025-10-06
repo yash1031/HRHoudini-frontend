@@ -571,7 +571,7 @@ export default function DashboardUO1() {
     <>
     <Script 
         src="https://unpkg.com/@babel/standalone/babel.min.js"
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
         onLoad={() => console.log('Babel loaded')}
       />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
