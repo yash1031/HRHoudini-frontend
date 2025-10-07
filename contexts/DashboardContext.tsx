@@ -1,8 +1,53 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// Card structure
+export interface KPICard {
+  id: string;
+  title: string;
+  value: string;
+  field?: string;
+  icon: string;
+  color: string;
+}
+
+// Chart structure
+export interface ChartDataItem {
+  name: string;
+  value: number;
+  percentage?: number;
+}
+
+export interface ChartConfig {
+  id: string;
+  type: "bar" | "pie" | "line" | "horizontalBar";
+  title: string;
+  field: string;
+  icon: string;
+  data: ChartDataItem[];
+  colors: string[];
+}
+
+// Analytics metadata
+export interface AnalyticsMetadata {
+  totalRows: number;
+  totalColumns: number;
+  generatedAt: string;
+  numericFields: number;
+  categoricalFields: number;
+}
+
+// Full dashboard data
+export interface DashboardData {
+  cards: KPICard[];
+  charts: ChartConfig[];
+  metadata: AnalyticsMetadata;
+}
+
 interface DashboardContextType {
   dashboardCode: string | null;
   setDashboardCode: (code: string | null) => void;
+  dashboard_data: DashboardData | null;
+  setDashboard_data: (data: DashboardData | null) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
   errorDash: string | null;
@@ -13,6 +58,7 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [dashboardCode, setDashboardCode] = useState<string | null>(null);
+  const [dashboard_data, setDashboard_data] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorDash, setErrorDash] = useState<string | null>(null);
 
@@ -21,6 +67,8 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       value={{
         dashboardCode,
         setDashboardCode,
+        dashboard_data,
+        setDashboard_data,
         isLoading,
         setIsLoading,
         errorDash,

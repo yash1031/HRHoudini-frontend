@@ -116,7 +116,7 @@ const ROLE_KPI_RECOMMENDATIONS = {
 
 export function KPIsStep() {
   const { setStep, userContext, scenarioConfig, uploadedFile } = useOnboarding()
-  const { setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
+  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
     ROLE_KPI_RECOMMENDATIONS[userContext.role as keyof typeof ROLE_KPI_RECOMMENDATIONS] || [],
@@ -147,12 +147,6 @@ export function KPIsStep() {
 
   const handleNext = async () => {
     // Store selected KPIs in localStorage
-    // const selectedDetails = selectedKPIs
-    //   .map((id) => kpis.find((kpi) => kpi.id === id))
-    //   .filter((kpi) => !!kpi) // Type guard to remove undefineds
-    //   .map(({ label, description }) => ({ label, description }));
-
-    // setSelectedKPIWithDesc(selectedDetails);
     localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
     localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
 
@@ -180,7 +174,7 @@ export function KPIsStep() {
           // headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             s3_file_key: localStorage.getItem("s3Key"),
-            // selected_kpis: selectedKPIWithDesc
+            selected_kpis: selectedKPIWithDesc
           }),
         }
       );
@@ -194,15 +188,12 @@ export function KPIsStep() {
       const createDashboardData = await resCreateDashboard;
       const dataCreateDashboard = await createDashboardData.json();
       
-      if (dataCreateDashboard.success && dataCreateDashboard.component_code) {
+      if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
         // THIS IS THE KEY LINE - Pass the code to context
         setIsLoading(false)
-        localStorage.setItem("component_code", dataCreateDashboard.component_code)
-        setDashboardCode(dataCreateDashboard.component_code);
+        localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
+        setDashboard_data(dataCreateDashboard.analytics);
         console.log("API Dashboard call is completed")
-        
-        // Navigate to dashboard page
-        // navigate('/dashboard');
       } else {
         setIsLoading(false)
         setErrorDash('Failed to generate dashboard');

@@ -23,6 +23,7 @@ import { ChatInterface } from "@/components/chat-interface"
 import { HeroInsightsTile } from "@/components/hero-insights-tile"
 import { getDashboardConfig, saveDashboardConfig, getDefaultDashboardConfig } from "@/lib/dashboard-config"
 import { useDashboard } from '@/contexts/DashboardContext';
+import Generated_Dashboard from './generated_dashboard'
 import { Loader2 } from 'lucide-react';
 import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
@@ -33,6 +34,111 @@ declare global {
     Recharts: typeof Recharts;
     LucideIcons: typeof LucideIcons;
   }
+}
+
+interface sampleData {
+    id: number
+    status: string
+    type: string
+    name: string
+    hireDate: string
+    department: string
+    region: string
+    ethnicity: string
+    location: string
+}[]
+
+interface DataItem {
+  [key: string]: any;
+}
+
+interface FilterConfig {
+  key: string;
+  label: string;
+  dataKey: string;
+  options: string[];
+}
+
+interface ChartDataItem {
+  name?: string;
+  value?: number;
+  [key: string]: any;
+}
+
+interface DrillDownChart {
+  title: string;
+  type: 'bar' | 'pie' | 'line';
+  dataGenerator: (data: DataItem[]) => ChartDataItem[];
+  filterFunction: (item: DataItem, clicked: ChartDataItem) => boolean;
+}
+
+interface KPICard {
+  label: string;
+  icon: string;
+  color: string;
+  description?: string;
+  calculationType: 'count' | 'average' | 'distinct' | 'custom';
+  dataKey?: string;
+  extractValue?: (item: DataItem) => number;
+  format?: (value: number) => string | number;
+  filterCondition?: (item: DataItem) => boolean;
+  calculate?: (data: DataItem[]) => string | number;
+  drillDownChart?: DrillDownChart;
+}
+
+interface ChartDrillDown {
+  titlePrefix?: string;
+  filterFunction: (item: DataItem, clicked: ChartDataItem) => boolean;
+}
+
+interface ChartConfig {
+  title: string;
+  icon: string;
+  type: 'bar' | 'pie' | 'line';
+  color: string;
+  dataKey?: string;
+  xDataKey?: string;
+  yDataKey?: string;
+  valueKey?: string;
+  layout?: 'vertical' | 'horizontal';
+  height?: number;
+  sort?: 'asc' | 'desc';
+  lineName?: string;
+  customDataGenerator?: (data: DataItem[]) => ChartDataItem[];
+  drillDown?: ChartDrillDown;
+}
+
+interface TableColumn {
+  label: string;
+  dataKey: string;
+  className?: string;
+  render?: (value: any, row: DataItem) => React.ReactNode;
+}
+
+interface ModalState {
+  isOpen: boolean;
+  type: 'kpi' | 'detail' | null;
+  data: ChartDataItem[] | DataItem[] | null;
+  title: string;
+  chartType: 'bar' | 'pie' | 'line' | null;
+  drillDownConfig?: DrillDownChart;
+}
+
+interface SecondaryModalState {
+  isOpen: boolean;
+  data: DataItem[] | null;
+  title: string;
+}
+
+interface ConfigurableDashboardProps {
+  title?: string;
+  subtitle?: string;
+  data?: DataItem[];
+  filters?: FilterConfig[];
+  kpiCards?: KPICard[];
+  charts?: ChartConfig[];
+  tableColumns?: TableColumn[];
+  colors?: string[];
 }
 
 const FileProcessingTooltip = ({
@@ -94,11 +200,135 @@ export default function DashboardUO1() {
   const [chatHeight, setChatHeight] = useState(400)
   const [employeeData, setEmployeeData] = useState<any[]>([])
   const kpiGridRef = useRef<HTMLDivElement>(null)
-  const { dashboardCode, setDashboardCode, isLoading, errorDash } = useDashboard();
+  const { dashboard_data, setDashboard_data, dashboardCode, setDashboardCode, isLoading, errorDash } = useDashboard();
+  const [config, setConfig] = useState<ConfigurableDashboardProps | null>(null);
   const [isDashboardCode, setIsDashboardCode]= useState<boolean>(false)
   const EmptyComponent: React.FC = () => <div />;
   const [DynamicComponent, setDynamicComponent] = useState<React.ComponentType>(() => EmptyComponent);
   
+
+  // Generate sample data
+//  const sampleData: DataItem[] = Array.from({ length: 509 }, (_, i) => {
+//     const statuses = ['Active', 'Active', 'Active', 'Terminated'];
+//     const types = ['Full-Time', 'Full-Time', 'Part-Time'];
+//     const departments = ['Sales', 'Customer Service', 'Management', 'Inventory', 'Security', 'Maintenance'];
+//     const regions = ['Northeast', 'Southeast', 'Midwest', 'West'];
+//     const ethnicities = ['White', 'Black', 'Asian', 'Hispanic', 'Other'];
+//     const locations = ['Downtown Boston', 'Miami Beach', 'Chicago Loop', 'Hollywood', 'Times Square', 'Atlanta', 'Seattle', 'Denver'];
+//     const firstNames = ['John', 'Sarah', 'Michael', 'Emily', 'David', 'Jessica', 'James', 'Ashley', 'Robert', 'Amanda'];
+//     const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+    
+//     return {
+//       id: i + 1,
+//       status: statuses[i % statuses.length],
+//       type: types[i % types.length],
+//       name: `${firstNames[i % firstNames.length]} ${lastNames[(i * 3) % lastNames.length]}`,
+//       hireDate: `${Math.floor(Math.random() * 12) + 1}/${Math.floor(Math.random() * 28) + 1}/${2015 + Math.floor(Math.random() * 10)}`,
+//       department: departments[i % departments.length],
+//       region: regions[i % regions.length],
+//       ethnicity: ethnicities[i % ethnicities.length],
+//       location: locations[i % locations.length]
+//     };
+//   });
+
+//   const uniqueDepartments = Array.from(new Set(sampleData.map(r => r.department)));
+//   const uniqueRegions = Array.from(new Set(sampleData.map(r => r.region)));
+//   const uniqueStatuses = Array.from(new Set(sampleData.map(r => r.status)));
+//   const uniqueTypes = Array.from(new Set(sampleData.map(r => r.type)));
+
+  // const config: ConfigurableDashboardProps = {}
+
+  // const config: ConfigurableDashboardProps = {
+  //   title: "Sharp Median Employee Analytics",
+  //   subtitle: "KPI-driven insights with interactive filters",
+  //   data: sampleData,
+  //   filters: [
+  //     { key: 'department', label: 'Department', dataKey: 'department', options: uniqueDepartments },
+  //     { key: 'region', label: 'Region', dataKey: 'region', options: uniqueRegions },
+  //     { key: 'status', label: 'Status', dataKey: 'status', options: uniqueStatuses },
+  //     { key: 'type', label: 'Employee Type', dataKey: 'type', options: uniqueTypes }
+  //   ],
+  //   kpiCards: [
+  //     {
+  //       label: 'Avg Tenure',
+  //       icon: 'TrendingUp',
+  //       color: '#3b82f6',
+  //       description: 'Average years',
+  //       calculationType: 'average',
+  //       dataKey: 'hireDate',
+  //       extractValue: (emp: DataItem) => 2025 - parseInt(emp.hireDate.split('/')[2]),
+  //       format: (val: number) => val.toFixed(1),
+  //       drillDownChart: {
+  //         title: 'Tenure Distribution',
+  //         type: 'bar',
+  //         dataGenerator: (data: DataItem[]) => {
+  //           const ranges: Record<string, number> = { '0-2 yrs': 0, '3-5 yrs': 0, '6-10 yrs': 0, '10+ yrs': 0 };
+  //           data.forEach(emp => {
+  //             const tenure = 2025 - parseInt(emp.hireDate.split('/')[2]);
+  //             if (tenure <= 2) ranges['0-2 yrs']++;
+  //             else if (tenure <= 5) ranges['3-5 yrs']++;
+  //             else if (tenure <= 10) ranges['6-10 yrs']++;
+  //             else ranges['10+ yrs']++;
+  //           });
+  //           return Object.entries(ranges).map(([name, value]) => ({ name, value }));
+  //         },
+  //         // Showing further drill down for individual chart data
+  //         filterFunction: (emp: DataItem, clicked: ChartDataItem) => {
+  //           const tenure = 2025 - parseInt(emp.hireDate.split('/')[2]);
+  //           const [min, max] = clicked.name === '10+ yrs' ? [10, 100] : 
+  //                             clicked.name === '6-10 yrs' ? [6, 10] :
+  //                             clicked.name === '3-5 yrs' ? [3, 5] : [0, 2];
+  //           return tenure >= min && tenure <= max;
+  //         }
+  //       }
+  //     },
+  //     {
+  //       label: 'Active',
+  //       icon: 'Users',
+  //       color: '#10b981',
+  //       description: 'Current workforce',
+  //       calculationType: 'count',
+  //       filterCondition: (emp: DataItem) => emp.status === 'Active'
+  //     }
+  //   ],
+  //   charts: [
+  //     {
+  //       title: 'By Department',
+  //       icon: 'Users',
+  //       type: 'bar',
+  //       color: '#3b82f6',
+  //       dataKey: 'department',
+  //       sort: 'desc',
+  //       drillDown: {
+  //         filterFunction: (emp: DataItem, clicked: ChartDataItem) => emp.department === clicked.name
+  //       }
+  //     },
+  //     {
+  //       title: 'By Region',
+  //       icon: 'MapPin',
+  //       type: 'pie',
+  //       color: '#10b981',
+  //       dataKey: 'region',
+  //       drillDown: {
+  //         filterFunction: (emp: DataItem, clicked: ChartDataItem) => emp.region === clicked.name
+  //       }
+  //     }
+  //   ],
+  //   tableColumns: [
+  //     { label: 'Name', dataKey: 'name', className: 'text-slate-900 font-medium' },
+  //     {
+  //       label: 'Status',
+  //       dataKey: 'status',
+  //       render: (value: any) => (
+  //         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+  //           value === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+  //         }`}>{value}</span>
+  //       )
+  //     },
+  //     { label: 'Department', dataKey: 'department' },
+  //     { label: 'Region', dataKey: 'region' }
+  //   ]
+  // };
 
   const designVersion = searchParams.get("design") || "v1"
 
@@ -162,7 +392,10 @@ export default function DashboardUO1() {
         setLoading(false)
       }
     }
-    setDashboardCode(localStorage.getItem("component_code"))
+    // setDashboardCode(localStorage.getItem("component_code"))
+    const storedData = localStorage.getItem("dashboard_data");
+    if (storedData){
+    setDashboard_data(JSON.parse(storedData)|| null)}
     loadDashboardData()
   }, [])
 
@@ -506,66 +739,134 @@ export default function DashboardUO1() {
     "What insights can you provide for our next leadership meeting?",
   ]
 
-    useEffect(() => {
+  //   useEffect(() => {
 
-      if(!dashboardCode) return;
-    // Make dependencies globally available
-    window.React = React;
-    window.Recharts = Recharts;
-    window.LucideIcons = LucideIcons;
+  //     if(!dashboardCode) return;
+  //   // Make dependencies globally available
+  //   window.React = React;
+  //   window.Recharts = Recharts;
+  //   window.LucideIcons = LucideIcons;
 
-    const loadDashboard = async () => {
-      console.log("loadDashboard is running")
-      try {
+  //   const loadDashboard = async () => {
+  //     console.log("loadDashboard is running")
+  //     try {
         
-        // *** ADD THIS LINE - Strip import statements ***
-      let code = dashboardCode.replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '');
+  //       // *** ADD THIS LINE - Strip import statements ***
+  //     let code = dashboardCode.replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '');
       
-      // Also remove 'export default' if present
-      code = code.replace(/export\s+default\s+/g, '');
+  //     // Also remove 'export default' if present
+  //     code = code.replace(/export\s+default\s+/g, '');
 
-        // Add code to destructure from window
-        const setupCode = `
-          const { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } = window.Recharts;
-          const { Users, UserCheck, UserX, Briefcase, MapPin, DollarSign, TrendingUp, Home } = window.LucideIcons;
-          const React = window.React;
-        `;
+  //       // Add code to destructure from window
+  //       const setupCode = `
+  //         const { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } = window.Recharts;
+  //         const { Users, UserCheck, UserX, Briefcase, MapPin, DollarSign, TrendingUp, Home } = window.LucideIcons;
+  //         const React = window.React;
+  //       `;
         
-        // Combine and execute
-         // Use Babel to transform JSX
-        const { Babel } = window as any;
-        if (!Babel) {
-          console.error('Babel not loaded');
-          return;
-        }
+  //       // Combine and execute
+  //        // Use Babel to transform JSX
+  //       const { Babel } = window as any;
+  //       if (!Babel) {
+  //         console.error('Babel not loaded');
+  //         return;
+  //       }
         
-        const transformed = Babel.transform(setupCode + code, {
-          presets: ['react']
-        }).code;
+  //       const transformed = Babel.transform(setupCode + code, {
+  //         presets: ['react']
+  //       }).code;
         
-        const Component = eval(`(() => { ${transformed}; return Generated_Dashboard; })()`)
-        setDynamicComponent(() => Component)
+  //       const Component = eval(`(() => { ${transformed}; return Generated_Dashboard; })()`)
+  //       setDynamicComponent(() => Component)
         
-        setDynamicComponent(() => Component)
-      } catch (err) {
-        console.error('Error loading dashboard:', err)
-        // setError(err.message)
-      } finally {
-        // setIsLoading(false)
-        console.log("All is done well you should see dashboard")
-      }
-    }
+  //       setDynamicComponent(() => Component)
+  //     } catch (err) {
+  //       console.error('Error loading dashboard:', err)
+  //       // setError(err.message)
+  //     } finally {
+  //       // setIsLoading(false)
+  //       console.log("All is done well you should see dashboard")
+  //     }
+  //   }
 
-    loadDashboard()
+  //   loadDashboard()
 
-    // Cleanup
-      // return () => {
-      //   delete window.React
-      //   delete window.Recharts
-      //   delete window.LucideIcons
-      // }
-      // the script tag has been updated
-  }, [dashboardCode])
+  //   // Cleanup
+  //     // return () => {
+  //     //   delete window.React
+  //     //   delete window.Recharts
+  //     //   delete window.LucideIcons
+  //     // }
+  //     // the script tag has been updated
+  // }, [dashboardCode])
+
+    // useEffect to transform API response into dashboard config
+  useEffect(() => {
+    if (!dashboard_data) return;
+
+    console.log("Dashboard data is", dashboard_data)
+
+    const { cards, charts } = dashboard_data;
+
+    // Color mapping for different color names
+    const colorMap: Record<string, string> = {
+      blue: '#3b82f6',
+      green: '#10b981',
+      purple: '#8b5cf6',
+      orange: '#f59e0b',
+      teal: '#14b8a6',
+      indigo: '#6366f1',
+      red: '#ef4444',
+      pink: '#ec4899'
+    };
+
+    // Transform cards into KPI cards
+    const kpiCards: KPICard[] = cards.map((card: any) => ({
+      label: card.title,
+      icon: card.icon,
+      color: colorMap[card.color] || '#3b82f6',
+      description: card.field || '',
+      calculationType: 'custom' as const,
+      calculate: () => card.value,
+      // No drillDownChart for now - will be added later
+    }));
+
+    // Transform charts into chart configs
+    const chartConfigs: ChartConfig[] = charts.map((chart: any) => {
+      const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
+      const layout = chart.type === 'horizontalBar' ? 'horizontal' : 'vertical';
+
+      return {
+        title: chart.title,
+        icon: chart.icon,
+        type: chartType as 'bar' | 'pie' | 'line',
+        color: chart.colors?.[0] || '#3b82f6',
+        dataKey: chart.field,
+        layout: chartType === 'bar' ? layout : undefined,
+        height: 400,
+        customDataGenerator: () => chart.data.map((item: any) => ({
+          name: item.name,
+          value: item.value,
+          percentage: item.percentage
+        })),
+        // No drillDown for now - will be added later
+      };
+    });
+
+    // Create dashboard config
+    const newConfig: ConfigurableDashboardProps = {
+      title: "Analytics Dashboard",
+      subtitle: "Interactive insights from your data",
+      data: [], // No raw data needed since we're using custom generators
+      filters: [], // Will be added later from API
+      kpiCards,
+      charts: chartConfigs,
+      tableColumns: [], // Will be added later from API
+      colors: charts[0]?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
+    };
+
+    setConfig(newConfig);
+  }, [dashboard_data]);
 
   return (
     <>
@@ -601,12 +902,11 @@ export default function DashboardUO1() {
 
         // Pass the component code from API to GeneratedDashboard
         
+        <Generated_Dashboard {...config} />
         // {!isLoading && !errorDash && DynamicComponent && (
-        <DynamicComponent />
+        // <DynamicComponent />
         // )}
-        //  <Generated_Dashboard componentCode={dashboardCode} />
-          // <Generated_Dashboard_Static></Generated_Dashboard_Static>
-        }
+      }
 
         {/* <Generated_Dashboard_Static></Generated_Dashboard_Static> */}
 
