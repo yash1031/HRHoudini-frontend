@@ -151,8 +151,9 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
 
       // Remove tokens from localStorage on success
       if (response.ok) {
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('access_token');
+        // localStorage.removeItem('user_id');
+        // localStorage.removeItem('access_token');
+        localStorage.clear()
         if(isUserGoogleLoggedIn){
           setIsUserGoogleLoggedIn(false);
           await signOut();

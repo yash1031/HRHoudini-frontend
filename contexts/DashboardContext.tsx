@@ -44,6 +44,8 @@ export interface DashboardData {
 }
 
 interface DashboardContextType {
+  sample_questions: string[] | null;
+  setSample_questions: (questions: string[] | null) => void;
   dashboardCode: string | null;
   setDashboardCode: (code: string | null) => void;
   dashboard_data: DashboardData | null;
@@ -59,6 +61,7 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [dashboardCode, setDashboardCode] = useState<string | null>(null);
   const [dashboard_data, setDashboard_data] = useState<DashboardData | null>(null);
+  const [sample_questions, setSample_questions] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorDash, setErrorDash] = useState<string | null>(null);
 
@@ -68,6 +71,8 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         dashboardCode,
         setDashboardCode,
         dashboard_data,
+        sample_questions, 
+        setSample_questions,
         setDashboard_data,
         isLoading,
         setIsLoading,

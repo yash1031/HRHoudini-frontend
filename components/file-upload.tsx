@@ -72,7 +72,7 @@ export function FileUpload({
   const [error, setError] = useState<string | null>(null)
   const [uuid] = useState<string>(uuidv4());
   const {setKpis } = useUserContext()
-  const { setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
+  const { setSample_questions, setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
 
   // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
@@ -161,6 +161,10 @@ export function FileUpload({
         columns,
         dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
       }
+
+      localStorage.setItem("file_name", file.name)
+      localStorage.setItem("file_row_count", JSON.stringify(rowCount))
+
 
       console.log("Metadata is: "+ JSON.stringify(metadata));
 
@@ -289,6 +293,8 @@ export function FileUpload({
       // ✅ Set KPIs from parsed response
       // setKpis(parsedBody.kpi_items);
       setKpis(kpisWithIcons);
+      localStorage.setItem("sample_questions", JSON.stringify(parsedBody.sample_questions))
+      // setSample_questions(parsedBody.sample_questions)
 
       setUploadProgress(100)
 

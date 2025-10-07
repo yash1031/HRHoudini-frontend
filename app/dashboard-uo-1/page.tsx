@@ -333,7 +333,7 @@ export default function DashboardUO1() {
   const designVersion = searchParams.get("design") || "v1"
 
   const isSampleFile = false
-  const fileName = "HRIS_Export_HealthServ_2024.csv"
+  const fileName=  localStorage.getItem("file_name")
   const companyName = "HealthServ"
 
   const loadEmployeeData = async () => {
@@ -529,7 +529,7 @@ export default function DashboardUO1() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center space-x-3 bg-white rounded-full px-6 py-3 shadow-lg border border-gray-200 mb-4">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <FileProcessingTooltip fileName={fileName} recordCount={recordCount}>
+              <FileProcessingTooltip fileName={fileName?fileName:''} recordCount={recordCount}>
                 <span className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors">
                   {fileName}
                 </span>
@@ -727,10 +727,13 @@ export default function DashboardUO1() {
 
   // Version 1 (Full Onboarding)
   const recordCount = employeeData.length || 1247
-  const welcomeMessage =
-    "Great! I can see you've successfully uploaded HRIS_Export_HealthServ_2024.csv with 1,247 employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?"
+  const file_row_count= localStorage.getItem("file_row_count")
+  const welcomeMessage= 
+    `Great! I can see you've successfully uploaded ${fileName?fileName: "HRIS_Export_HealthServ_2024.csv"} with ${file_row_count?file_row_count: "1,247"} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`
 
-  const suggestedQueries = [
+  const sample_questions= localStorage.getItem("sample_questions")
+
+  const suggestedQueries = sample_questions? JSON.parse(sample_questions):[
     "Show me a breakdown of our 1,247 employees by department",
     "What's our current turnover rate and which departments are most affected?",
     "Analyze salary distribution across different roles and levels",
@@ -834,7 +837,8 @@ export default function DashboardUO1() {
     // Transform charts into chart configs
     const chartConfigs: ChartConfig[] = charts.map((chart: any) => {
       const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
-      const layout = chart.type === 'horizontalBar' ? 'horizontal' : 'vertical';
+      // const layout = chart.type === 'horizontalBar' ? 'horizontal' : 'vertical';
+      const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar'? 'vertical': undefined;
 
       return {
         title: chart.title,
@@ -842,7 +846,7 @@ export default function DashboardUO1() {
         type: chartType as 'bar' | 'pie' | 'line',
         color: chart.colors?.[0] || '#3b82f6',
         dataKey: chart.field,
-        layout: chartType === 'bar' ? layout : undefined,
+        layout: layout,
         height: 400,
         customDataGenerator: () => chart.data.map((item: any) => ({
           name: item.name,
@@ -955,7 +959,7 @@ export default function DashboardUO1() {
                     processed.
                   </p>
                   <p className="text-xs text-green-700">
-                    Processing complete • {recordCount.toLocaleString()} employee records analyzed • Ready for insights
+                    Processing complete • {file_row_count} employee records analyzed • Ready for insights
                   </p>
                 </div>
 

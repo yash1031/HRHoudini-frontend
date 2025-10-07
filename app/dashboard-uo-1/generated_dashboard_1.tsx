@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Label, BarChart, Bar, Rectangle, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Users, UserCheck, TrendingUp, Globe, Filter, MapPin, X } from 'lucide-react';
 
 // Type Definitions
@@ -51,7 +52,6 @@ interface ChartConfig {
   icon: string;
   type: 'bar' | 'pie' | 'line';
   color: string;
-  field: string;
   dataKey?: string;
   xDataKey?: string;
   yDataKey?: string;
@@ -180,7 +180,6 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
       return chart.customDataGenerator(filteredData);
     }
     
-    // This shouldn't be reached when using API data with customDataGenerator
     const groups: Record<string, number> = {};
     filteredData.forEach(item => {
       const key = item[chart.dataKey!];
@@ -312,11 +311,6 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     </div>
   );
 
-  const getRandomLightColor = () => {
-  const hue = Math.floor(Math.random() * 360); // random hue
-  return `hsl(${hue}, 80%, 75%)`; // light color (high lightness)
-};
-
   const renderChart = (chartData: ChartDataItem[], chartConfig: Partial<ChartConfig> & { onClick?: ((data: ChartDataItem) => void) | null }): React.ReactNode => {
     if (chartConfig.type === 'pie') {
       return (
@@ -367,12 +361,30 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
       );
     }
     
-    console.log("chartData", chartData);
-    console.log("chartConfig", JSON.stringify(chartConfig));
-
-
     return (
-      <BarChart data={chartData}>
+    //   <BarChart data={chartData} layout={chartConfig.layout || 'vertical'}>
+    //     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+    //     {chartConfig.layout === 'horizontal' ? (
+    //       <>
+    //         <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
+    //         <YAxis dataKey={chartConfig.xDataKey || 'name'} type="category" tick={{ fill: '#64748b', fontSize: 12 }} width={100} />
+    //       </>
+    //     ) : (
+    //       <>
+    //         <XAxis dataKey={chartConfig.xDataKey || 'name'} tick={{ fill: '#64748b', fontSize: 12 }} />
+    //         <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+    //       </>
+    //     )}
+    //     <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
+    //     <Bar 
+    //       dataKey={chartConfig.yDataKey || 'value'} 
+    //       fill={chartConfig.color || '#3b82f6'} 
+    //       radius={chartConfig.layout === 'horizontal' ? [0, 8, 8, 0] : [8, 8, 0, 0]}
+    //       onClick={(data: any) => chartConfig.onClick && chartConfig.onClick(data)}
+    //       cursor="pointer"
+    //     />
+    //   </BarChart>
+    <BarChart data={chartData} layout={chartConfig.layout || 'vertical'}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         {chartConfig.layout === 'horizontal' ? (
           <>
@@ -381,24 +393,14 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           </>
         ) : (
           <>
-            <XAxis dataKey={chartConfig.xDataKey || 'name'} tick={{ fill: '#64748b', fontSize: 12 }}>
-                {/* <Label 
-                    value={chartConfig.dataKey || 'Region'} 
-                    position="bottom" 
-                    offset={10}
-                    style={{ fill: '#334155', fontWeight: 600, fontSize: 14 }}
-                /> */}
-            </XAxis>
+            <XAxis dataKey={chartConfig.xDataKey || 'name'} tick={{ fill: '#64748b', fontSize: 12 }} />
             <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
           </>
         )}
         <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-        {/* <Legend/> */}
         <Bar 
-          dataKey={'value'} 
-        //   dataKey={}
-          activeBar={<Rectangle fill={getRandomLightColor()} stroke="white" />}
-          fill={getRandomLightColor()}
+          dataKey={chartConfig.yDataKey || 'value'} 
+          fill={chartConfig.color || '#3b82f6'} 
           radius={chartConfig.layout === 'horizontal' ? [0, 8, 8, 0] : [8, 8, 0, 0]}
           onClick={(data: any) => chartConfig.onClick && chartConfig.onClick(data)}
           cursor="pointer"
@@ -583,10 +585,6 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
         {charts.map((chart, idx) => {
           const chartData = generateChartData(chart);
           const Icon = getIcon(chart.icon);
-          
-          // Debug log
-          console.log(`Chart ${idx} data:`, chartData);
-          console.log(`Chart ${idx} config:`, chart);
           
           return (
             <div key={idx} className="bg-white rounded-lg shadow-md p-6 mb-6">
