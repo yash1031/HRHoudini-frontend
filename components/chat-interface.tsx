@@ -60,6 +60,7 @@ export function ChatInterface({
   const handleSend = async (message?: string) => {
     console.log("Sending the message to get back the results")
     const messageToSend = message || input.trim()
+    console.log("Message to send is", messageToSend)
     if (!messageToSend || isLoading) return
 
     const userMessage: Message = {
@@ -98,7 +99,7 @@ export function ChatInterface({
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
-        content: queryResponse.natural_language_response,
+        content: queryResponse.natural_language_response?queryResponse.natural_language_response:"Failed to fetch answer, try with some other question",
         sender: "assistant",
         timestamp: new Date(),
       }

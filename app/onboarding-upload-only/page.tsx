@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HRGeneralistUploadOnlyOnboarding } from "@/components/onboarding/scenarios/hr-generalist-upload-only-onboarding"
+import {getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+// import Hub  from 'aws-amplify';
 import Image from "next/image"
+// Amplify.Logger.LOG_LEVEL = 'DEBUG';
 
 interface UserContext {
   name: string
@@ -17,10 +20,11 @@ export default function OnboardingUploadOnlyPage() {
   const [userContext, setUserContext] = useState<UserContext | null>(null)
 
   useEffect(() => {
+    
     onboardingFun()
   }, [])
 
-    // Helper function to decode JWT payload
+    // Helper function to decode JWT payload  
   const decodeJWT = (token: string) => {
     try {
       const base64Url = token.split('.')[1];
@@ -37,6 +41,26 @@ export default function OnboardingUploadOnlyPage() {
       return null;
     }
   };
+
+  const onboardingFun1 = async () => {
+    // Hub.listen('auth', (data: any) => {
+    //       console.log("🔊 AUTH EVENT:", data.payload.event, data.payload);
+    //     });
+        // Fetch user attributes (includes Google data)
+        const attributes = await fetchUserAttributes();
+        console.log("attributes", attributes);
+        // Get current authenticated user
+        const currentUser = await getCurrentUser();
+      const userDetails = {
+        // userId: currentUser.userId, // Cognito sub
+        // username: currentUser.username,
+        email: attributes.email,
+        // name: attributes.name,
+        // picture: attributes.picture,
+        // emailVerified: attributes.email_verified === 'true'
+      };
+      console.log("userDetails", userDetails);
+  }
 
   const onboardingFun = async () => {
     const urlParams = new URLSearchParams(window.location.search)

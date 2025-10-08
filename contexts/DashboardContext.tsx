@@ -1,13 +1,21 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// Insight structure
+export interface Insight {
+  type: 'info' | 'warning' | 'success' | 'error';
+  title: string;
+  description: string;
+}
+
 // Card structure
 export interface KPICard {
-  id: string;
   title: string;
   value: string;
   field?: string;
   icon: string;
   color: string;
+  note?: string;
+  drillDown?: DrillDownData;
 }
 
 // Chart structure
@@ -18,13 +26,20 @@ export interface ChartDataItem {
 }
 
 export interface ChartConfig {
-  id: string;
-  type: "bar" | "pie" | "line" | "horizontalBar";
   title: string;
+  type: "bar" | "pie" | "line" | "horizontalBar";
   field: string;
   icon: string;
   data: ChartDataItem[];
   colors: string[];
+  drillDown?: DrillDownData;
+}
+
+// DrillDown structure (nested cards, charts, insights)
+export interface DrillDownData {
+  cards?: KPICard[];
+  charts?: ChartConfig[];
+  insights?: Insight[];
 }
 
 // Analytics metadata
@@ -36,7 +51,7 @@ export interface AnalyticsMetadata {
   categoricalFields: number;
 }
 
-// Full dashboard data
+// Full dashboard data matching API response
 export interface DashboardData {
   cards: KPICard[];
   charts: ChartConfig[];

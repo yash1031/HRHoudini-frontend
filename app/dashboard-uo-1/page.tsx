@@ -733,7 +733,18 @@ export default function DashboardUO1() {
 
   const sample_questions= localStorage.getItem("sample_questions")
 
-  const suggestedQueries = sample_questions? JSON.parse(sample_questions):[
+  //sample_questions? JSON.parse(sample_questions):
+  // console.log("sample_quesions are", sample_questions?JSON.parse(sample_questions):"")
+  // const suggestedQueries =  [
+  //   "Show me a breakdown of our 1,247 employees by department",
+  //   "What's our current turnover rate and which departments are most affected?",
+  //   "Analyze salary distribution across different roles and levels",
+  //   "Who are our highest-risk employees for attrition?",
+  //   "Compare our headcount growth over the past quarters",
+  //   "What insights can you provide for our next leadership meeting?",
+  // ]
+  // console.log("suggestedQueries", suggestedQueries)
+  const suggestedQueries= sample_questions? JSON.parse(sample_questions): [
     "Show me a breakdown of our 1,247 employees by department",
     "What's our current turnover rate and which departments are most affected?",
     "Analyze salary distribution across different roles and levels",
@@ -741,6 +752,7 @@ export default function DashboardUO1() {
     "Compare our headcount growth over the past quarters",
     "What insights can you provide for our next leadership meeting?",
   ]
+  // console.log("suggestedQueries1", suggestedQueries1)
 
   //   useEffect(() => {
 
@@ -807,7 +819,7 @@ export default function DashboardUO1() {
   useEffect(() => {
     if (!dashboard_data) return;
 
-    console.log("Dashboard data is", dashboard_data)
+    console.log("Dashboard data is", dashboard_data);
 
     const { cards, charts } = dashboard_data;
 
@@ -823,24 +835,67 @@ export default function DashboardUO1() {
       pink: '#ec4899'
     };
 
-    // Transform cards into KPI cards
-    const kpiCards: KPICard[] = cards.map((card: any) => ({
-      label: card.title,
-      icon: card.icon,
-      color: colorMap[card.color] || '#3b82f6',
-      description: card.field || '',
-      calculationType: 'custom' as const,
-      calculate: () => card.value,
-      // No drillDownChart for now - will be added later
-    }));
+    // Transform cards into KPI cards with drill-down support
+    const kpiCards = cards.map((card: any) => {
+      const baseCard = {
+        label: card.title,
+        icon: card.icon,
+        color: colorMap[card.color] || '#3b82f6',
+        description: card.field || '',
+        calculationType: 'custom' as const,
+        calculate: () => card.value,
+      };
 
-    // Transform charts into chart configs
-    const chartConfigs: ChartConfig[] = charts.map((chart: any) => {
+      // Add drill-down data if available
+      if (card.drillDown) {
+        return {
+          ...baseCard,
+          drillDownData: {
+            cards: card.drillDown.cards?.map((ddCard: any) => ({
+              label: ddCard.title,
+              icon: ddCard.icon,
+              color: colorMap[ddCard.color] || '#3b82f6',
+              description: ddCard.description || '',
+              calculationType: 'custom' as const,
+              calculate: () => ddCard.value,
+            })) || [],
+            charts: card.drillDown.charts?.map((ddChart: any) => {
+              const chartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
+              const layout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
+
+              return {
+                title: ddChart.title,
+                icon: ddChart.icon,
+                type: chartType as 'bar' | 'pie' | 'line',
+                color: ddChart.colors?.[0] || '#3b82f6',
+                dataKey: ddChart.field,
+                layout: layout,
+                height: 300,
+                customDataGenerator: () => ddChart.data.map((item: any) => ({
+                  name: item.name,
+                  value: item.value,
+                  percentage: item.percentage
+                })),
+              };
+            }) || [],
+            insights: card.drillDown.insights?.map((insight: any) => ({
+              type: insight.type || 'info',
+              title: insight.title,
+              description: insight.description
+            })) || []
+          }
+        };
+      }
+
+      return baseCard;
+    });
+
+    // Transform charts into chart configs with drill-down support
+    const chartConfigs = charts.map((chart: any) => {
       const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
-      // const layout = chart.type === 'horizontalBar' ? 'horizontal' : 'vertical';
-      const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar'? 'vertical': undefined;
+      const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar' ? 'vertical' : undefined;
 
-      return {
+      const baseChart = {
         title: chart.title,
         icon: chart.icon,
         type: chartType as 'bar' | 'pie' | 'line',
@@ -853,19 +908,60 @@ export default function DashboardUO1() {
           value: item.value,
           percentage: item.percentage
         })),
-        // No drillDown for now - will be added later
       };
+
+      // Add drill-down data if available
+      if (chart.drillDown) {
+        return {
+          ...baseChart,
+          drillDownData: {
+            cards: chart.drillDown.cards?.map((ddCard: any) => ({
+              label: ddCard.title,
+              icon: ddCard.icon,
+              color: colorMap[ddCard.color] || '#3b82f6',
+              description: ddCard.description || '',
+              calculationType: 'custom' as const,
+              calculate: () => ddCard.value,
+            })) || [],
+            charts: chart.drillDown.charts?.map((ddChart: any) => {
+              const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
+              const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
+
+              return {
+                title: ddChart.title,
+                icon: ddChart.icon,
+                type: ddChartType as 'bar' | 'pie' | 'line',
+                color: ddChart.colors?.[0] || '#3b82f6',
+                dataKey: ddChart.field,
+                layout: ddLayout,
+                height: 300,
+                customDataGenerator: () => ddChart.data.map((item: any) => ({
+                  name: item.name,
+                  value: item.value,
+                  percentage: item.percentage
+                })),
+              };
+            }) || [],
+            insights: chart.drillDown.insights?.map((insight: any) => ({
+              type: insight.type || 'info',
+              title: insight.title,
+              description: insight.description
+            })) || []
+          }
+        };
+      }
+
+      return baseChart;
     });
 
     // Create dashboard config
-    const newConfig: ConfigurableDashboardProps = {
+    const newConfig = {
       title: "Analytics Dashboard",
       subtitle: "Interactive insights from your data",
       data: [], // No raw data needed since we're using custom generators
-      filters: [], // Will be added later from API
       kpiCards,
       charts: chartConfigs,
-      tableColumns: [], // Will be added later from API
+      tableColumns: [], // Add if needed
       colors: charts[0]?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
     };
 

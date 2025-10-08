@@ -289,6 +289,7 @@ export default function UploadOnlyDashboard() {
       
   if (designVersion === "v2") {
     return (
+      // <></>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 pb-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-6">
           {loading ? (
