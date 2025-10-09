@@ -173,7 +173,7 @@ export function FileUpload({
       setFileMetadata(metadata)
       setUploadedFile(file)
 
-      // 5. Create KPIs
+      // 1. Create KPIs
       const resCreateKPIs = fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
         {
@@ -187,7 +187,21 @@ export function FileUpload({
         }
       );
 
-      // 1️⃣ Get presigned URL
+      // 2. Create KPIs
+      const resAISuggestedQues = fetch(
+        "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/ask-ai",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: localStorage.getItem("user_id"),
+            session_id: uuid,
+            column_headers: columns
+          }),
+        }
+      );
+
+      // 3. Get presigned URL
       const response = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/upload-docs",
         {
@@ -213,12 +227,12 @@ export function FileUpload({
       // setSessionId(sessionId);
       localStorage.setItem("s3Key", s3Key)
 
-      // 2️⃣ Upload file with progress
+      // 4. Upload file with progress
       await uploadFileWithProgress(uploadUrl, file, file.type);
 
       setUploadProgress(40)
 
-      // 3. Convert CSV to parquet
+      // 5. Convert CSV to parquet
       const resCSVToParq = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/csv-parquet-processor",
         {
@@ -237,7 +251,7 @@ export function FileUpload({
       console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
       setUploadProgress(60)
 
-      // 4. Create Athena Table
+      // 6. Create Athena Table
       const resCreateAthena = await fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/create-athena-ddl",
         {
@@ -257,85 +271,44 @@ export function FileUpload({
       setUploadProgress(80)
       localStorage.setItem("session_id", uuid)
 
-      const fileName= file.name.toLowerCase().split(".")[0]
-      const first8_session_id = uuid.substring(0, 8)
-      const table_name= fileName+ '_' + first8_session_id
+      // const fileName= file.name.toLowerCase().split(".")[0]
+      // const first8_session_id = uuid.substring(0, 8)
+      // const table_name= fileName+ '_' + first8_session_id
 
-      console.log("table_name is", table_name)
 
-    //   // 5. Create KPIs
-    // const resCreateKPIs = await fetch(
-    //   "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/generate-kpis",
-    //   {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       user_id: localStorage.getItem("user_id"),
-    //       session_id: localStorage.getItem("session_id"),
-    //     }),
-    //   }
-    // );
-    const data3 = await resCreateKPIs;
-    if (!data3.ok) throw new Error("Failed to Create KPIs");
-    const kpisData=   await data3.json();
-    console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
-    // ✅ Parse the string inside `body`
-    const parsedBody = JSON.parse(kpisData.body);
-    console.log("Parsed body:", parsedBody);
-    console.log("KPI Questions are:", parsedBody.kpi_items);
+      const dataKPIs = await resCreateKPIs;
+      if (!dataKPIs.ok) throw new Error("Failed to Create KPIs");
+      const kpisData=   await dataKPIs.json();
+      console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
+      // ✅ Parse the string inside `body`
+      const parsedBody = JSON.parse(kpisData.body);
+      console.log("Parsed body:", parsedBody);
+      console.log("KPI Questions are:", parsedBody.kpi_items);
 
-    // Transform kpi_items to include actual icon components
-    const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
-      ...item,
-      icon: Clock, // fallback to Clock
-    }));
+      // Transform kpi_items to include actual icon components
+      const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
+        ...item,
+        icon: Clock, // fallback to Clock
+      }));
 
       // ✅ Set KPIs from parsed response
-      // setKpis(parsedBody.kpi_items);
       setKpis(kpisWithIcons);
-      localStorage.setItem("sample_questions", JSON.stringify(parsedBody.sample_questions))
+
+      const dataAIRecommendedQuestions = await resAISuggestedQues;
+      if (!dataAIRecommendedQuestions.ok) throw new Error("Failed to Create KPIs");
+      const aIRecommendedQuestionsData=   await dataAIRecommendedQuestions.json();
+      console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
+      // ✅ Parse the string inside `body`
+      const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
+      console.log("Parsed body:", parsedBodyAIRQ);
+      console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
+      localStorage.setItem("sample_questions", JSON.stringify(parsedBodyAIRQ.sample_questions))
       // setSample_questions(parsedBody.sample_questions)
 
       setUploadProgress(100)
 
-      // // Insights Dashboard Generation
-      // const resCreateDashboard = fetch(
-      //   "https://v36uzfxwsrpukszsof3d2aczzi0xuqeo.lambda-url.us-east-1.on.aws/",
-      //   {
-      //     method: "POST",
-      //     // headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify({
-      //       s3_file_key: s3Key,
-      //     }),
-      //   }
-      // );
-
-      // setIsLoading(true)
-
-      // setStatus({
-      //   type: "success",
-      //   message: `✅ File uploaded successfully! (Key: ${fileKey || file.name})`,
-      // });
-
       // Call the parent callback
       onFileUpload(file, metadata)
-
-      // const createDashboardData = await resCreateDashboard;
-      // const dataCreateDashboard = await createDashboardData.json();
-      
-      // if (dataCreateDashboard.success && dataCreateDashboard.component_code) {
-      //   // THIS IS THE KEY LINE - Pass the code to context
-      //   setIsLoading(false)
-      //   localStorage.setItem("component_code", dataCreateDashboard.component_code)
-      //   setDashboardCode(dataCreateDashboard.component_code);
-      //   console.log("Component code received")
-        
-      //   // Navigate to dashboard page
-      //   // navigate('/dashboard');
-      // } else {
-      //   setIsLoading(false)
-      //   setErrorDash('Failed to generate dashboard');
-      // }
 
     } catch (err) {
       setError("Failed to process file. Please try again.")
