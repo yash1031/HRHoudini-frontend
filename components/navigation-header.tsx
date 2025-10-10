@@ -32,13 +32,17 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   const pathname = usePathname()
   const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
 
-  const loggedInUser = new URLSearchParams({
+  // let loggedInUser={};
+
+  // useEffect(()=>{
+  const  loggedInUser = new URLSearchParams({
           name: localStorage.getItem("user_name")||'',
           email: localStorage.getItem("user_email")||'',
           company: 'HealthServ',
           role: user.role,
           onboarding: "true",
   })
+  // })
 
   console.log("[v0] NavigationHeader - pathname:", pathname)
   console.log("[v0] NavigationHeader - user from context:", user)
@@ -165,10 +169,8 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         credentials: 'include', // Important for HTTPOnly cookies
       });
 
-      // Remove tokens from localStorage on success
+      // Remove data from local Storage on success
       if (response.ok) {
-        // localStorage.removeItem('user_id');
-        // localStorage.removeItem('access_token');
         localStorage.clear()
         if(isUserGoogleLoggedIn){
           setIsUserGoogleLoggedIn(false);
@@ -183,17 +185,10 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       } else {
         // Even on API failure, clean up client-side for security
         console.error('Sign out API failed, but cleaning up client-side');
-        // localStorage.removeItem('user_id');
-        // localStorage.removeItem('access_token');
-        // window.location.href = '/';
       }
       
     } catch (error) {
       console.error('Sign out failed:', error);
-      
-      // Always clean up client-side tokens for security
-      // localStorage.removeItem('user_id');
-      // localStorage.removeItem('access_token');
       window.location.href = '/';
     }
   };
