@@ -15,13 +15,20 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import {signOut } from 'aws-amplify/auth';
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 
 interface NavigationHeaderProps {
   /** Optional override for user name */
   userName?: string
   /** Optional override for company name */
   company?: string
+}
+interface LoggedUser {
+  name: string,
+  email: string,
+  company: string,
+  role: string,
+  onboarding: string,
 }
 
 /**
@@ -31,18 +38,25 @@ interface NavigationHeaderProps {
 export function NavigationHeader({ userName, company }: NavigationHeaderProps = {}) {
   const pathname = usePathname()
   const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
+  const [loggedUser, setLoggedUser] = useState<Record<string, string>>({
+          name: '',
+          email: '',
+          company: '',
+          role: '',
+          onboarding: '',
+    })
 
   // let loggedInUser={};
 
-  // useEffect(()=>{
-  const  loggedInUser = new URLSearchParams({
+  useEffect(()=>{
+    setLoggedUser({
           name: localStorage.getItem("user_name")||'',
           email: localStorage.getItem("user_email")||'',
           company: 'HealthServ',
           role: user.role,
           onboarding: "true",
-  })
-  // })
+    })
+  }, [])
 
   console.log("[v0] NavigationHeader - pathname:", pathname)
   console.log("[v0] NavigationHeader - user from context:", user)
@@ -111,7 +125,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     return (
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
         {/* Logo */}
-        <Link href={`/onboarding-upload-only?${loggedInUser.toString()}`} className="flex items-center">
+        <Link href={`/onboarding-upload-only?${new URLSearchParams(loggedUser).toString()}`} className="flex items-center">
           <Image
             src="/hr-houdini-final.png"
             alt="HR HOUDINI - Powered by PredictiveHR"
@@ -197,7 +211,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
       {/* Logo */}
       {/* <Link href="/" className="flex items-center"> */}
-      <Link href={`/onboarding-upload-only?${loggedInUser.toString()}`} className="flex items-center">
+      <Link href={`/onboarding-upload-only?${new URLSearchParams(loggedUser).toString()}`} className="flex items-center">
         <Image
           src="/hr-houdini-final.png"
           alt="HR HOUDINI - Powered by PredictiveHR"
