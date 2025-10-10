@@ -219,7 +219,8 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<UserContextData>({
     name: "Demo User",
     email: "",
-    company: "Demo Company",
+    // company: "Demo Company", //Commented
+    company: "HealthServ", //Added
     role: "User",
     persona: "",
     avatar: "DU",
@@ -311,7 +312,8 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
     const finalUser = {
       name: userData.name || "Demo User",
       email: userData.email || "",
-      company: userData.company || "Demo Company",
+      // company: userData.company || "Demo Company", //commented
+      company: userData.company || "HealthServ", //Added
       role: userData.role || "User",
       persona: userData.persona || "",
       avatar,

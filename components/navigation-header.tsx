@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import {signOut } from 'aws-amplify/auth';
+import { useEffect } from "react"
 
 interface NavigationHeaderProps {
   /** Optional override for user name */
@@ -31,26 +32,41 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   const pathname = usePathname()
   const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
 
+  const loggedInUser = new URLSearchParams({
+          name: localStorage.getItem("user_name")||'',
+          email: localStorage.getItem("user_email")||'',
+          company: 'HealthServ',
+          role: user.role,
+          onboarding: "true",
+  })
+
   console.log("[v0] NavigationHeader - pathname:", pathname)
   console.log("[v0] NavigationHeader - user from context:", user)
   console.log("[v0] NavigationHeader - userName prop:", userName)
   console.log("[v0] NavigationHeader - company prop:", company)
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard" },
+    // { label: "Dashboard", href: "/dashboard" },
+    { label: "Dashboard", href: "/dashboard-uo-1" }, //added
     // { label: "Projects", href: "/projects" }, // Hidden
     // { label: "Reports", href: "/reports" }, // Hidden
   ]
 
   const isDashboardActive = (pathname: string, href: string) => {
-    if (href === "/dashboard") {
+    // Commented below if block
+    // if (href === "/dashboard") {
+    //   return pathname === "/dashboard" || pathname === "/dashboard-upload-only"
+    // }
+    // if block added
+    if (href === "/dashboard-uo-1") {
       return pathname === "/dashboard" || pathname === "/dashboard-upload-only"
     }
     return pathname.startsWith(href)
   }
 
   const displayName = userName || user.name || "User"
-  const displayCompany = company || user.company || "Demo Company"
+  // const displayCompany = company || user.company || "Demo Company" //Commented
+  const displayCompany = company || user.company || "HealthServ" //Added
   const displayAvatar = user.avatar || "DU"
 
   console.log("[v0] NavigationHeader - displayName:", displayName)
@@ -91,7 +107,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     return (
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
         {/* Logo */}
-        <Link href="/" className="flex items-center">
+        <Link href={`/onboarding-upload-only?${loggedInUser.toString()}`} className="flex items-center">
           <Image
             src="/hr-houdini-final.png"
             alt="HR HOUDINI - Powered by PredictiveHR"
@@ -185,7 +201,8 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
       {/* Logo */}
-      <Link href="/" className="flex items-center">
+      {/* <Link href="/" className="flex items-center"> */}
+      <Link href={`/onboarding-upload-only?${loggedInUser.toString()}`} className="flex items-center">
         <Image
           src="/hr-houdini-final.png"
           alt="HR HOUDINI - Powered by PredictiveHR"

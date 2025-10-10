@@ -190,7 +190,8 @@ export function ChatInterface({
         </ScrollArea>
 
         {/* Suggested Queries */}
-        {suggestedQueries.length > 0 && messages.length <= 1 && (
+        {/* {suggestedQueries.length > 0 && messages.length <= 1 && ( */}
+        {suggestedQueries.length > 0  && (
           <div className="space-y-2">
             <p className="text-xs text-gray-600 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">

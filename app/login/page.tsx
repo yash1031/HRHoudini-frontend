@@ -45,7 +45,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [emailExistError, setEmailExistError] = useState("");
   const [emailNotExistError, setEmailNotExistError] = useState("");
-  const { setIsUserGoogleLoggedIn } = useUserContext()
+  const { setIsUserGoogleLoggedIn,  updateUser} = useUserContext()
   // const paramsDemoPerson = useRef<URLSearchParams>(
   //   new URLSearchParams({
   //     name: "Maya Jackson",
@@ -225,6 +225,7 @@ export default function LoginPage() {
         localStorage.setItem("access_token", data.access_token)
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
+        localStorage.setItem("user_email", email)
         const loggedInUser = new URLSearchParams({
           name: `${data.first_name} ${data.last_name}`,
           email: email,
@@ -232,6 +233,15 @@ export default function LoginPage() {
           role: "hr-generalist---upload-only",
           onboarding: "true",
         });
+        updateUser({
+          name: `${data.first_name} ${data.last_name}`,
+          email: data.email,
+          company: "HealthServ",
+          role: "User",
+          persona: "",
+          avatar: "DU",
+          isLoading: true,
+        })
         localStorage.setItem("loggedInUser", loggedInUser.toString());
         window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
         setIsVerifying(false);

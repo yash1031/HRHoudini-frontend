@@ -6,6 +6,7 @@ import { HRGeneralistUploadOnlyOnboarding } from "@/components/onboarding/scenar
 import {getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 // import Hub  from 'aws-amplify';
 import Image from "next/image"
+import { useUserContext } from "@/contexts/user-context" 
 // Amplify.Logger.LOG_LEVEL = 'DEBUG';
 
 interface UserContext {
@@ -18,6 +19,8 @@ interface UserContext {
 export default function OnboardingUploadOnlyPage() {
   const router = useRouter()
   const [userContext, setUserContext] = useState<UserContext | null>(null)
+  
+  const { updateUser} = useUserContext()
 
   useEffect(() => {
     
@@ -90,7 +93,16 @@ export default function OnboardingUploadOnlyPage() {
             localStorage.setItem("access_token", data.access_token)
             localStorage.setItem("user_id", data.user_id)
             localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
-
+            localStorage.setItem("user_email", userEmail)
+            updateUser({
+              name: `${data.first_name} ${data.last_name}`,
+              email: userEmail,
+              company: "HealthServ",
+              role: "User",
+              persona: "",
+              avatar: "DU",
+              isLoading: true,
+            })
             const context = { name:  `${data.first_name} ${data.last_name}`, email: userEmail, company: "HealthServ Solutions", role: "hr-generalist---upload-only" };
             setUserContext(context);
           } else {
