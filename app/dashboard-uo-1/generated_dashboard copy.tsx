@@ -498,30 +498,27 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {charts.map((chart, idx) => {
-            const chartData = generateChartData(chart);
-            const Icon = getIcon(chart.icon);
-            
-            return (
-              <div 
-                key={idx} 
-                className={`bg-white rounded-lg shadow-md p-6 ${chart.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''} transition-shadow`}
-                onClick={() => chart.drillDownData && handleChartClick(chart)}
-              >
-                <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-                  <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
-                  {chart.title}
-                  {chart.drillDownData && <span className="text-sm text-slate-500 ml-2">(Click for details)</span>}
-                </h3>
-                {/* <ResponsiveContainer width="100%" height={chart.height || 400}> */}
-                <ResponsiveContainer width="100%" height={300}>
-                  {renderChart(chartData, chart)}
-                </ResponsiveContainer>
-              </div>
-            );
-          })}
-        </div>
+        {charts.map((chart, idx) => {
+          const chartData = generateChartData(chart);
+          const Icon = getIcon(chart.icon);
+          
+          return (
+            <div 
+              key={idx} 
+              className={`bg-white rounded-lg shadow-md p-6 mb-6 ${chart.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''} transition-shadow`}
+              onClick={() => chart.drillDownData && handleChartClick(chart)}
+            >
+              <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
+                {chart.title}
+                {chart.drillDownData && <span className="text-sm text-slate-500 ml-2">(Click for details)</span>}
+              </h3>
+              <ResponsiveContainer width="100%" height={chart.height || 400}>
+                {renderChart(chartData, chart)}
+              </ResponsiveContainer>
+            </div>
+          );
+        })}
 
         <div className="mt-8 text-center text-slate-600 text-sm">
           <p>Dashboard generated from {file_row_count || data.length} total records</p>
