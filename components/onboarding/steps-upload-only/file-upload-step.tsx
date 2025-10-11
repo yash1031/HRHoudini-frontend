@@ -33,6 +33,7 @@ export function FileUploadStep() {
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
+  const [fileUploadStarted, setFileUploadStarted] = useState(false)
   // const {setKpis } = useUserContext()
 
   const handleFileUpload = (file: File, metadata: any) => {
@@ -125,6 +126,10 @@ export function FileUploadStep() {
   const handleBrowseFiles = () => {
     setHasBrowsedFiles(true)
   }
+  const hasFileUploadStarted = (arg: boolean) => {
+    console.log("hasFileUploadStarted, args:", arg)
+    setFileUploadStarted(arg)
+  }
 
   return (
     <Card>
@@ -194,6 +199,7 @@ export function FileUploadStep() {
             </div>
             <FileUpload
               onFileUpload={handleFileUpload}
+              hasFileUploadStarted={hasFileUploadStarted}
               onboardingMode={true}
               userContext={userContext}
               scenarioConfig={scenarioConfig}
@@ -296,9 +302,10 @@ export function FileUploadStep() {
           <Button variant="outline" onClick={() => setStep(1)}>
             Back
           </Button>
-          {!(selectedOption === "sample" && !uploadedFile) && (
+          { 
+          !(selectedOption === "sample" && !uploadedFile) && (
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => skipToStep(3)}>
+              <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={() => skipToStep(3)}>
                 Skip file upload
               </Button>
               <Button

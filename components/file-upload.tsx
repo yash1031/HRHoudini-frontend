@@ -23,6 +23,8 @@ import {
   Briefcase,
 } from "lucide-react"
 import Papa from "papaparse"
+import * as XLSX from "xlsx"
+
 
 interface FileUploadProps {
   onFileUpload: (file: File, metadata: any) => void
@@ -30,6 +32,7 @@ interface FileUploadProps {
   maxSize?: number
   title?: string
   description?: string
+  hasFileUploadStarted: (args: boolean) => void
   onBrowseFiles?: () => void
   onboardingMode?: boolean
   userContext?: any
@@ -61,6 +64,7 @@ export function FileUpload({
   title = "Upload HR Data File",
   description = "Drag and drop your HR data file here, or click to browse",
   onBrowseFiles,
+  hasFileUploadStarted,
   onboardingMode,
   userContext,
   scenarioConfig,
@@ -103,24 +107,70 @@ export function FileUpload({
     });
   };
 
-  const parseCsvFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
+  // const parseCsvFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
+  //   return new Promise((resolve, reject) => {
+  //     Papa.parse(file, {
+  //       header: true,
+  //       skipEmptyLines: true,
+  //       complete: (results) => {
+  //         const columns = results.meta.fields || []
+  //         const rowCount = results.data.length
+  //         resolve({ columns, rowCount })
+  //       },
+  //       error: (err) => reject(err),
+  //     })
+  //   })
+  // }
+
+  const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const columns = results.meta.fields || []
-        const rowCount = results.data.length
-        resolve({ columns, rowCount })
-      },
-      error: (err) => reject(err),
-    })
+    const fileExtension = file.name.split(".").pop()?.toLowerCase()
+
+    if (fileExtension === "csv") {
+      // Parse CSV files
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const columns = results.meta.fields || []
+          const rowCount = results.data.length
+          resolve({ columns, rowCount })
+        },
+        error: (err) => reject(err),
+      })
+    } else if (fileExtension === "xlsx" || fileExtension === "xls") {
+      // Parse Excel files
+      console.log("Uploaded file is in excel format")
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer)
+          const workbook = XLSX.read(data, { type: "array" })
+          const sheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[sheetName]
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) // raw rows
+
+          const [headers, ...rows] = jsonData
+          const columns = (headers as string[]) || []
+          const rowCount = rows.length
+
+          resolve({ columns, rowCount })
+        } catch (err) {
+          reject(err)
+        }
+      }
+      reader.onerror = () => reject(reader.error)
+      reader.readAsArrayBuffer(file)
+    } else {
+      reject(new Error("Unsupported file format. Please upload a CSV or XLSX file."))
+    }
   })
 }
 
   const processFile = async (file: File) => {
     setIsUploading(true)
     setError(null)
+    hasFileUploadStarted(true)
     setUploadProgress(0)
 
     try {
@@ -140,7 +190,7 @@ export function FileUpload({
 
       // Mock metadata extraction
 
-      const { columns, rowCount } = await parseCsvFile(file)
+      const { columns, rowCount } = await parseFile(file)
 
       // const metadata: FileMetadata = {
       //   name: file.name,
@@ -304,7 +354,7 @@ export function FileUpload({
       console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
       localStorage.setItem("sample_questions", JSON.stringify(parsedBodyAIRQ.sample_questions))
       // setSample_questions(parsedBody.sample_questions)
-
+      // hasFileUploadStarted(false)
       setUploadProgress(100)
 
       // Call the parent callback
@@ -369,6 +419,7 @@ export function FileUpload({
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files
       if (files && files.length > 0) {
+        hasFileUploadStarted(true)
         processFile(files[0])
       }
     }
