@@ -115,7 +115,7 @@ const ROLE_KPI_RECOMMENDATIONS = {
 }
 
 export function KPIsStep() {
-  const { setStep, userContext, scenarioConfig, uploadedFile } = useOnboarding()
+  const { setStep ,userContext, scenarioConfig, uploadedFile } = useOnboarding()
   const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
@@ -166,6 +166,10 @@ export function KPIsStep() {
     if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
       console.log("API Dashboard call is in progress")
       console.log("Selected KPIs are", selectedKPIs)
+      params.set("company", "HealthServ")
+      params.set("hasFile", "true")
+      let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+      router.push(dashboardUrl)
       // Insights Dashboard Generation
       const resCreateDashboard = fetch(
         "https://v36uzfxwsrpukszsof3d2aczzi0xuqeo.lambda-url.us-east-1.on.aws/",
@@ -180,10 +184,6 @@ export function KPIsStep() {
       );
 
       setIsLoading(true)
-      params.set("company", "HealthServ")
-      params.set("hasFile", "true")
-      let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-      router.push(dashboardUrl)
 
       const createDashboardData = await resCreateDashboard;
       const dataCreateDashboard = await createDashboardData.json();
@@ -193,7 +193,23 @@ export function KPIsStep() {
         setIsLoading(false)
         localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
         setDashboard_data(dataCreateDashboard.analytics);
-        console.log("API Dashboard call is completed")
+        const resConsumeTokens = await fetch(
+          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/consume-tokens",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              action_name: "file_upload",
+              event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
+            }),
+          }
+        );
+
+        if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce corresponding user tokens");
+
+        const dataConsumeTokens = await resConsumeTokens.json();
+        console.log("Token upation for user is successful", JSON.stringify(dataConsumeTokens));
       } else {
         setIsLoading(false)
         setErrorDash('Failed to generate dashboard');

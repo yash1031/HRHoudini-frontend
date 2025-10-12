@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, MessageSquare, Database, Users, BarChart3, Sparkles } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
 
 interface Message {
   id: string
@@ -47,6 +48,7 @@ export function ChatInterface({
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError]= useState<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -73,6 +75,28 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
+    const resCurrentPlan = fetch(
+        `https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/current-plan?user_id=${localStorage.getItem("user_id")}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    const dataCurrentPlan = await resCurrentPlan;
+    if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
+    const currentPlanData=   await dataCurrentPlan.json();
+    console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
+    console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
+    const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
+    console.log(tokensNeeded)
+    if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
+      setError("File upload quotas are exhausted.")
+      setTimeout(()=>{
+        setError(null);
+      }, 3000)
+      setIsLoading(false)
+      return;
+    }
 
     const response = await fetch(
           "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/nl-to-athena",
@@ -92,6 +116,7 @@ export function ChatInterface({
       const data = await response.json();
       const queryResponse = await JSON.parse(data.body);
       console.log("queryResponse is", queryResponse.natural_language_response)
+      console.log("Now consume-tokens API should fire at first place")
       // setResponse(queryResponse.natural_language_response)
 
     // Simulate AI response
@@ -103,9 +128,26 @@ export function ChatInterface({
         sender: "assistant",
         timestamp: new Date(),
       }
+      console.log("Now consume-tokens API should fire at second place")
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-    // }, 1500)
+      const resConsumeTokens = await fetch(
+          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/consume-tokens",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              action_name: "chat_message",
+              event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
+            }),
+          }
+        );
+
+        if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce user tokens for chat message");
+
+        const dataConsumeTokens = await resConsumeTokens.json();
+        console.log("Token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -164,7 +206,7 @@ export function ChatInterface({
                 </div>
               </div>
             ))}
-
+            
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm shadow-sm">
@@ -184,6 +226,12 @@ export function ChatInterface({
                   </div>
                 </div>
               </div>
+            )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
             <div ref={messagesEndRef} />
           </div>

@@ -77,6 +77,7 @@ export function FileUpload({
   const [uuid] = useState<string>(uuidv4());
   const {setKpis } = useUserContext()
   const { setSample_questions, setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
+  let resCurrentPlan: Promise<Response>;
 
   // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
@@ -106,21 +107,6 @@ export function FileUpload({
       xhr.send(file);
     });
   };
-
-  // const parseCsvFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
-  //   return new Promise((resolve, reject) => {
-  //     Papa.parse(file, {
-  //       header: true,
-  //       skipEmptyLines: true,
-  //       complete: (results) => {
-  //         const columns = results.meta.fields || []
-  //         const rowCount = results.data.length
-  //         resolve({ columns, rowCount })
-  //       },
-  //       error: (err) => reject(err),
-  //     })
-  //   })
-  // }
 
   const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
   return new Promise((resolve, reject) => {
@@ -168,6 +154,23 @@ export function FileUpload({
 }
 
   const processFile = async (file: File) => {
+    const dataCurrentPlan = await resCurrentPlan;
+    if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
+    const currentPlanData=   await dataCurrentPlan.json();
+    console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
+    console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
+    console.log("File Size is", file.size);
+    const maxFileSizeTokens = parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
+    console.log("maxFileSize", maxFileSizeTokens)
+    const tokensNeeded= (file.size/(10*1024*1000))*maxFileSizeTokens
+    console.log("Tokens needed", tokensNeeded)
+    if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
+      setError("File upload quotas are exhausted.")
+      setTimeout(()=>{
+        setError(null);
+      }, 3000)
+      return;
+    }
     setIsUploading(true)
     setError(null)
     hasFileUploadStarted(true)
@@ -395,6 +398,7 @@ export function FileUpload({
     accept: acceptedTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
     maxSize,
     multiple: false,
+    
   })
 
   const removeFile = () => {
@@ -413,6 +417,7 @@ export function FileUpload({
   }
 
   const handleBrowseClick = () => {
+    checkFileUpoadQuotas()
     const input = document.createElement("input")
     input.type = "file"
     input.accept = acceptedTypes.join(",")
@@ -430,18 +435,30 @@ export function FileUpload({
     }
   }
 
+  const checkFileUpoadQuotas = async () =>{
+    console.log("CheckFileUploadQuotas Triggered")
+    resCurrentPlan = fetch(
+        `https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/current-plan?user_id=${localStorage.getItem("user_id")}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+  }
+
   return (
     <Card className="w-full">
       <CardContent className="space-y-4">
         {!uploadedFile && (
           <>
             <div
-              {...getRootProps()}
+              // {...getRootProps()} //commented
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 isDragActive ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-              }`}
+              }`} 
+               onClick={handleBrowseClick}
             >
-              <input {...getInputProps()} />
+              {/* <input {...getInputProps()} /> commented*/}  
               <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               {isDragActive ? (
                 <p className="text-blue-600 font-medium">Drop the file here...</p>
