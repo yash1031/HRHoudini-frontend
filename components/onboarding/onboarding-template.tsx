@@ -2,10 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, Menu, X  } from "lucide-react"
 import type { OnboardingScenarioConfig } from "@/lib/demo-config"
+import FileUploadHistory from './FileUploadHistory'
 
 interface UserContext {
   name: string
@@ -39,6 +40,25 @@ export function OnboardingTemplate({
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>(
     scenarioConfig.challenges.filter((c) => c.preSelected).map((c) => c.id),
   )
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
+  const sidePanelRef = useRef<HTMLDivElement>(null)
+
+  // Close side panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidePanelRef.current && !sidePanelRef.current.contains(event.target as Node)) {
+        setIsSidePanelOpen(false)
+      }
+    }
+
+    if (isSidePanelOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isSidePanelOpen])
 
   const skipToDashboard = () => {
     finishOnboarding(true)
@@ -87,7 +107,32 @@ export function OnboardingTemplate({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 py-12 relative">
+
+      {/* Hamburger Menu Button */}
+      <button
+        onClick={() => setIsSidePanelOpen(true)}
+        className="fixed top-6 left-6 z-40 p-2 rounded-lg bg-white shadow-md hover:shadow-lg transition-shadow hover:bg-gray-50"
+        aria-label="Open menu"
+      >
+        <Menu className="h-6 w-6 text-gray-700" />
+      </button>
+
+      {/* Side Panel Overlay */}
+      {isSidePanelOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity" />
+      )}
+
+      {/* Side Panel */}
+      <div
+        ref={sidePanelRef}
+        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+          isSidePanelOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <FileUploadHistory onClose={() => setIsSidePanelOpen(false)} />
+      </div>
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Progress Header */}
         <div className="text-center mb-8">
