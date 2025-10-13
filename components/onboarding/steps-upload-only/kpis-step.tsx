@@ -187,6 +187,8 @@ export function KPIsStep() {
 
       const createDashboardData = await resCreateDashboard;
       const dataCreateDashboard = await createDashboardData.json();
+
+      console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
       
       if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
         // THIS IS THE KEY LINE - Pass the code to context
@@ -211,7 +213,7 @@ export function KPIsStep() {
         if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce corresponding user tokens");
 
         const dataConsumeTokens = await resConsumeTokens.json();
-        console.log("Token upation for user is successful", JSON.stringify(dataConsumeTokens));
+        console.log("Token upddation for user is successful", JSON.stringify(dataConsumeTokens));
         
         // Store file upload history
         const resStoreDashJSON = await fetch(
@@ -231,11 +233,12 @@ export function KPIsStep() {
         if (!resStoreDashJSON.ok) throw new Error("Failed to store JSON for dashboard into database");
 
         const dataStoreDashJSON = await resStoreDashJSON.json();
-        console.log("Token upation for user is successful", JSON.stringify(dataStoreDashJSON));
+        console.log("Token upddation for user is successful", JSON.stringify(dataStoreDashJSON));
 
       } else {
+        console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
         setIsLoading(false)
-        setErrorDash('Failed to generate dashboard');
+        setErrorDash('Failed to generate this dashboard');
       }
       return
     }

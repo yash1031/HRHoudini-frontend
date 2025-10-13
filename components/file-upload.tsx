@@ -154,14 +154,19 @@ export function FileUpload({
 }
 
   const processFile = async (file: File) => {
+
     const dataCurrentPlan = await resCurrentPlan;
     if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
     const currentPlanData=   await dataCurrentPlan.json();
     console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
     console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
     console.log("File Size is", file.size);
+
+
     // const maxFileSizeTokens = parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
     // console.log("maxFileSize", maxFileSizeTokens)
+
+
     const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
     console.log("Tokens needed", tokensNeeded)
     if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
@@ -386,6 +391,7 @@ export function FileUpload({
       }
 
       if (acceptedFiles.length > 0) {
+        checkFileUpoadQuotas()
         console.log("File is uploaded correctly")
         processFile(acceptedFiles[0])
       }
@@ -398,7 +404,8 @@ export function FileUpload({
     accept: acceptedTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
     maxSize,
     multiple: false,
-    
+    noClick: true, // Prevent click on the drop zone from opening dialog
+    noKeyboard: true, // Prevent keyboard interaction
   })
 
   const removeFile = () => {
@@ -452,13 +459,12 @@ export function FileUpload({
         {!uploadedFile && (
           <>
             <div
-              // {...getRootProps()} //commented
+              {...getRootProps()} 
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 isDragActive ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
               }`} 
-               onClick={handleBrowseClick}
             >
-              {/* <input {...getInputProps()} /> commented*/}  
+              <input {...getInputProps()} />  
               <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               {isDragActive ? (
                 <p className="text-blue-600 font-medium">Drop the file here...</p>

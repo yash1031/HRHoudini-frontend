@@ -1003,9 +1003,6 @@ export default function DashboardUO1() {
         // Pass the component code from API to GeneratedDashboard
         
         <Generated_Dashboard {...config} />
-        // {!isLoading && !errorDash && DynamicComponent && (
-        // <DynamicComponent />
-        // )}
       }
 
         {/* <Generated_Dashboard_Static></Generated_Dashboard_Static> */}
