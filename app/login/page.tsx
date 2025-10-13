@@ -297,7 +297,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen" style={{ backgroundColor: "#488AF4" }}>
+    // <div className="relative min-h-screen" style={{ backgroundColor: "#488AF4" }}>
+    <div className="relative min-h-screen flex flex-col" style={{ backgroundColor: "#488AF4" }}>
       {/* Floating Logo Pill */}
       <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10">
         <div className="bg-white rounded-full px-7 py-4 shadow-lg border border-gray-200">
@@ -307,7 +308,8 @@ export default function LoginPage() {
 
       {/* Header - now just the colored bar */}
 
-      <div className="flex items-center justify-center min-h-screen px-6 py-12">
+      {/* <div className="flex items-center justify-center min-h-screen px-6 py-12"> */}
+      <div className="flex items-center justify-center flex-1 px-6 py-12 pb-48">
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Side - Value Proposition */}
           <div className="text-white space-y-8">
@@ -713,7 +715,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* <div className="absolute bottom-0 left-0 right-0 bg-blue-900 py-6">
+      {/* <div className="absolute bottom-0 left-0 right-0 bg-blue-900 py-6"> */}
+      <div className="w-full bg-blue-900 py-6 mt-auto">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-white mb-2">Quick Demo Access</h3>
@@ -749,7 +752,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-      </div> */}
+      </div>
     </div>
   )
 }
