@@ -160,9 +160,9 @@ export function FileUpload({
     console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
     console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
     console.log("File Size is", file.size);
-    const maxFileSizeTokens = parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
-    console.log("maxFileSize", maxFileSizeTokens)
-    const tokensNeeded= (file.size/(10*1024*1000))*maxFileSizeTokens
+    // const maxFileSizeTokens = parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
+    // console.log("maxFileSize", maxFileSizeTokens)
+    const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
     console.log("Tokens needed", tokensNeeded)
     if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
       setError("File upload quotas are exhausted.")

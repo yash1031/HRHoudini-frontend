@@ -202,6 +202,7 @@ export function KPIsStep() {
             body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               action_name: "file_upload",
+              tokens_to_consume: 1000,
               event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
             }),
           }

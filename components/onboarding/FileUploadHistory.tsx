@@ -148,7 +148,8 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      {editingId === upload.id ? (
+                      {
+                      editingId === upload.id ? (
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="text"
@@ -174,7 +175,8 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                             <X size={16} />
                           </button>
                         </div>
-                      ) : (
+                      ) : 
+                      (
                         <h3 className="font-medium text-gray-900 truncate text-sm mb-1">
                           {upload.name}
                         </h3>
@@ -185,7 +187,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -220,7 +222,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                       >
                         <Trash2 size={16} />
                       </button>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>

@@ -139,6 +139,7 @@ export function ChatInterface({
             body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               action_name: "chat_message",
+              tokens_to_consume: 10,
               event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
             }),
           }
