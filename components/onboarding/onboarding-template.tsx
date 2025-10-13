@@ -37,6 +37,7 @@ export function OnboardingTemplate({
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [uploadedFile, setUploadedFile] = useState<any>(null)
+  const [fileUploadHistoryData, setFileUploadHistoryData] = useState<any>([])
   const [selectedChallenges, setSelectedChallenges] = useState<string[]>(
     scenarioConfig.challenges.filter((c) => c.preSelected).map((c) => c.id),
   )
@@ -45,8 +46,14 @@ export function OnboardingTemplate({
 
   // Close side panel when clicking outside
   useEffect(() => {
+    // const handleClickOutside = (event: MouseEvent) => {
+    //   if (sidePanelRef.current && !sidePanelRef.current.contains(event.target as Node)) {
+    //     setIsSidePanelOpen(false)
+    //   }
+    // }
     const handleClickOutside = (event: MouseEvent) => {
-      if (sidePanelRef.current && !sidePanelRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (sidePanelRef.current && !sidePanelRef.current.contains(target)) {
         setIsSidePanelOpen(false)
       }
     }
@@ -59,6 +66,37 @@ export function OnboardingTemplate({
       document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [isSidePanelOpen])
+
+  useEffect(()=>{
+   fetchFileUploadHistory()
+  },[])
+
+  const fetchFileUploadHistory = async () =>{
+     // Store file upload history
+      const resFetchFileUploadHistory = await fetch(
+        `https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/update-chat-history?user_id=${localStorage.getItem("user_id")}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!resFetchFileUploadHistory.ok) throw new Error("Failed to fetch user files");
+      const dataFetchFileUploadHistory = await resFetchFileUploadHistory.json();
+      console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
+      const dashboardHistoryData= await dataFetchFileUploadHistory.data;
+      let fileUploadData: any =[];
+      dashboardHistoryData.map((data:any, id:any)=>{
+        // Step 1: Extract the filename (after the last '/')
+        const fileNameWithExt = data.s3_location.split("/").pop() || ""; // → "SharpMedian_V1.csv"
+
+        // Step 2: Remove the extension (everything after the last '.')
+        const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
+        fileUploadData.push({id: id, name: fileNameWithoutExt + " " + data.created_at, timestamp: data.created_at, isFavorite: false, dashboardJSON: data.analytical_json_output})
+      })
+      console.log("fileUploadData is", fileUploadData)
+      setFileUploadHistoryData(fileUploadData)
+
+  }
 
   const skipToDashboard = () => {
     finishOnboarding(true)
@@ -126,11 +164,11 @@ export function OnboardingTemplate({
       {/* Side Panel */}
       <div
         ref={sidePanelRef}
-        className={`fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-full bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
           isSidePanelOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <FileUploadHistory onClose={() => setIsSidePanelOpen(false)} />
+        <FileUploadHistory fileUploadHistoryData={fileUploadHistoryData} onClose={() => setIsSidePanelOpen(false)} />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

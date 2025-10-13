@@ -193,6 +193,7 @@ export function KPIsStep() {
         setIsLoading(false)
         localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
         setDashboard_data(dataCreateDashboard.analytics);
+        // Reduce token in database for uploaded file as per the file size
         const resConsumeTokens = await fetch(
           "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/consume-tokens",
           {
@@ -210,6 +211,27 @@ export function KPIsStep() {
 
         const dataConsumeTokens = await resConsumeTokens.json();
         console.log("Token upation for user is successful", JSON.stringify(dataConsumeTokens));
+        
+        // Store file upload history
+        const resStoreDashJSON = await fetch(
+          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/update-chat-history",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: localStorage.getItem("session_id"),
+              s3_location: localStorage.getItem("s3Key"),
+              analytical_json_output: dataCreateDashboard.analytics
+            }),
+          }
+        );
+
+        if (!resStoreDashJSON.ok) throw new Error("Failed to store JSON for dashboard into database");
+
+        const dataStoreDashJSON = await resStoreDashJSON.json();
+        console.log("Token upation for user is successful", JSON.stringify(dataStoreDashJSON));
+
       } else {
         setIsLoading(false)
         setErrorDash('Failed to generate dashboard');

@@ -1,26 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, Trash2, Edit2, FileText, Clock, X, Check } from 'lucide-react';
+import { useRouter } from "next/navigation"
+import { useDashboard } from '@/contexts/DashboardContext';
 
 interface FileUpload {
   id: string;
   name: string;
   timestamp: string;
   isFavorite: boolean;
+  dashboardJSON: any;
 }
 
 interface FileUploadHistoryProps {
   onClose?: () => void;
+  fileUploadHistoryData: any;
 }
 
-const FileUploadHistory = ({ onClose }: FileUploadHistoryProps) => {
-  const [uploads, setUploads] = useState<FileUpload[]>([
-    { id: '1', name: 'Employee_Data_Q1.csv', timestamp: '2025-10-13T10:30:00', isFavorite: true },
-    { id: '2', name: 'Payroll_Report_Sept.xlsx', timestamp: '2025-10-12T15:45:00', isFavorite: false },
-    { id: '3', name: 'Performance_Metrics.csv', timestamp: '2025-10-11T09:20:00', isFavorite: true },
-    { id: '4', name: 'Department_Analytics.xlsx', timestamp: '2025-10-10T14:15:00', isFavorite: false },
-    { id: '5', name: 'Attendance_Records.csv', timestamp: '2025-10-09T11:00:00', isFavorite: false },
-    { id: '6', name: 'Benefits_Enrollment.xlsx', timestamp: '2025-10-08T16:30:00', isFavorite: false },
-  ]);
+const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistoryProps) => {
+  // const [uploads, setUploads] = useState<FileUpload[]>([
+  //   { id: '1', name: 'Employee_Data_Q1.csv', timestamp: '2025-10-13T10:30:00', isFavorite: true },
+  //   { id: '2', name: 'Payroll_Report_Sept.xlsx', timestamp: '2025-10-12T15:45:00', isFavorite: false },
+  //   { id: '3', name: 'Performance_Metrics.csv', timestamp: '2025-10-11T09:20:00', isFavorite: true },
+  //   { id: '4', name: 'Department_Analytics.xlsx', timestamp: '2025-10-10T14:15:00', isFavorite: false },
+  //   { id: '5', name: 'Attendance_Records.csv', timestamp: '2025-10-09T11:00:00', isFavorite: false },
+  //   { id: '6', name: 'Benefits_Enrollment.xlsx', timestamp: '2025-10-08T16:30:00', isFavorite: false },
+  // ]);
+  const [uploads, setUploads] = useState<FileUpload[]>([]);
+  const router = useRouter()
+  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
+  console.log("uploads in FileUploadHistory comp is", fileUploadHistoryData)
+
+  useEffect(()=>{
+    setUploads(fileUploadHistoryData)
+  },[fileUploadHistoryData])
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -71,15 +83,31 @@ const FileUploadHistory = ({ onClose }: FileUploadHistoryProps) => {
     setEditValue('');
   };
 
-  const handleTileClick = (id: string) => {
+  const handleTileClick = (id: string, dashboardJSON: any) => {
     if (editingId) return;
     console.log('Navigate to:', id);
+    // Navigate to dashboard-upload-only with specified parameters
+    const params = new URLSearchParams({
+      persona: "hr-generalist---upload-only",
+      company: "HealthServ+Solutions",
+      onboarding: "completed",
+      hasFile: "false",
+      showWelcome: "true",
+      challenges: "[object+Object],[object+Object],[object+Object],[object+Object],[object+Object],[object+Object]",
+    })
+    params.set("company", "HealthServ")
+    params.set("hasFile", "true")
+    let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
+    setDashboard_data(dashboardJSON);
+    router.push(dashboardUrl)
+
     // Add your navigation logic here
     // e.g., navigate(`/upload/${id}`);
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#f8f9fa]">
+    <div className="h-screen flex flex-col bg-[#f8f9fa]" style={{ width: '500px' }}>
       {/* Header */}
       <div className="bg-[#4f5bde] text-white px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -104,8 +132,8 @@ const FileUploadHistory = ({ onClose }: FileUploadHistoryProps) => {
         {uploads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <FileText size={64} strokeWidth={1.5} className="mb-4" />
-            <p className="text-lg font-medium mb-1">No previous conversations</p>
-            <p className="text-sm">Start chatting to build your history</p>
+            <p className="text-lg font-medium mb-1">No previous file uploads</p>
+            <p className="text-sm">Upload files to build your history</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -116,7 +144,7 @@ const FileUploadHistory = ({ onClose }: FileUploadHistoryProps) => {
               >
                 <div 
                   className="p-4 cursor-pointer"
-                  onClick={() => handleTileClick(upload.id)}
+                  onClick={() => handleTileClick(upload.id, upload.dashboardJSON)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
