@@ -50,8 +50,7 @@ interface ChartConfig {
   xDataKey?: string;
   yDataKey?: string;
   valueKey?: string;
-  // layout?: 'vertical' | 'horizontal';
-  layout?: string;
+  layout?: 'vertical' | 'horizontal';
   height?: number;
   sort?: 'asc' | 'desc';
   lineName?: string;
@@ -213,25 +212,61 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     if (chartConfig.type === 'pie') {
       const pieColors = generatePieColors(chartData.length);
       
-      // Custom label with better positioning to avoid cutoff
+      // Custom label with smart multi-line support based on label length
       const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, value }: any) => {
         const RADIAN = Math.PI / 180;
-        const radius = outerRadius + 30; // Position labels outside the pie
+        const radius = outerRadius + 50; // Position labels further outside
         const x = cx + radius * Math.cos(-midAngle * RADIAN);
         const y = cy + radius * Math.sin(-midAngle * RADIAN);
         
-        return (
-          <text
-            x={x}
-            y={y}
-            fill="#64748b"
-            textAnchor={x > cx ? 'start' : 'end'}
-            dominantBaseline="central"
-            fontSize="12px"
-          >
-            {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-          </text>
-        );
+        // Determine text anchor based on position
+        const textAnchor = x > cx ? 'start' : 'end';
+        
+        // Determine if label is too long (more than 15 characters)
+        const isLongLabel = name.length > 15;
+        
+        if (isLongLabel) {
+          // Multi-line for long labels
+          return (
+            <g>
+              <text
+                x={x}
+                y={y - 8}
+                fill="#64748b"
+                textAnchor={textAnchor}
+                dominantBaseline="central"
+                fontSize="12px"
+                fontWeight="500"
+              >
+                {name}
+              </text>
+              <text
+                x={x}
+                y={y + 8}
+                fill="#64748b"
+                textAnchor={textAnchor}
+                dominantBaseline="central"
+                fontSize="11px"
+              >
+                {`${value} (${(percent * 100).toFixed(0)}%)`}
+              </text>
+            </g>
+          );
+        } else {
+          // Single line for short labels
+          return (
+            <text
+              x={x}
+              y={y}
+              fill="#64748b"
+              textAnchor={textAnchor}
+              dominantBaseline="central"
+              fontSize="12px"
+            >
+              {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+            </text>
+          );
+        }
       };
 
       return (
@@ -242,7 +277,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
             cy="50%"
             labelLine={false}
             label={renderLabel}
-            outerRadius={80}
+            outerRadius={110}
             fill="#8884d8"
             dataKey={chartConfig.valueKey || 'value'}
           >
@@ -538,7 +573,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                   <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
                   {chart.title}
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={350}>
                   {renderChart(chartData, chart)}
                 </ResponsiveContainer>
               </div>
