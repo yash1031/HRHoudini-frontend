@@ -83,12 +83,24 @@ interface KPICard {
   format?: (value: number) => string | number;
   filterCondition?: (item: DataItem) => boolean;
   calculate?: (data: DataItem[]) => string | number;
-  drillDownChart?: DrillDownChart;
+  // drillDownChart?: DrillDownChart;
+  drillDownData?: DrillDownData;
 }
 
 interface ChartDrillDown {
   titlePrefix?: string;
   filterFunction: (item: DataItem, clicked: ChartDataItem) => boolean;
+}
+
+interface Insights {
+  critical_issues: string[];
+  recommended_actions: string[];
+}
+
+interface DrillDownData {
+  cards: KPICard[];
+  charts: ChartConfig[];
+  insights?: Insights; // UPDATED: Changed from InsightItem[] to Insights
 }
 
 interface ChartConfig {
@@ -100,12 +112,13 @@ interface ChartConfig {
   xDataKey?: string;
   yDataKey?: string;
   valueKey?: string;
-  layout?: 'vertical' | 'horizontal';
+  layout?: string;
   height?: number;
   sort?: 'asc' | 'desc';
   lineName?: string;
   customDataGenerator?: (data: DataItem[]) => ChartDataItem[];
-  drillDown?: ChartDrillDown;
+  // drillDown?: ChartDrillDown;
+  drillDownData?: DrillDownData;
 }
 
 interface TableColumn {
@@ -137,6 +150,7 @@ interface ConfigurableDashboardProps {
   filters?: FilterConfig[];
   kpiCards?: KPICard[];
   charts?: ChartConfig[];
+  rowCount?: string,
   tableColumns?: TableColumn[];
   colors?: string[];
 }
@@ -821,7 +835,7 @@ export default function DashboardUO1() {
 
     console.log("Dashboard data is", dashboard_data);
 
-    const { cards, charts } = dashboard_data;
+    const { cards, charts, metadata } = dashboard_data;
 
     // Color mapping for different color names
     const colorMap: Record<string, string> = {
@@ -878,11 +892,15 @@ export default function DashboardUO1() {
                 })),
               };
             }) || [],
-            insights: card.drillDown.insights?.map((insight: any) => ({
-              type: insight.type || 'info',
-              title: insight.title,
-              description: insight.description
-            })) || []
+            // insights: card.drillDown.insights?.map((insight: any) => ({
+            //   type: insight.type || 'info',
+            //   title: insight.title,
+            //   description: insight.description
+            // })) || []
+            insights: card.drillDown.insights ? {
+              critical_issues: card.drillDown.insights.critical_issues || [],
+              recommended_actions: card.drillDown.insights.recommended_actions || []
+            } : undefined
           }
         };
       }
@@ -898,7 +916,8 @@ export default function DashboardUO1() {
       const baseChart = {
         title: chart.title,
         icon: chart.icon,
-        type: chartType as 'bar' | 'pie' | 'line',
+        // type: chartType as 'bar' | 'pie' | 'line',
+        type: chartType,
         color: chart.colors?.[0] || '#3b82f6',
         dataKey: chart.field,
         layout: layout,
@@ -942,11 +961,15 @@ export default function DashboardUO1() {
                 })),
               };
             }) || [],
-            insights: chart.drillDown.insights?.map((insight: any) => ({
-              type: insight.type || 'info',
-              title: insight.title,
-              description: insight.description
-            })) || []
+            // insights: chart.drillDown.insights?.map((insight: any) => ({
+            //   type: insight.type || 'info',
+            //   title: insight.title,
+            //   description: insight.description
+            // })) || []
+            insights: chart.drillDown.insights ? {
+              critical_issues: chart.drillDown.insights.critical_issues || [],
+              recommended_actions: chart.drillDown.insights.recommended_actions || []
+            } : undefined
           }
         };
       }
@@ -955,12 +978,14 @@ export default function DashboardUO1() {
     });
 
     // Create dashboard config
-    const newConfig = {
+    const newConfig: ConfigurableDashboardProps = {
       title: "Analytics Dashboard",
       subtitle: "Interactive insights from your data",
       data: [], // No raw data needed since we're using custom generators
+      filters: [],
       kpiCards,
       charts: chartConfigs,
+      rowCount: String(metadata.totalRows),
       tableColumns: [], // Add if needed
       colors: charts[0]?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
     };

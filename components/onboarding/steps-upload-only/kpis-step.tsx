@@ -115,6 +115,7 @@ const ROLE_KPI_RECOMMENDATIONS = {
 }
 
 export function KPIsStep() {
+  
   const { setStep ,userContext, scenarioConfig, uploadedFile } = useOnboarding()
   const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
   const router = useRouter()
@@ -146,106 +147,110 @@ export function KPIsStep() {
   const { kpis } = useUserContext()
 
   const handleNext = async () => {
-    // Store selected KPIs in localStorage
-    localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
-    localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
+    try{
+      // Store selected KPIs in localStorage
+      localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
+      localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
 
-    // Navigate to dashboard-upload-only with specified parameters
-    const params = new URLSearchParams({
-      persona: "hr-generalist---upload-only",
-      company: "HealthServ+Solutions",
-      onboarding: "completed",
-      hasFile: "false",
-      showWelcome: "true",
-      challenges: "[object+Object],[object+Object],[object+Object],[object+Object],[object+Object],[object+Object]",
-    })
+      // Navigate to dashboard-upload-only with specified parameters
+      const params = new URLSearchParams({
+        persona: "hr-generalist---upload-only",
+        company: "HealthServ+Solutions",
+        onboarding: "completed",
+        hasFile: "false",
+        showWelcome: "true",
+        challenges: "[object+Object],[object+Object],[object+Object],[object+Object],[object+Object],[object+Object]",
+      })
 
-    // console.log("kpis", kpis)
-    // console.log("AVAILABLE_KPIS", AVAILABLE_KPIS)
+      // console.log("kpis", kpis)
+      // console.log("AVAILABLE_KPIS", AVAILABLE_KPIS)
 
-    if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
-      console.log("API Dashboard call is in progress")
-      console.log("Selected KPIs are", selectedKPIs)
-      params.set("company", "HealthServ")
-      params.set("hasFile", "true")
-      let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-      router.push(dashboardUrl)
-      // Insights Dashboard Generation
-      const resCreateDashboard = fetch(
-        "https://v36uzfxwsrpukszsof3d2aczzi0xuqeo.lambda-url.us-east-1.on.aws/",
-        {
-          method: "POST",
-          // headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            s3_file_key: localStorage.getItem("s3Key"),
-            selected_kpis: selectedKPIWithDesc
-          }),
-        }
-      );
-
-      setIsLoading(true)
-
-      const createDashboardData = await resCreateDashboard;
-      const dataCreateDashboard = await createDashboardData.json();
-
-      console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
-      
-      if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
-        const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
-        console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
-        // THIS IS THE KEY LINE - Pass the code to context
-        setIsLoading(false)
-        localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
-        setDashboard_data(dataCreateDashboard.analytics);
-        // Reduce token in database for uploaded file as per the file size
-        const resConsumeTokens = await fetch(
-          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/consume-tokens",
+      if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
+        console.log("API Dashboard call is in progress")
+        console.log("Selected KPIs are", selectedKPIs)
+        params.set("company", "HealthServ")
+        params.set("hasFile", "true")
+        let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+        router.push(dashboardUrl)
+        // Insights Dashboard Generation
+        const resCreateDashboard = fetch(
+          "https://v36uzfxwsrpukszsof3d2aczzi0xuqeo.lambda-url.us-east-1.on.aws/",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            // headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              action_name: "file_upload",
-              tokens_to_consume: consumed_tokens,
-              event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
+              s3_file_key: localStorage.getItem("s3Key"),
+              selected_kpis: selectedKPIWithDesc
             }),
           }
         );
 
-        if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce corresponding user tokens");
+        setIsLoading(true)
 
-        const dataConsumeTokens = await resConsumeTokens.json();
-        console.log("Token upddation for user is successful", JSON.stringify(dataConsumeTokens));
+        const createDashboardData = await resCreateDashboard;
+        const dataCreateDashboard = await createDashboardData.json();
+
+        console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
         
-        // Store file upload history
-        const resStoreDashJSON = await fetch(
-          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/update-chat-history",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: localStorage.getItem("session_id"),
-              s3_location: localStorage.getItem("s3Key"),
-              analytical_json_output: dataCreateDashboard.analytics
-            }),
-          }
-        );
+        if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
+          const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
+          console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
+          // THIS IS THE KEY LINE - Pass the code to context
+          setIsLoading(false)
+          localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
+          setDashboard_data(dataCreateDashboard.analytics);
+          // Reduce token in database for uploaded file as per the file size
+          const resConsumeTokens = await fetch(
+            "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/consume-tokens",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                user_id: localStorage.getItem("user_id"),
+                action_name: "file_upload",
+                tokens_to_consume: consumed_tokens,
+                event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
+              }),
+            }
+          );
 
-        if (!resStoreDashJSON.ok) throw new Error("Failed to store JSON for dashboard into database");
+          if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce corresponding user tokens");
 
-        const dataStoreDashJSON = await resStoreDashJSON.json();
-        console.log("Token upddation for user is successful", JSON.stringify(dataStoreDashJSON));
+          const dataConsumeTokens = await resConsumeTokens.json();
+          console.log("Token upddation for user is successful", JSON.stringify(dataConsumeTokens));
+          
+          // Store file upload history
+          const resStoreDashJSON = await fetch(
+            "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/update-chat-history",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                user_id: localStorage.getItem("user_id"),
+                session_id: localStorage.getItem("session_id"),
+                s3_location: localStorage.getItem("s3Key"),
+                analytical_json_output: dataCreateDashboard.analytics
+              }),
+            }
+          );
 
-      } else {
-        console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
-        setIsLoading(false)
-        setErrorDash('Failed to generate this dashboard');
+          if (!resStoreDashJSON.ok) throw new Error("Failed to store JSON for dashboard into database");
+
+          const dataStoreDashJSON = await resStoreDashJSON.json();
+          console.log("Token upddation for user is successful", JSON.stringify(dataStoreDashJSON));
+
+        } else {
+          console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
+          setIsLoading(false)
+          setErrorDash('Failed to generate this dashboard');
+        }
+        return
       }
-      return
-    }
 
-    router.push(`/dashboard-upload-only?${params.toString()}`)
+      router.push(`/dashboard-upload-only?${params.toString()}`)
+    }catch(error){
+      console.log("Error is", error)
+    }
   }
 
   const groupedKPIs = kpis.reduce(

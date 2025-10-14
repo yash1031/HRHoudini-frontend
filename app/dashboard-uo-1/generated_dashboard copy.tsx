@@ -15,16 +15,16 @@ interface ChartDataItem {
   [key: string]: any;
 }
 
-// UPDATED: New insights structure
-interface Insights {
-  critical_issues: string[];
-  recommended_actions: string[];
+interface InsightItem {
+  type: 'critical' | 'warning' | 'info';
+  title: string;
+  description: string;
 }
 
 interface DrillDownData {
   cards: KPICard[];
   charts: ChartConfig[];
-  insights?: Insights; // UPDATED: Changed from InsightItem[] to Insights
+  insights?: InsightItem[];
 }
 
 interface KPICard {
@@ -50,8 +50,7 @@ interface ChartConfig {
   xDataKey?: string;
   yDataKey?: string;
   valueKey?: string;
-  // layout?: 'vertical' | 'horizontal';
-  layout?: string;
+  layout?: 'vertical' | 'horizontal';
   height?: number;
   sort?: 'asc' | 'desc';
   lineName?: string;
@@ -78,7 +77,7 @@ interface ConfigurableDashboardProps {
   data?: DataItem[];
   kpiCards?: KPICard[];
   charts?: ChartConfig[];
-  rowCount?: string;
+  rowCount: String;
   tableColumns?: TableColumn[];
   colors?: string[];
 }
@@ -89,8 +88,8 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   data = [],
   kpiCards = [],
   charts = [],
-  rowCount,
   tableColumns = [],
+  rowCount,
   colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
 }) => {
   
@@ -136,7 +135,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     }
   };
 
-  const generateChartData = (chart: ChartConfig): ChartDataItem[] => {
+  const generateChartData = (chart: ChartConfig, rowCount: String): ChartDataItem[] => {
     if (chart.customDataGenerator) {
       return chart.customDataGenerator(data);
     }
@@ -195,45 +194,11 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
 
   const getRandomLightColor = () => {
     const hue = Math.floor(Math.random() * 360);
-    return `hsl(${hue}, 70%, 75%)`;
-  };
-
-  // Generate unique light colors for pie chart segments
-  const generatePieColors = (count: number): string[] => {
-    const colors: string[] = [];
-    const step = 360 / count;
-    for (let i = 0; i < count; i++) {
-      const hue = (step * i + Math.random() * 30) % 360;
-      colors.push(`hsl(${hue}, 70%, 75%)`);
-    }
-    return colors;
+    return `hsl(${hue}, 80%, 75%)`;
   };
 
   const renderChart = (chartData: ChartDataItem[], chartConfig: Partial<ChartConfig>): React.ReactNode => {
     if (chartConfig.type === 'pie') {
-      const pieColors = generatePieColors(chartData.length);
-      
-      // Custom label with better positioning to avoid cutoff
-      const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, value }: any) => {
-        const RADIAN = Math.PI / 180;
-        const radius = outerRadius + 30; // Position labels outside the pie
-        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-        
-        return (
-          <text
-            x={x}
-            y={y}
-            fill="#64748b"
-            textAnchor={x > cx ? 'start' : 'end'}
-            dominantBaseline="central"
-            fontSize="12px"
-          >
-            {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-          </text>
-        );
-      };
-
       return (
         <PieChart>
           <Pie
@@ -241,15 +206,15 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={renderLabel}
-            outerRadius={80}
+            label={({ name, value, percent }: any) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+            outerRadius={120}
             fill="#8884d8"
             dataKey={chartConfig.valueKey || 'value'}
           >
             {chartData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={pieColors[index]}
+                fill={colors[index % colors.length]}
               />
             ))}
           </Pie>
@@ -278,8 +243,6 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
       );
     }
 
-    // Bar chart - use single consistent color
-    const barColor = getRandomLightColor();
     return (
       <BarChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -297,54 +260,47 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
         <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
         <Bar 
           dataKey={'value'} 
-          fill={barColor}
+          activeBar={<Rectangle fill={getRandomLightColor()} stroke="white" />}
+          fill={getRandomLightColor() || chartConfig.color}
           radius={chartConfig.layout === 'horizontal' ? [0, 8, 8, 0] : [8, 8, 0, 0]}
         />
       </BarChart>
     );
   };
 
-  // UPDATED: New InsightsSection component matching the image format
-  const InsightsSection: React.FC<{ insights: Insights }> = ({ insights }) => {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-6">Key Insights & Recommendations</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Critical Issues Section */}
-          <div>
-            <h4 className="text-md font-semibold text-slate-800 mb-4">Critical Issues:</h4>
-            {insights.critical_issues && insights.critical_issues.length > 0 ? (
-              <ul className="space-y-2">
-                {insights.critical_issues.map((issue, idx) => (
-                  <li key={idx} className="text-sm text-slate-700 flex items-start">
-                    <span className="text-slate-400 mr-2">•</span>
-                    <span>{issue}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500 italic">No critical issues identified</p>
-            )}
-          </div>
+  const InsightsSection: React.FC<{ insights: InsightItem[] }> = ({ insights }) => {
+    const getInsightIcon = (type: string) => {
+      switch(type) {
+        case 'critical': return <AlertTriangle className="w-5 h-5 text-red-500" />;
+        case 'warning': return <Info className="w-5 h-5 text-orange-500" />;
+        case 'info': return <CheckCircle className="w-5 h-5 text-blue-500" />;
+        default: return <Info className="w-5 h-5 text-blue-500" />;
+      }
+    };
 
-          {/* Recommended Actions Section */}
-          <div>
-            <h4 className="text-md font-semibold text-slate-800 mb-4">Recommended Actions:</h4>
-            {insights.recommended_actions && insights.recommended_actions.length > 0 ? (
-              <ul className="space-y-2">
-                {insights.recommended_actions.map((action, idx) => (
-                  <li key={idx} className="text-sm text-slate-700 flex items-start">
-                    <span className="text-slate-400 mr-2">•</span>
-                    <span>{action}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-slate-500 italic">No recommended actions</p>
-            )}
+    const getInsightBgColor = (type: string) => {
+      switch(type) {
+        case 'critical': return 'bg-red-50 border-red-200';
+        case 'warning': return 'bg-orange-50 border-orange-200';
+        case 'info': return 'bg-blue-50 border-blue-200';
+        default: return 'bg-blue-50 border-blue-200';
+      }
+    };
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-slate-800 mb-4">Key Insights & Recommendations</h3>
+        {insights.map((insight, idx) => (
+          <div key={idx} className={`border rounded-lg p-4 ${getInsightBgColor(insight.type)}`}>
+            <div className="flex items-start gap-3">
+              {getInsightIcon(insight.type)}
+              <div>
+                <h4 className="font-semibold text-slate-800 mb-1">{insight.title}</h4>
+                <p className="text-sm text-slate-600">{insight.description}</p>
+              </div>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     );
   };
@@ -427,8 +383,8 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 </div>
               )}
 
-              {/* Insights Row - UPDATED */}
-              {modal.drillDownData.insights && (
+              {/* Insights Row */}
+              {modal.drillDownData.insights && modal.drillDownData.insights.length > 0 && (
                 <InsightsSection insights={modal.drillDownData.insights} />
               )}
             </div>
@@ -442,56 +398,77 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12">
       <div className="max-w-7xl mx-auto">
         
+        {/* <div className="mb-8">
+          <h1 className="text-4xl font-bold text-slate-800 mb-2">{title}</h1>
+          <p className="text-slate-600">{subtitle}</p>
+        </div> */}
+
         <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl shadow-xl mb-6">
-          <div className="px-8 py-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="bg-white/20 rounded-full p-3">
-                  <Sparkles className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-white">HR Houdini</h1>
-                  <p className="text-blue-100">
-                    Your AI workforce analyst - Ready to dive deeper into {localStorage.getItem("file_name")} data
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Badge className="bg-white/20 text-white border-white/30">Analysis Completed</Badge>
-                <div className="bg-white/10 rounded-lg px-4 py-2">
-                  <div className="flex items-center space-x-2 text-white">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium">{localStorage.getItem("file_name")}</span>
-                    <span className="text-blue-200">•</span>
-                    <span className="text-blue-200">{rowCount} records</span>
+                <div className="px-8 py-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="bg-white/20 rounded-full p-3">
+                        <Sparkles className="h-8 w-8 text-white" />
+                      </div>
+                      <div>
+                        <h1 className="text-3xl font-bold text-white">HR Houdini</h1>
+                        <p className="text-blue-100">
+                          Your AI workforce analyst - Ready to dive deeper into {localStorage.getItem("file_name")} data
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      {/* {file_row_count && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-white/80 text-sm">
+                            {file_row_count ? `${file_row_count} records loaded` : "Loading database..."}
+                          </span>
+                        </div>
+                      )} */}
+                      <Badge className="bg-white/20 text-white border-white/30">Analysis Completed</Badge>
+                      <div className="bg-white/10 rounded-lg px-4 py-2">
+                        <div className="flex items-center space-x-2 text-white">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="font-medium">{localStorage.getItem("file_name")}</span>
+                          <span className="text-blue-200">•</span>
+                          <span className="text-blue-200">{rowCount} records</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 rounded-xl p-4">
+                    <h2 className="text-xl font-semibold text-white mb-3">3 Critical Insights Found</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                        <span className="font-medium text-white">Turnover:</span>
+                        <span className="text-blue-100">
+                          {/* {sharpMedianInsights ? `${sharpMedianInsights.turnoverRate}%` : "24.3%"} rate */}
+                          {"24.3%"} rate
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                        <span className="font-medium text-white">Departments:</span>
+                        <span className="text-blue-100">
+                          {/* {sharpMedianInsights ? Object.keys(sharpMedianInsights.departments).length : "8"} active */}
+                          { "8"} active
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                        <span className="font-medium text-white">Locations:</span>
+                        <span className="text-blue-100">
+                          {"12"} sites
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white/10 rounded-xl p-4">
-              <h2 className="text-xl font-semibold text-white mb-3">3 Critical Insights Found</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                  <span className="font-medium text-white">Turnover:</span>
-                  <span className="text-blue-100">{"24.3%"} rate</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                  <span className="font-medium text-white">Departments:</span>
-                  <span className="text-blue-100">{"8"} active</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  <span className="font-medium text-white">Locations:</span>
-                  <span className="text-blue-100">{"12"} sites</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+            
         {kpiCards.length > 0 && (
           <div className="grid gap-6 mb-8" style={{ gridTemplateColumns: `repeat(${Math.min(kpiCards.length, 4)}, 1fr)` }}>
             {kpiCards.map((kpi, idx) => {
@@ -537,7 +514,9 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
                   <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
                   {chart.title}
+                  {chart.drillDownData && <span className="text-sm text-slate-500 ml-2">(Click for details)</span>}
                 </h3>
+                {/* <ResponsiveContainer width="100%" height={chart.height || 400}> */}
                 <ResponsiveContainer width="100%" height={300}>
                   {renderChart(chartData, chart)}
                 </ResponsiveContainer>
