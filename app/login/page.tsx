@@ -270,7 +270,7 @@ export default function LoginPage() {
         }, 1500)
         return
       }
-      const response = await fetch("/api/auth/create-account", {
+      const responseCreateAccount = await fetch("/api/auth/create-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -279,10 +279,11 @@ export default function LoginPage() {
         }),
       });
 
-      const data = await response.json();
+      const dataCreateAccount = await responseCreateAccount.json();
+      const createAccountData= await dataCreateAccount.data
 
-      if (response.ok) {
-        console.log("Account created successfully:", data);
+      if (responseCreateAccount.ok) {
+        console.log("Account created successfully:", dataCreateAccount);
         setEmail(formData.companyEmail)
         //Redirect to login or dashboard if needed
         setIsSignup(false)
@@ -294,7 +295,26 @@ export default function LoginPage() {
           // Check if this is a persona login that should go to onboarding
           setEmailExistError("");
         }, 5000)
-        console.error("Signup error:", data.error);
+        console.error("Signup error:", dataCreateAccount.error);
+      }
+      console.log("Data returned by create-user API", createAccountData)
+      console.log("User_id in purchase-plan api", createAccountData.user.user_id)
+      const responsePurchaseFreemium = await fetch("/api/billing/purchase-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: createAccountData.user.user_id,
+          subscription_plan_name:"Freemium",
+          is_billed_annually: false
+        }),
+      });
+
+      const dataPurchaseFreemium = await responsePurchaseFreemium.json();
+
+      if (responsePurchaseFreemium.ok) {
+        console.log("Freemium plan purchase successfully:", dataPurchaseFreemium);
+      } else {
+        console.error("Error in purchase freemium plan:", dataPurchaseFreemium.error);
       }
     } catch (err) {
       console.error("Unexpected error:", err);

@@ -99,6 +99,8 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     params.set("hasFile", "true")
     let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
     localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
+    // console.log("Dashboard will now appear")
+    setErrorDash(null)
     setDashboard_data(dashboardJSON);
     router.push(dashboardUrl)
 
