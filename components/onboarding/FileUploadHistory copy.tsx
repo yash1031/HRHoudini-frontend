@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Trash2, Edit2, FileText, Clock, X, Check } from 'lucide-react';
-import { useRouter } from "next/navigation"
-import { useDashboard } from '@/contexts/DashboardContext';
 
 interface FileUpload {
   id: string;
@@ -26,8 +24,6 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
   //   { id: '6', name: 'Benefits_Enrollment.xlsx', timestamp: '2025-10-08T16:30:00', isFavorite: false },
   // ]);
   const [uploads, setUploads] = useState<FileUpload[]>([]);
-  const router = useRouter()
-  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
   console.log("uploads in FileUploadHistory comp is", fileUploadHistoryData)
 
   useEffect(()=>{
@@ -83,25 +79,9 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     setEditValue('');
   };
 
-  const handleTileClick = (id: string, dashboardJSON: any) => {
+  const handleTileClick = (id: string) => {
     if (editingId) return;
     console.log('Navigate to:', id);
-    // Navigate to dashboard-upload-only with specified parameters
-    const params = new URLSearchParams({
-      persona: "hr-generalist---upload-only",
-      company: "HealthServ+Solutions",
-      onboarding: "completed",
-      hasFile: "false",
-      showWelcome: "true",
-      challenges: "[object+Object],[object+Object],[object+Object],[object+Object],[object+Object],[object+Object]",
-    })
-    params.set("company", "HealthServ")
-    params.set("hasFile", "true")
-    let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-    localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
-    setDashboard_data(dashboardJSON);
-    router.push(dashboardUrl)
-
     // Add your navigation logic here
     // e.g., navigate(`/upload/${id}`);
   };
@@ -144,12 +124,11 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
               >
                 <div 
                   className="p-4 cursor-pointer"
-                  onClick={() => handleTileClick(upload.id, upload.dashboardJSON)}
+                  onClick={() => handleTileClick(upload.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      {
-                      editingId === upload.id ? (
+                      {editingId === upload.id ? (
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="text"
@@ -175,8 +154,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                             <X size={16} />
                           </button>
                         </div>
-                      ) : 
-                      (
+                      ) : (
                         <h3 className="font-medium text-gray-900 truncate text-sm mb-1">
                           {upload.name}
                         </h3>
@@ -187,7 +165,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                       </div>
                     </div>
                     
-                    {/* <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -222,7 +200,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                       >
                         <Trash2 size={16} />
                       </button>
-                    </div> */}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -234,4 +212,4 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
   );
 };
 
-export default React.memo(FileUploadHistory);
+export default FileUploadHistory;

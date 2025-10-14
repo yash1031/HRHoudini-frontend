@@ -191,6 +191,8 @@ export function KPIsStep() {
       console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
       
       if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
+        const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
+        console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
         // THIS IS THE KEY LINE - Pass the code to context
         setIsLoading(false)
         localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
@@ -204,7 +206,7 @@ export function KPIsStep() {
             body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               action_name: "file_upload",
-              tokens_to_consume: 1000,
+              tokens_to_consume: consumed_tokens,
               event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
             }),
           }

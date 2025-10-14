@@ -399,9 +399,17 @@ export function FileUpload({
     [acceptedTypes, maxSize],
   )
 
+  // Map file extensions to MIME types
+  const mimeTypeMap: Record<string, string[]> = {
+    'text/csv': ['.csv'],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+    'application/vnd.ms-excel': ['.xls']
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: acceptedTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
+    // accept: acceptedTypes.reduce((acc, type) => ({ ...acc, [type]: [] }), {}),
+    accept: mimeTypeMap,
     maxSize,
     multiple: false,
     noClick: true, // Prevent click on the drop zone from opening dialog

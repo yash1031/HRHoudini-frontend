@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useCallback,useState, useRef, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle, Menu, X  } from "lucide-react"
 import type { OnboardingScenarioConfig } from "@/lib/demo-config"
@@ -71,7 +71,7 @@ export function OnboardingTemplate({
    fetchFileUploadHistory()
   },[])
 
-  const fetchFileUploadHistory = async () =>{
+  const fetchFileUploadHistory = useCallback(async () =>{
      // Store file upload history
       const resFetchFileUploadHistory = await fetch(
         `https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/update-chat-history?user_id=${localStorage.getItem("user_id")}`,
@@ -96,7 +96,15 @@ export function OnboardingTemplate({
       console.log("fileUploadData is", fileUploadData)
       setFileUploadHistoryData(fileUploadData)
 
-  }
+  },[])
+
+  // Inside the component, memoize the file upload data
+  const memoizedFileUploadHistoryData = useMemo(() => fileUploadHistoryData, [fileUploadHistoryData])
+
+  // Memoize the close handler
+  const handleCloseSidePanel = useCallback(() => {
+    setIsSidePanelOpen(false)
+  }, [])
 
   const skipToDashboard = () => {
     finishOnboarding(true)
@@ -168,7 +176,11 @@ export function OnboardingTemplate({
           isSidePanelOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <FileUploadHistory fileUploadHistoryData={fileUploadHistoryData} onClose={() => setIsSidePanelOpen(false)} />
+        {/* <FileUploadHistory fileUploadHistoryData={fileUploadHistoryData} onClose={() => setIsSidePanelOpen(false)} /> */}
+        <FileUploadHistory 
+          fileUploadHistoryData={memoizedFileUploadHistoryData} 
+          onClose={handleCloseSidePanel} 
+        />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

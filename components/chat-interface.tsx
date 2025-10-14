@@ -117,6 +117,9 @@ export function ChatInterface({
       const queryResponse = await JSON.parse(data.body);
       console.log("queryResponse is", queryResponse.natural_language_response)
       console.log("Now consume-tokens API should fire at first place")
+
+      const tokens_to_consume= queryResponse.token_usage?.total_tokens|| 1800;
+      console.log("Tokens to consume for the chat message", tokens_to_consume)
       // setResponse(queryResponse.natural_language_response)
 
     // Simulate AI response
@@ -139,7 +142,7 @@ export function ChatInterface({
             body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               action_name: "chat_message",
-              tokens_to_consume: 10,
+              tokens_to_consume: tokens_to_consume,
               event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
             }),
           }
