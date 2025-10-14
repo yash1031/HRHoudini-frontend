@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label"
 // import { Amplify, ResourcesConfig } from 'aws-amplify';
 // import amplifyConfig from '../../lib/amplify-config';
 import { BarChart3, TrendingUp, Users, MessageCircle, CloudCog } from "lucide-react"
-import { signInWithRedirect, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
-import { useUserContext } from "@/contexts/user-context" 
+import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { useUserContext } from "@/contexts/user-context"
+import { Hub } from 'aws-amplify/utils' 
+import { useRouter } from "next/navigation"
 
 // Google Icon Component
 const GoogleIcon = ({ className = "w-5 h-5" }) => (
@@ -46,6 +48,8 @@ export default function LoginPage() {
   const [emailExistError, setEmailExistError] = useState("");
   const [emailNotExistError, setEmailNotExistError] = useState("");
   const { setIsUserGoogleLoggedIn,  updateUser} = useUserContext()
+  const [userRedirected, setUserRedirected]= useState(false);
+  const router = useRouter()
   // const paramsDemoPerson = useRef<URLSearchParams>(
   //   new URLSearchParams({
   //     name: "Maya Jackson",
@@ -55,6 +59,96 @@ export default function LoginPage() {
   //     onboarding: "true",
   //   })
   // );
+
+  // useEffect(()=>{
+  //   if(userRedirected)
+  //     checkAuthState();
+  //   else 
+  //     console.log("User not redirected yet")
+  // }, [userRedirected])
+
+  // const checkAuthState = async () => {
+  //   try {
+  //     const currentUser = await getCurrentUser();
+  //     console.log("currentUser is", JSON.stringify(currentUser))
+  //     // setUser(currentUser);
+  //   } catch (error) {
+  //     // This is normal when user is not authenticated
+  //     if (error) {
+  //       console.log('User is not authenticated', error);
+  //     } else {
+  //       console.error('Unexpected auth error:', error);
+  //     }
+  //     // setUser(null);
+  //   } finally {
+  //     // setLoading(false);
+  //     console.log("Fetching user detail completed")
+  //   }
+  // };
+
+    // Add Hub listener to detect OAuth callback completion
+  useEffect(() => {
+    handleGoogleAuthComplete()
+  }, [])
+
+  const handleGoogleAuthComplete = async () => {
+    try {
+      const session = await fetchAuthSession()
+      const idToken = session.tokens?.idToken?.payload
+      
+      if (!idToken) {
+        console.log("User is not logged in yet")
+        return;
+      }
+      
+      const userDetails = {
+        cognitoSub: idToken.sub as string,
+        email: idToken.email as string,
+        name: idToken.name as string,
+        emailVerified: idToken.email_verified === true || idToken.email_verified === 'true'
+      }
+      
+      console.log("✅ User details:", userDetails)
+      const res = await fetch("/api/auth/sign-in/socials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userDetails.email  })
+      });
+      const data = await res.json();
+      console.log("data.success", data.success, "res.ok", res.ok)
+      if (res.ok && data.success) {
+        console.log("Creating tokens is successful, data is:", JSON.stringify(data), "res status:", res.status)
+        localStorage.setItem("access_token", data.access_token)
+        localStorage.setItem("user_id", data.user_id)
+        localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
+        localStorage.setItem("user_email", userDetails.email)
+      } else {
+        console.log("Error setting up access token")
+      }
+      const loggedInUser = new URLSearchParams({
+            name: `${data.first_name} ${data.last_name}`,
+            email: userDetails.email,
+            company: "HealthServ Solutions",
+            role: "hr-generalist---upload-only",
+            onboarding: "true",
+            isGoogle: "true",
+          });
+      updateUser({
+        name: `${data.first_name} ${data.last_name}`,
+        email: userDetails.email,
+        company: "HealthServ",
+        role: "User",
+        persona: "",
+        avatar: "DU",
+        isLoading: true,
+      })
+      localStorage.setItem("loggedInUser", loggedInUser.toString());
+      window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+
+    } catch (error) {
+      console.error('Error fetching user after Google sign-in:', error)
+    }
+  }
 
   const [isVerifying, setIsVerifying] = useState(false);
   const [formData, setFormData] = useState({
@@ -232,6 +326,7 @@ export default function LoginPage() {
           company: "HealthServ Solutions",
           role: "hr-generalist---upload-only",
           onboarding: "true",
+          isGoogle: "false"
         });
         updateUser({
           name: `${data.first_name} ${data.last_name}`,
@@ -273,9 +368,11 @@ export default function LoginPage() {
     // Amplify.configure(amplifyConfig as ResourcesConfig)
     try {
       setIsUserGoogleLoggedIn(true);
+      setUserRedirected(true);
+      console.log("About to redirect")
       await signInWithRedirect({
         provider: 'Google',
-        customState: paramsDemoPerson.toString() 
+        // customState: paramsDemoPerson.toString() 
       });
       
     } catch (error) {
