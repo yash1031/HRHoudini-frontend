@@ -210,6 +210,8 @@ export function FileUpload({
       //   dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
       // }
 
+      console.log("Identified headers in uploaded file", columns)
+
       const metadata: FileMetadata = {
         name: file.name,
         size: file.size,
@@ -245,7 +247,7 @@ export function FileUpload({
         }
       );
 
-      // 2. Create KPIs
+      // 2. Generating AI Suggested questions
       const resAISuggestedQues = fetch(
         "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/ask-ai",
         {
@@ -299,7 +301,7 @@ export function FileUpload({
           body: JSON.stringify({
             user_id: localStorage.getItem("user_id"),
             session_id: uuid,
-            fileType: file.type,
+            file_type: file.type=="text/csv"? "csv": "excel",
           }),
         }
       );
