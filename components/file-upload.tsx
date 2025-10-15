@@ -299,6 +299,7 @@ export function FileUpload({
           body: JSON.stringify({
             user_id: localStorage.getItem("user_id"),
             session_id: uuid,
+            fileType: file.type,
           }),
         }
       );

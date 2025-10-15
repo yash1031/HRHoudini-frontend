@@ -198,6 +198,7 @@ export function KPIsStep() {
           // THIS IS THE KEY LINE - Pass the code to context
           setIsLoading(false)
           localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
+          setErrorDash(null);
           setDashboard_data(dataCreateDashboard.analytics);
           // Reduce token in database for uploaded file as per the file size
           const resConsumeTokens = await fetch(
