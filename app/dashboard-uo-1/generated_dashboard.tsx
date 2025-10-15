@@ -98,6 +98,10 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     title: ''
   });
 
+  // console.log("kpiCards data is", kpiCards)
+
+  const [card1, card2, card3, card4]= kpiCards;
+
   const file_row_count = typeof window !== 'undefined' ? localStorage.getItem("file_row_count") : null;
 
   const calculateKPI = (kpi: KPICard): string | number => {
@@ -209,6 +213,8 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   };
 
   const renderChart = (chartData: ChartDataItem[], chartConfig: Partial<ChartConfig>): React.ReactNode => {
+    console.log("kpiCards data is", kpiCards)
+
     if (chartConfig.type === 'pie') {
       const pieColors = generatePieColors(chartData.length);
       
@@ -509,18 +515,20 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                  <span className="font-medium text-white">Turnover:</span>
-                  <span className="text-blue-100">{"24.3%"} rate</span>
+                  {/* <span className="font-medium text-white">Turnover:</span>
+                  <span className="text-blue-100">{"24.3%"} rate</span> */}
+                  <span className="font-medium text-white">{card2?.label}</span>
+                  <span className="text-blue-100">{calculateKPI(card2)}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                  <span className="font-medium text-white">Departments:</span>
-                  <span className="text-blue-100">{"8"} active</span>
+                  <span className="font-medium text-white">{card3?.label}</span>
+                  <span className="text-blue-100">{calculateKPI(card3)}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  <span className="font-medium text-white">Locations:</span>
-                  <span className="text-blue-100">{"12"} sites</span>
+                  <span className="font-medium text-white">{card4?.label}</span>
+                  <span className="text-blue-100">{calculateKPI(card4)}</span>
                 </div>
               </div>
             </div>
