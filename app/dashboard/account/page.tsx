@@ -27,7 +27,7 @@ export default function AccountPage() {
 
   // Mock trial data
   const trialDaysLeft = 3
-  const trialProgress = ((7 - trialDaysLeft) / 7) * 100
+  const trialProgress = ((30 - trialDaysLeft) / 30) * 100
 
   const handleSave = () => {
     setIsEditing(false)
@@ -37,7 +37,8 @@ export default function AccountPage() {
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your company information, billing, and subscription</p>
+        <p className="text-gray-600 mt-2">Manage your billing, and subscription</p>
+        {/* <p className="text-gray-600 mt-2">Manage your company information, billing, and subscription</p> */}
       </div>
 
       <div className="space-y-6">
@@ -61,13 +62,14 @@ export default function AccountPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-orange-700">Trial Progress</span>
-                <span className="text-orange-700">{7 - trialDaysLeft} of 7 days used</span>
+                <span className="text-orange-700">{30 - trialDaysLeft} of 30 days used</span>
               </div>
               <Progress value={trialProgress} className="h-2" />
             </div>
             <div className="flex gap-3">
-              <Button className="bg-orange-600 hover:bg-orange-700" asChild>
-                <Link href="/dashboard/plans">Upgrade to Starter - $49.99/month</Link>
+              <Button disabled={true} className="bg-orange-600 hover:bg-orange-700">
+              {/* <Button className="bg-orange-600 hover:bg-orange-700" asChild> */}
+                <Link href="/dashboard/plans">Upgrade to Starter - $49/month</Link>
               </Button>
               <Button variant="outline" className="border-orange-300 text-orange-700 bg-transparent" asChild>
                 <Link href="/dashboard/plans">View All Plans</Link>
@@ -77,7 +79,7 @@ export default function AccountPage() {
         </Card>
 
         {/* Company Information */}
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-3">
               <Building className="h-5 w-5 text-gray-600" />
@@ -133,7 +135,7 @@ export default function AccountPage() {
               />
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Usage Overview */}
         <Card>
@@ -164,6 +166,13 @@ export default function AccountPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Tokens remaining</span>
+                  <span className="font-medium">1,000 tokens</span>
+                </div>
+                <div className="text-xs text-gray-500">25,000 tokens in Freemium</div>
+              </div>
+              {/* <div className="space-y-2">
+                <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Reports Generated</span>
                   <span className="font-medium">8 reports</span>
                 </div>
@@ -175,13 +184,13 @@ export default function AccountPage() {
                   <span className="font-medium">1 member</span>
                 </div>
                 <div className="text-xs text-gray-500">Single user during trial</div>
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>
 
         {/* Billing History */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -204,10 +213,10 @@ export default function AccountPage() {
               <p className="text-xs text-gray-400 mt-1">Invoices will appear here after your first payment</p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Team Management */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -230,7 +239,7 @@ export default function AccountPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   )

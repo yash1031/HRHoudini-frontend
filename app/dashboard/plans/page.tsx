@@ -24,87 +24,142 @@ export default function PlansPage() {
       popular: false,
       current: true,
       features: [
-        { name: "All core features included", included: true },
-        { name: "AI chat messages", included: true },
-        { name: "File uploads", included: true },
-        { name: "Basic analytics", included: true },
-        { name: "Email support", included: true },
-        { name: "Custom reports", included: false },
-        { name: "API access", included: false },
-        { name: "Priority support", included: false },
-        { name: "Advanced integrations", included: false },
+        { name: "25,000 Tokens", included: true },
+        { name: "All core analytics included", included: true },
+        { name: "Data export capabilities", included: true },
+        { name: "Custom reports (AI Agent Report Writer)", included: true, note: "Coming soon" },
       ],
       cta: "Current Plan",
       ctaVariant: "secondary" as const,
+      //   { name: "All core features included", included: true },
+      //   { name: "AI chat messages", included: true },
+      //   { name: "File uploads", included: true },
+      //   { name: "Basic analytics", included: true },
+      //   { name: "Email support", included: true },
+      //   { name: "Custom reports", included: false },
+      //   { name: "API access", included: false },
+      //   { name: "Priority support", included: false },
+      //   { name: "Advanced integrations", included: false },
+      // ],
+      // cta: "Current Plan",
+      // ctaVariant: "secondary" as const,
     },
     {
       id: "starter",
       name: "Starter",
       description: "Perfect for small teams getting started",
       icon: Zap,
-      price: { monthly: 49.99, annual: 39.99 },
+      price: { monthly: 49.00, annual: 49.00 },
       duration: isAnnual ? "per month, billed annually" : "per month",
       popular: true,
-      current: false,
+      current: true,
       features: [
-        { name: "500 AI chat messages", included: true },
-        { name: "50 file uploads", included: true },
+        { name: "50,000 Tokens", included: true },
         { name: "All core analytics features", included: true },
         { name: "Data export capabilities", included: true },
-        { name: "Priority email support", included: true },
-        { name: "Basic integrations (HRIS, ATS)", included: true },
-        { name: "Custom reports", included: false },
-        { name: "API access", included: false },
-        { name: "Phone support", included: false },
+        { name: "Custom reports (AI Agent Report Writer)", included: true, note: "Coming soon" },
       ],
       cta: "Upgrade to Starter",
       ctaVariant: "default" as const,
+      // id: "starter",
+      // name: "Starter",
+      // description: "Perfect for small teams getting started",
+      // icon: Zap,
+      // price: { monthly: 49.99, annual: 39.99 },
+      // duration: isAnnual ? "per month, billed annually" : "per month",
+      // popular: true,
+      // current: false,
+      // features: [
+      //   { name: "500 AI chat messages", included: true },
+      //   { name: "50 file uploads", included: true },
+      //   { name: "All core analytics features", included: true },
+      //   { name: "Data export capabilities", included: true },
+      //   { name: "Priority email support", included: true },
+      //   { name: "Basic integrations (HRIS, ATS)", included: true },
+      //   { name: "Custom reports", included: false },
+      //   { name: "API access", included: false },
+      //   { name: "Phone support", included: false },
+      // ],
+      // cta: "Upgrade to Starter",
+      // ctaVariant: "default" as const,
     },
     {
       id: "professional",
       name: "Professional",
       description: "For growing companies with advanced needs",
       icon: Building2,
-      price: { monthly: 149.99, annual: 119.99 },
+      price: { monthly: 99.00, annual: 99.00 },
       duration: isAnnual ? "per month, billed annually" : "per month",
       popular: false,
-      current: false,
+      current: true,
       features: [
-        { name: "1,000 AI chat messages", included: true },
-        { name: "50 file uploads", included: true },
-        { name: "All Starter features", included: true },
-        { name: "Custom Reports (AI Agent Report Writer)", included: true, note: "Coming soon" },
-        { name: "Advanced workflow automation", included: true },
-        { name: "Phone & chat support", included: true },
-        { name: "Advanced integrations", included: true },
-        { name: "Custom branding", included: true },
-        { name: "API access", included: false },
+        { name: "150,000 Tokens", included: true },
+        { name: "All Starter Features", included: true },
+        { name: "API access", included: true, note: "Coming soon"},
+        { name: "Access for up to 5 Users", included: true, note: "Coming soon"  },
       ],
       cta: "Upgrade to Professional",
       ctaVariant: "outline" as const,
+      // id: "professional",
+      // name: "Professional",
+      // description: "For growing companies with advanced needs",
+      // icon: Building2,
+      // price: { monthly: 149.99, annual: 119.99 },
+      // duration: isAnnual ? "per month, billed annually" : "per month",
+      // popular: false,
+      // current: false,
+      // features: [
+      //   { name: "1,000 AI chat messages", included: true },
+      //   { name: "50 file uploads", included: true },
+      //   { name: "All Starter features", included: true },
+      //   { name: "Custom Reports (AI Agent Report Writer)", included: true, note: "Coming soon" },
+      //   { name: "Advanced workflow automation", included: true },
+      //   { name: "Phone & chat support", included: true },
+      //   { name: "Advanced integrations", included: true },
+      //   { name: "Custom branding", included: true },
+      //   { name: "API access", included: false },
+      // ],
+      // cta: "Upgrade to Professional",
+      // ctaVariant: "outline" as const,
     },
     {
       id: "enterprise",
       name: "Enterprise",
       description: "For large organizations with complex requirements",
       icon: Crown,
-      price: { monthly: "Custom", annual: "Custom" },
+      price: { monthly: 249.00, annual: 249.00 },
       duration: "tailored to your needs",
       popular: false,
-      current: false,
+      current: true,
       features: [
-        { name: "Unlimited AI chat messages", included: true },
-        { name: "Unlimited file uploads", included: true },
-        { name: "All Professional features", included: true },
-        { name: "API Access", included: true, note: "Coming soon" },
-        { name: "Custom integrations", included: true },
-        { name: "Advanced security & compliance", included: true },
-        { name: "24/7 priority support", included: true },
-        { name: "Dedicated account manager", included: true },
-        { name: "SSO authentication", included: true },
+        { name: "500,000 Tokens", included: true },
+        { name: "All Professional Features", included: true },
+        { name: "Custom Integrations", included: true},
+        { name: "Access for up to 20 Users", included: true, note: "Coming soon"  },
       ],
       cta: "Contact Sales",
       ctaVariant: "outline" as const,
+      // id: "enterprise",
+      // name: "Enterprise",
+      // description: "For large organizations with complex requirements",
+      // icon: Crown,
+      // price: { monthly: "Custom", annual: "Custom" },
+      // duration: "tailored to your needs",
+      // popular: false,
+      // current: false,
+      // features: [
+      //   { name: "Unlimited AI chat messages", included: true },
+      //   { name: "Unlimited file uploads", included: true },
+      //   { name: "All Professional features", included: true },
+      //   { name: "API Access", included: true, note: "Coming soon" },
+      //   { name: "Custom integrations", included: true },
+      //   { name: "Advanced security & compliance", included: true },
+      //   { name: "24/7 priority support", included: true },
+      //   { name: "Dedicated account manager", included: true },
+      //   { name: "SSO authentication", included: true },
+      // ],
+      // cta: "Contact Sales",
+      // ctaVariant: "outline" as const,
     },
   ]
 
@@ -124,9 +179,9 @@ export default function PlansPage() {
           <span className={`text-sm font-medium ${!isAnnual ? "text-gray-900" : "text-gray-500"}`}>Monthly</span>
           <Switch checked={isAnnual} onCheckedChange={setIsAnnual} className="data-[state=checked]:bg-blue-600" />
           <span className={`text-sm font-medium ${isAnnual ? "text-gray-900" : "text-gray-500"}`}>Annual</span>
-          <Badge variant="secondary" className="bg-green-100 text-green-800 ml-2">
+          {/* <Badge variant="secondary" className="bg-green-100 text-green-800 ml-2">
             Save 20%
-          </Badge>
+          </Badge> */}
         </div>
       </div>
 
@@ -141,7 +196,7 @@ export default function PlansPage() {
               className={`relative ${
                 plan.popular
                   ? "border-blue-500 shadow-lg scale-105"
-                  : plan.current
+                  : plan.current && plan.name === "Freemium"
                     ? "border-orange-300 bg-orange-50"
                     : "border-gray-200"
               }`}
@@ -152,7 +207,7 @@ export default function PlansPage() {
                 </div>
               )}
 
-              {plan.current && (
+              {plan.current && plan.name === "Freemium" && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <Badge className="bg-orange-600 text-white px-3 py-1">Current Plan</Badge>
                 </div>
