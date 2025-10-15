@@ -105,19 +105,19 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   const file_row_count = typeof window !== 'undefined' ? localStorage.getItem("file_row_count") : null;
 
   const calculateKPI = (kpi: KPICard): string | number => {
-    if (kpi.calculationType === 'custom' && kpi.calculate) {
+    if (kpi?.calculationType === 'custom' && kpi?.calculate) {
       return kpi.calculate(data);
     }
     
-    switch (kpi.calculationType) {
+    switch (kpi?.calculationType) {
       case 'count':
-        if (kpi.filterCondition) {
+        if (kpi?.filterCondition) {
           return data.filter(kpi.filterCondition).length;
         }
-        return data.length;
+        return data?.length;
         
       case 'average':
-        if (kpi.dataKey) {
+        if (kpi?.dataKey) {
           const values = data.map(item => {
             const val = kpi.extractValue ? kpi.extractValue(item) : item[kpi.dataKey!];
             return parseFloat(val) || 0;
@@ -128,7 +128,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
         return 0;
         
       case 'distinct':
-        if (kpi.dataKey) {
+        if (kpi?.dataKey) {
           const uniqueValues = new Set(data.map(item => item[kpi.dataKey!]));
           return uniqueValues.size;
         }

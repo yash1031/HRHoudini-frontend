@@ -222,6 +222,14 @@ export function FileUpload({
         dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
       }
 
+      if(rowCount == 0){
+        setError("Please upload file with some data.")
+        setTimeout(()=>{
+          setError(null);
+        }, 3000)
+        return;
+      }
+
       localStorage.setItem("file_name", file.name)
       localStorage.setItem("file_row_count", JSON.stringify(rowCount))
 
