@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import { NavigationHeader } from "@/components/navigation-header"
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
 export default function DashboardUO1Layout({
   children,
@@ -17,9 +17,11 @@ export default function DashboardUO1Layout({
       }
     }, [])
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavigationHeader userName={userName || ""} />
-      <main className="flex-1">{children}</main>
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      <div className="min-h-screen bg-gray-50">
+        <NavigationHeader userName={userName || ""} />
+        <main className="flex-1">{children}</main>
+      </div>
+    </Suspense>
   )
 }
