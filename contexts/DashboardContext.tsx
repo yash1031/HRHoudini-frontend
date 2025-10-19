@@ -2,9 +2,8 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 // Insight structure
 export interface Insight {
-  type: 'info' | 'warning' | 'success' | 'error';
-  title: string;
-  description: string;
+  critical_issues: string[];
+  recommended_actions: string[];
 }
 
 // Card structure
@@ -39,12 +38,13 @@ export interface ChartConfig {
 export interface DrillDownData {
   cards?: KPICard[];
   charts?: ChartConfig[];
-  insights?: Insight[];
+  insights?: Insight;
 }
 
 // Analytics metadata
 export interface AnalyticsMetadata {
   totalRows: number;
+  filename: string;
   totalColumns: number;
   generatedAt: string;
   numericFields: number;

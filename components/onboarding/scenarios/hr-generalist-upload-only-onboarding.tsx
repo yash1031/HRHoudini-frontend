@@ -3,8 +3,9 @@
 import { WelcomeStep } from "../steps-upload-only/welcome-step"
 import { FileUploadStep } from "../steps-upload-only/file-upload-step"
 import { KPIsStep } from "../steps-upload-only/kpis-step"
+// import {  useOnboarding } from "../onboarding-template"
 import { OnboardingTemplate, useOnboarding } from "../onboarding-template"
-import { ONBOARDING_SCENARIOS } from "@/lib/demo-config"
+// import { ONBOARDING_SCENARIOS } from "@/lib/demo-config"
 
 interface UserContext {
   name: string
@@ -33,15 +34,15 @@ function OnboardingContent() {
 }
 
 export function HRGeneralistUploadOnlyOnboarding({ userContext }: HRGeneralistUploadOnlyOnboardingProps) {
-  const scenarioConfig = {
-    ...ONBOARDING_SCENARIOS["hr-generalist"],
-    totalSteps: 3,
-  }
+  // const scenarioConfig = {
+  //   ...ONBOARDING_SCENARIOS["hr-generalist"],
+  //   totalSteps: 3,
+  // }
 
   return (
     <OnboardingTemplate
       userContext={userContext}
-      scenarioConfig={scenarioConfig}
+      // scenarioConfig={scenarioConfig}
       useLabels={true}
       stepLabels={["Welcome", "Upload", "KPIs"]}
       totalSteps={3}

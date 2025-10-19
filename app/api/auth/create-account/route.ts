@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     // Call your AWS API Gateway
     const response = await fetch(
-      "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/auth/create-account",
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/create-account`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Error creating account:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to create account" },
       { status: 500 }
     );
   }

@@ -5,7 +5,6 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserContextProvider } from "@/contexts/user-context"
-// import { AmplifyProvider } from "@/components/AmplifyProvider"
 import { Amplify, ResourcesConfig } from 'aws-amplify';
 import amplifyConfig from '../lib/amplify-config';
 import { DashboardProvider } from '@/contexts/DashboardContext';
@@ -30,12 +29,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {/* <AmplifyProvider> */}
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <UserContextProvider>
               <DashboardProvider>{children}</DashboardProvider></UserContextProvider>
           </ThemeProvider>
-        {/* </AmplifyProvider> */}
       </body>
     </html>
   )

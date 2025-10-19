@@ -5,7 +5,7 @@ import type React from "react"
 import { useCallback,useState, useRef, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle, Menu, X  } from "lucide-react"
-import type { OnboardingScenarioConfig } from "@/lib/demo-config"
+// import type { OnboardingScenarioConfig } from "@/lib/demo-config"
 import FileUploadHistory from './FileUploadHistory'
 
 interface UserContext {
@@ -17,7 +17,7 @@ interface UserContext {
 
 interface OnboardingTemplateProps {
   userContext: UserContext
-  scenarioConfig: OnboardingScenarioConfig
+  // scenarioConfig: OnboardingScenarioConfig
   children: React.ReactNode
   useLabels?: boolean
   stepLabels?: string[]
@@ -27,7 +27,7 @@ interface OnboardingTemplateProps {
 
 export function OnboardingTemplate({
   userContext,
-  scenarioConfig,
+  // scenarioConfig,
   children,
   useLabels = false,
   stepLabels = [],
@@ -38,19 +38,14 @@ export function OnboardingTemplate({
   const [step, setStep] = useState(1)
   const [uploadedFile, setUploadedFile] = useState<any>(null)
   const [fileUploadHistoryData, setFileUploadHistoryData] = useState<any>([])
-  const [selectedChallenges, setSelectedChallenges] = useState<string[]>(
-    scenarioConfig.challenges.filter((c) => c.preSelected).map((c) => c.id),
-  )
+  // const [selectedChallenges, setSelectedChallenges] = useState<string[]>(
+  //   scenarioConfig.challenges.filter((c) => c.preSelected).map((c) => c.id),
+  // )
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
 
   // Close side panel when clicking outside
   useEffect(() => {
-    // const handleClickOutside = (event: MouseEvent) => {
-    //   if (sidePanelRef.current && !sidePanelRef.current.contains(event.target as Node)) {
-    //     setIsSidePanelOpen(false)
-    //   }
-    // }
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (sidePanelRef.current && !sidePanelRef.current.contains(target)) {
@@ -73,15 +68,22 @@ export function OnboardingTemplate({
 
   const fetchFileUploadHistory = useCallback(async () =>{
      // Store file upload history
-      const resFetchFileUploadHistory = await fetch(
-        `https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/update-chat-history?user_id=${localStorage.getItem("user_id")}`,
-        {
-          method: "GET",
+      const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+                user_id: localStorage.getItem("user_id"),
+          }),
+        });
+        // const currentPlanRes = await resCurrentPlan;
+        if(!resFetchFileUploadHistory.ok){
+          console.error("Unable to fetch all fileUpload sessions for the user")
+          return;
         }
-      );
-      if (!resFetchFileUploadHistory.ok) throw new Error("Failed to fetch user files");
-      const dataFetchFileUploadHistory = await resFetchFileUploadHistory.json();
+        const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
+        const dataFetchFileUploadHistory= await fetchFileUploadHistoryData.data
+      // if (!resFetchFileUploadHistory.ok) throw new Error("Failed to fetch user files");
+      // const dataFetchFileUploadHistory = await resFetchFileUploadHistory.json();
       console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
       const dashboardHistoryData= await dataFetchFileUploadHistory.data;
       let fileUploadData: any =[];
@@ -91,7 +93,7 @@ export function OnboardingTemplate({
 
         // Step 2: Remove the extension (everything after the last '.')
         const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
-        fileUploadData.push({id: id, name: fileNameWithoutExt + " " + data.created_at, timestamp: data.created_at, isFavorite: false, dashboardJSON: data.analytical_json_output})
+        fileUploadData.push({id: id, session_id: data.session_id, name: fileNameWithoutExt + " " + data.created_at, timestamp: data.created_at, isFavorite: false, dashboardJSON: data.analytical_json_output})
       })
       console.log("fileUploadData is", fileUploadData)
       setFileUploadHistoryData(fileUploadData)
@@ -106,50 +108,50 @@ export function OnboardingTemplate({
     setIsSidePanelOpen(false)
   }, [])
 
-  const skipToDashboard = () => {
-    finishOnboarding(true)
-  }
+  // const skipToDashboard = () => {
+  //   finishOnboarding(true)
+  // }
 
-  const finishOnboarding = (skipped = false) => {
-    const onboardingData = {
-      user: userContext,
-      scenario: scenarioConfig,
-      uploadedFile: uploadedFile,
-      challenges: selectedChallenges,
-      completed: !skipped,
-      timestamp: new Date().toISOString(),
-    }
+  // const finishOnboarding = (skipped = false) => {
+  //   const onboardingData = {
+  //     user: userContext,
+  //     scenario: scenarioConfig,
+  //     uploadedFile: uploadedFile,
+  //     challenges: selectedChallenges,
+  //     completed: !skipped,
+  //     timestamp: new Date().toISOString(),
+  //   }
 
-    // Store in localStorage
-    try {
-      localStorage.setItem("hr-houdini-onboarding", JSON.stringify(onboardingData))
-    } catch (error) {
-      console.error("Error saving onboarding data:", error)
-    }
+  //   // Store in localStorage
+  //   try {
+  //     localStorage.setItem("hr-houdini-onboarding", JSON.stringify(onboardingData))
+  //   } catch (error) {
+  //     console.error("Error saving onboarding data:", error)
+  //   }
 
-    // Navigate to dashboard with onboarding context
-    const params = new URLSearchParams({
-      persona: userContext.role,
-      company: userContext.company,
-      challenges: selectedChallenges.join(","),
-      onboarding: "completed",
-      hasFile: uploadedFile ? "true" : "false",
-    })
+  //   // Navigate to dashboard with onboarding context
+  //   const params = new URLSearchParams({
+  //     persona: userContext.role,
+  //     company: userContext.company,
+  //     challenges: selectedChallenges.join(","),
+  //     onboarding: "completed",
+  //     hasFile: uploadedFile ? "true" : "false",
+  //   })
 
-    router.push(`/dashboard?${params.toString()}`)
-  }
+  //   router.push(`/dashboard?${params.toString()}`)
+  // }
 
   const contextValue = {
     step,
     setStep,
     uploadedFile,
     setUploadedFile,
-    selectedChallenges,
-    setSelectedChallenges,
+    // selectedChallenges,
+    // setSelectedChallenges,
     userContext,
-    scenarioConfig,
-    skipToDashboard,
-    finishOnboarding,
+    // scenarioConfig,
+    // skipToDashboard,
+    // finishOnboarding,
   }
 
   return (
@@ -176,7 +178,6 @@ export function OnboardingTemplate({
           isSidePanelOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* <FileUploadHistory fileUploadHistoryData={fileUploadHistoryData} onClose={() => setIsSidePanelOpen(false)} /> */}
         <FileUploadHistory 
           fileUploadHistoryData={memoizedFileUploadHistoryData} 
           onClose={handleCloseSidePanel} 
@@ -252,12 +253,12 @@ interface OnboardingContextType {
   setStep: (step: number) => void
   uploadedFile: any
   setUploadedFile: (file: any) => void
-  selectedChallenges: string[]
-  setSelectedChallenges: (challenges: string[]) => void
+  // selectedChallenges: string[]
+  // setSelectedChallenges: (challenges: string[]) => void
   userContext: UserContext
-  scenarioConfig: OnboardingScenarioConfig
-  skipToDashboard: () => void
-  finishOnboarding: (skipped?: boolean) => void
+  // scenarioConfig: OnboardingScenarioConfig
+  // skipToDashboard: () => void
+  // finishOnboarding: (skipped?: boolean) => void
 }
 
 const OnboardingContext = createContext<OnboardingContextType | null>(null)

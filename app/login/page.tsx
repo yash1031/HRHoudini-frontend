@@ -6,12 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-// import { Amplify, ResourcesConfig } from 'aws-amplify';
-// import amplifyConfig from '../../lib/amplify-config';
 import { BarChart3, TrendingUp, Users, MessageCircle, CloudCog } from "lucide-react"
 import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useUserContext } from "@/contexts/user-context"
-import { Hub } from 'aws-amplify/utils' 
 import { useRouter } from "next/navigation"
 
 // Google Icon Component
@@ -47,48 +44,14 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [emailExistError, setEmailExistError] = useState("");
   const [emailNotExistError, setEmailNotExistError] = useState("");
-  const { setIsUserGoogleLoggedIn,  updateUser} = useUserContext()
+  const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn,  updateUser} = useUserContext()
   const [userRedirected, setUserRedirected]= useState(false);
   const router = useRouter()
-  // const paramsDemoPerson = useRef<URLSearchParams>(
-  //   new URLSearchParams({
-  //     name: "Maya Jackson",
-  //     email: "maya.jackson@healthserv.com",
-  //     company: "HealthServ Solutions",
-  //     role: "hr-generalist---upload-only",
-  //     onboarding: "true",
-  //   })
-  // );
+  const restrictAccountCreation= false
 
-  // useEffect(()=>{
-  //   if(userRedirected)
-  //     checkAuthState();
-  //   else 
-  //     console.log("User not redirected yet")
-  // }, [userRedirected])
-
-  // const checkAuthState = async () => {
-  //   try {
-  //     const currentUser = await getCurrentUser();
-  //     console.log("currentUser is", JSON.stringify(currentUser))
-  //     // setUser(currentUser);
-  //   } catch (error) {
-  //     // This is normal when user is not authenticated
-  //     if (error) {
-  //       console.log('User is not authenticated', error);
-  //     } else {
-  //       console.error('Unexpected auth error:', error);
-  //     }
-  //     // setUser(null);
-  //   } finally {
-  //     // setLoading(false);
-  //     console.log("Fetching user detail completed")
-  //   }
-  // };
-
-    // Add Hub listener to detect OAuth callback completion
   useEffect(() => {
-    handleGoogleAuthComplete()
+    const is_google_logged_in= localStorage.getItem("is_google_logged_in")==="true"?true: false;
+    if(is_google_logged_in) handleGoogleAuthComplete()
   }, [])
 
   const handleGoogleAuthComplete = async () => {
@@ -122,28 +85,23 @@ export default function LoginPage() {
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
         localStorage.setItem("user_email", userDetails.email)
+        const user= {
+          name: `${data.first_name} ${data.last_name}`,
+          email: userDetails.email,
+          company: "HealthServ",
+          role: "User",
+          persona: "",
+          avatar: "DU",
+          isLoading: true,
+        }
+        updateUser(user)
+        localStorage.setItem("loggedInUser", JSON.stringify(user));
+        // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+        window.location.href = `/onboarding-upload-only`;
       } else {
         console.log("Error setting up access token")
       }
-      const loggedInUser = new URLSearchParams({
-            name: `${data.first_name} ${data.last_name}`,
-            email: userDetails.email,
-            company: "HealthServ Solutions",
-            role: "hr-generalist---upload-only",
-            onboarding: "true",
-            isGoogle: "true",
-          });
-      updateUser({
-        name: `${data.first_name} ${data.last_name}`,
-        email: userDetails.email,
-        company: "HealthServ",
-        role: "User",
-        persona: "",
-        avatar: "DU",
-        isLoading: true,
-      })
-      localStorage.setItem("loggedInUser", loggedInUser.toString());
-      window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+      
 
     } catch (error) {
       console.error('Error fetching user after Google sign-in:', error)
@@ -158,20 +116,6 @@ export default function LoginPage() {
     role: "",
   })
 
-  const demoPersonas = [
-    { name: "Maya J.", email: "maya.jackson@healthserv.com", role: "HR Generalist" },
-    { name: "Maya J.", email: "maya.jackson@healthserv.com", role: "HR Generalist - Upload Only" },
-    { name: "James P.", email: "james.patel@techcorp.com", role: "Customer Success" },
-    { name: "Sasha K.", email: "sasha.kim@techflow.com", role: "Recruiter" },
-  ]
-
-  const paramsDemoPerson = new URLSearchParams({
-          name: "Maya Jackson",
-          email: "maya.jackson@healthserv.com",
-          company: "HealthServ Solutions",
-          role: "hr-generalist---upload-only",
-          onboarding: "true",
-        })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -228,22 +172,6 @@ export default function LoginPage() {
     }
   }
 
-  const handlePersonaSelect = (persona: (typeof demoPersonas)[0]) => {
-    setEmail(persona.email)
-    setSelectedPersona(persona.role)
-
-    // If HR Generalist is selected, transition to signup and populate Maya's info
-    if (persona.role === "HR Generalist" || persona.role === "HR Generalist - Upload Only") {
-      setIsSignup(true)
-      setFormData({
-        name: "Maya Jackson",
-        companyEmail: "maya.jackson@healthserv.com",
-        company: "HealthServ Solutions",
-        role: persona.role === "HR Generalist - Upload Only" ? "" : "hr-generalist",
-      })
-    }
-  }
-
   const handleCreateAccount = () => {
     setIsSignup(true)
   }
@@ -258,21 +186,9 @@ export default function LoginPage() {
     
     try {
       // Simulate account creation process
-      if(formData.companyEmail=== 'maya.jackson@healthserv.com' ){
-        setTimeout(() => {
-          // Animate back to login with the email populated
-          setIsSignup(false)
-          if (formData.companyEmail) {
-            setEmail(formData.companyEmail)
-          }
-          setIsLoading(false)
-          // Don't automatically redirect - wait for user to click Sign In
-        }, 1500)
-        return
-      }
       const responseCreateAccount = await fetch("/api/auth/create-account", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },  
         body: JSON.stringify({
           full_name: formData.name,          // state variable from form input
           company_email: formData.companyEmail,  // state variable from form input
@@ -283,19 +199,16 @@ export default function LoginPage() {
       const createAccountData= await dataCreateAccount.data
 
       if (responseCreateAccount.ok) {
-        console.log("Account created successfully:", dataCreateAccount);
-        setEmail(formData.companyEmail)
-        //Redirect to login or dashboard if needed
-        setIsSignup(false)
-        setIsLoading(false)
+        console.log("Account created successfully:", createAccountData);
       } else {
+        console.log("Error creating the account", createAccountData);
         setIsLoading(false)
-        setEmailExistError("Email already exist. Please enter a valid email.");
+        setEmailExistError(createAccountData.error.message);
         setTimeout(() => {
-          // Check if this is a persona login that should go to onboarding
           setEmailExistError("");
         }, 5000)
-        console.error("Signup error:", dataCreateAccount.error);
+        console.error("Signup error:", createAccountData.error.message);
+        return;
       }
       console.log("Data returned by create-user API", createAccountData)
       console.log("User_id in purchase-plan api", createAccountData.user.user_id)
@@ -310,14 +223,27 @@ export default function LoginPage() {
       });
 
       const dataPurchaseFreemium = await responsePurchaseFreemium.json();
+      const purchaseFreemiumData= await dataPurchaseFreemium.data
 
       if (responsePurchaseFreemium.ok) {
-        console.log("Freemium plan purchase successfully:", dataPurchaseFreemium);
+        console.log("Freemium plan purchase successfully:", purchaseFreemiumData);
+        setEmail(formData.companyEmail)
+        //Redirect to login or dashboard if needed
+        setIsSignup(false)
+        setIsLoading(false)
       } else {
-        console.error("Error in purchase freemium plan:", dataPurchaseFreemium.error);
+        setEmailExistError(purchaseFreemiumData.error.message);
+        setTimeout(() => {
+          setEmailExistError("");
+        }, 5000)
+        console.error("Error in purchase freemium plan:", purchaseFreemiumData.error.message);
       }
     } catch (err) {
-      console.error("Unexpected error:", err);
+        setEmailExistError("Unknow Error. Please try again");
+        setTimeout(() => {
+          setEmailExistError("");
+        }, 5000)
+        console.error("Unexpected error:", err);
     }
 
   }
@@ -325,6 +251,7 @@ export default function LoginPage() {
   const handleVerifyCode = async () => {
     try {
       setIsVerifying(true);
+      localStorage.setItem("is_google_logged_in","false");
       const res = await fetch("/api/auth/sign-in/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -336,29 +263,24 @@ export default function LoginPage() {
 
       if (res.ok && data.success) {
         console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data), "res status:", res.status)
+
         localStorage.setItem("access_token", data.access_token)
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
         localStorage.setItem("user_email", email)
-        const loggedInUser = new URLSearchParams({
-          name: `${data.first_name} ${data.last_name}`,
-          email: email,
-          company: "HealthServ Solutions",
-          role: "hr-generalist---upload-only",
-          onboarding: "true",
-          isGoogle: "false"
-        });
-        updateUser({
+        const user= {
           name: `${data.first_name} ${data.last_name}`,
           email: data.email,
           company: "HealthServ",
-          role: "User",
+          role: "HRGeneralist",
           persona: "",
           avatar: "DU",
           isLoading: true,
-        })
-        localStorage.setItem("loggedInUser", loggedInUser.toString());
-        window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+        }
+        updateUser(user)
+        localStorage.setItem("loggedInUser", JSON.stringify(user));
+        // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+        window.location.href = `/onboarding-upload-only`;
         setIsVerifying(false);
         console.log("Magic code verified successfully")
       } else {
@@ -384,32 +306,19 @@ export default function LoginPage() {
   };
 
     // Google OAuth handlers
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignInSignUp = async () => {
     // Amplify.configure(amplifyConfig as ResourcesConfig)
     try {
-      setIsUserGoogleLoggedIn(true);
+      localStorage.setItem("is_google_logged_in","true");
       setUserRedirected(true);
       console.log("About to redirect")
       await signInWithRedirect({
         provider: 'Google',
-        // customState: paramsDemoPerson.toString() 
       });
       
     } catch (error) {
       console.error('Error signing in:', error);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    // Amplify.configure(amplifyConfig as ResourcesConfig)
-    try {
-      setIsUserGoogleLoggedIn(true);
-      await signInWithRedirect({
-        provider: 'Google',
-        customState: paramsDemoPerson.toString() 
-      });
-    } catch (error) {
-      console.error('Error signing in:', error);
+      
     }
   };
 
@@ -487,7 +396,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-start space-x-3">
+              {/* <div className="flex items-start space-x-3">
                 <div className="bg-white/20 rounded-lg p-2">
                   <Users className="w-6 h-6 text-white" />
                 </div>
@@ -495,7 +404,7 @@ export default function LoginPage() {
                   <h3 className="font-semibold mb-1">Role-Based Dashboards</h3>
                   <p className="text-sm text-blue-100">Customized views for CHROs, HR managers, and recruiters</p>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -552,11 +461,13 @@ export default function LoginPage() {
                       </div>
 
                       {/* Google Sign In Button */}
+                      <>
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleGoogleSignIn}
+                        onClick={handleGoogleSignInSignUp}
                         className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                        disabled={restrictAccountCreation}
                       >
                         <GoogleIcon className="w-5 h-5 mr-3" />
                         Continue with Google
@@ -567,19 +478,23 @@ export default function LoginPage() {
                         variant="outline"
                         className="w-full mt-3 border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
                         onClick={handleCreateAccount}
+                        disabled={restrictAccountCreation}
                       >
                         Create Account
                       </Button>
+                      
+                      {restrictAccountCreation && <p className="text-red-500 text-sm mt-3 text-center">Account creation is temporarily restricted</p>}
+                      </>
                     </form>
 
-                    <div className="mt-6 pt-6 border-t border-gray-200">
+                    {/* <div className="mt-6 pt-6 border-t border-gray-200">
                       <div className="text-center">
                         <p className="text-sm text-gray-600 mb-3">New to HR Houdini?</p>
                         <Button variant="outline" className="w-full bg-transparent mb-4">
                           Request Demo
                         </Button>
                       </div>
-                    </div>
+                    </div> */}
 
                     <div className="mt-4 text-center">
                       <p className="text-xs text-gray-500">
@@ -802,8 +717,9 @@ export default function LoginPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleGoogleSignUp}
+                        onClick={handleGoogleSignInSignUp}
                         className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
+                        disabled={restrictAccountCreation}
                       >
                         <GoogleIcon className="w-5 h-5 mr-3" />
                         Sign up with Google
@@ -833,7 +749,7 @@ export default function LoginPage() {
       </div>
 
       {/* <div className="absolute bottom-0 left-0 right-0 bg-blue-900 py-6"> */}
-      <div className="w-full bg-blue-900 py-6 mt-auto">
+      {/* <div className="w-full bg-blue-900 py-6 mt-auto">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-white mb-2">Quick Demo Access</h3>
@@ -869,7 +785,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

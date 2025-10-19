@@ -37,7 +37,6 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const defaultWelcomeMessage =
     "Hi! I'm here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."
-
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -49,11 +48,17 @@ export function ChatInterface({
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError]= useState<any>(null)
+  const [fromHistory, setFromHistory]= useState<string>("true")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
+
+  useEffect(()=>{
+    const from_history= localStorage.getItem("from_history")
+    setFromHistory(from_history||"true")
+  },[])
 
   useEffect(() => {
     scrollToBottom()
@@ -75,16 +80,30 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
-    const resCurrentPlan = fetch(
-        `https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/current-plan?user_id=${localStorage.getItem("user_id")}`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    const dataCurrentPlan = await resCurrentPlan;
-    if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
-    const currentPlanData=   await dataCurrentPlan.json();
+    const resCurrentPlan = fetch("/api/billing/get-current-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+              user_id: localStorage.getItem("user_id")
+            }),
+      });
+
+    const currentPlanRes = await resCurrentPlan;
+    if(!currentPlanRes.ok){
+      setError("Unable to check remaining tokens")
+      setTimeout(()=>{
+        setError(null);
+      }, 3000)
+      setIsLoading(false)
+      return;
+    }
+
+    const dataCurrentPlan = await currentPlanRes.json();
+    const currentPlanData= await dataCurrentPlan.data
+
+    // const dataCurrentPlan = await resCurrentPlan;
+    // if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
+    // const currentPlanData=   await dataCurrentPlan.json();
     console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
     console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
     const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
@@ -98,32 +117,42 @@ export function ChatInterface({
       return;
     }
 
-    const response = await fetch(
-          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/nl-to-athena",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+      const responseChatMessage = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
               question: messageToSend,
               user_id: localStorage.getItem("user_id"),
               session_id: localStorage.getItem("session_id")
             }),
-          }
-        );
+      });
 
-      if (!response.ok) throw new Error("Failed to get response for the query");
+      const dataChatMessage = await responseChatMessage.json();
+      const chatMessageData= await dataChatMessage.data
+      console.log("chatMessageData is", JSON.stringify(chatMessageData))
+      if (!responseChatMessage.ok){
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
+          content: "Failed to request answer. Try with some other question",
+          sender: "assistant",
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+        setIsLoading(false)
+        return;
+      }     
 
-      const data = await response.json();
-      const queryResponse = await JSON.parse(data.body);
-      console.log("queryResponse is", queryResponse.natural_language_response)
-      console.log("Now consume-tokens API should fire at first place")
+      const responseQuery= await chatMessageData.body;
+      const queryResponse= JSON.parse(responseQuery);
 
+
+      console.log("queryResponse is", JSON.stringify(queryResponse))
+      console.log("queryResponse natural language response is", queryResponse.natural_language_response)
       const tokens_to_consume= queryResponse.token_usage?.total_tokens|| 1800;
       console.log("Tokens to consume for the chat message", tokens_to_consume)
       // setResponse(queryResponse.natural_language_response)
 
-    // Simulate AI response
-    // setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
@@ -134,24 +163,32 @@ export function ChatInterface({
       console.log("Now consume-tokens API should fire at second place")
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-      const resConsumeTokens = await fetch(
-          "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/billing/consume-tokens",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+      if(!queryResponse.natural_language_response) return
+
+      const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               action_name: "chat_message",
               tokens_to_consume: tokens_to_consume,
               event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
             }),
-          }
-        );
+      });
 
-        if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce user tokens for chat message");
+      // const currentPlanRes = await resCurrentPlan;
+      if(!resConsumeTokens.ok){
+        console.error("Unable to update tokens for the user")
+        return;
+      }
 
-        const dataConsumeTokens = await resConsumeTokens.json();
-        console.log("Token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
+      const consumeTokensData = await resConsumeTokens.json();
+      const dataConsumeTokens= await consumeTokensData.data
+
+        // if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce user tokens for chat message");
+
+        // const dataConsumeTokens = await resConsumeTokens.json();
+      console.log("Token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -243,7 +280,7 @@ export function ChatInterface({
 
         {/* Suggested Queries */}
         {/* {suggestedQueries.length > 0 && messages.length <= 1 && ( */}
-        {suggestedQueries.length > 0  && (
+        {fromHistory==="false" && suggestedQueries.length > 0  && (
           <div className="space-y-2">
             <p className="text-xs text-gray-600 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">

@@ -85,7 +85,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Display Preferences */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Display Preferences</CardTitle>
             <CardDescription>Customize how information is displayed in your dashboard</CardDescription>
@@ -128,10 +128,10 @@ export default function ProfilePage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Notification Settings */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
             <CardDescription>Choose how you want to receive updates and alerts</CardDescription>
@@ -170,10 +170,10 @@ export default function ProfilePage() {
               />
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Security */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Security</CardTitle>
             <CardDescription>Manage your account security settings</CardDescription>
@@ -195,7 +195,7 @@ export default function ProfilePage() {
               <Badge variant="secondary">Not Enabled</Badge>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   )

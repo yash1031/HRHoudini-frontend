@@ -8,6 +8,7 @@ import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useUserContext } from "@/contexts/user-context"
+import { v4 as uuidv4 } from "uuid";
 import {
   ArrowLeft,
   TrendingUp,
@@ -29,18 +30,36 @@ interface KpiItem {
 }
 
 export function FileUploadStep() {
-  const { step, setStep, uploadedFile, setUploadedFile, userContext, scenarioConfig } = useOnboarding()
+  // const { step, setStep, userContext } = useOnboarding()
+  const { step, setStep, uploadedFile, setUploadedFile, userContext } = useOnboarding()
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
+  const [uuid] = useState<string>(uuidv4());
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
-  // const {setKpis } = useUserContext()
+  const [fileDropped, setFileDropped]= useState(false);
+  const [proceedToUpload, setProceedToUpload]= useState(false);
+  const [isUploading, setIsUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const {setKpis } = useUserContext()
+  const [processedFile, setProcessedFile]= useState(false);
+  
+  const hasFileDropped = (args: boolean) => {
+    console.log("Args recieved after selecting the file", args)
+    setFileDropped(args)
+  }
+  
 
-  const handleFileUpload = (file: File, metadata: any) => {
-    setUploadedFile({ file, metadata })
+  const handleContinue = () => {
+    if(processedFile) skipToStep(3)
+    else {
+      const {file, metadata}= uploadedFile
+      processFile(file, metadata.columns)
+    }
   }
 
-  const handleSampleFileSelect = () => {
+  const handleSampleFileSelect = (showWelcome: string) => {
     const sampleMetadata = {
       name: "SharpMedian.csv",
       size: 245760, // Approximate size
@@ -77,7 +96,15 @@ export function FileUploadStep() {
     const sampleFile = new File(["sample"], "SharpMedian.csv", { type: "text/csv" })
     setUploadedFile({ file: sampleFile, metadata: sampleMetadata })
 
-    setStep(3)
+    const params = new URLSearchParams({
+        hasFile: "false",
+        showWelcome: showWelcome,
+        })
+
+    let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    router.push(dashboardUrl)
+
+    // setStep(3)
     // setStep(4)
   }
 
@@ -94,29 +121,6 @@ export function FileUploadStep() {
     setStep(targetStep)
   }
 
-  const handleContinue = async() => {
-
-    const params = new URLSearchParams({
-      persona: userContext?.persona || "hr-generalist",
-      company: userContext?.company || "default",
-      hasFile: "true",
-      onboarding: "completed",
-      showWelcome: "true",
-    })
-
-    let dashboardUrl
-    if (uploadedFile?.metadata?.isSample) {
-      params.set("sampleFile", "true")
-      params.set("company", "Sharp Median")
-      dashboardUrl = `/dashboard-uo-2?${params.toString()}`
-    } else {
-      params.set("company", "HealthServ")
-      dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-    }
-
-    router.push(dashboardUrl)
-  }
-
   const resetSelection = () => {
     setSelectedOption(null)
     setUploadedFile(null)
@@ -129,6 +133,293 @@ export function FileUploadStep() {
   const hasFileUploadStarted = (arg: boolean) => {
     console.log("hasFileUploadStarted, args:", arg)
     setFileUploadStarted(arg)
+  }
+
+  const handleBack = () =>{
+    setIsUploading(false)
+    setFileDropped(false)
+    setProcessedFile(false)
+    resetSelection()
+    setStep(1)
+  }
+
+    // Helper: upload with progress using XMLHttpRequest
+  const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url, true);
+      xhr.setRequestHeader("Content-Type", contentType);
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          console.log(`Upload succeded with status ${xhr.status} & response is ${xhr.response}`)
+          resolve(xhr.response);
+        } else {
+          console.log(`Upload failed with status ${xhr.status}`)
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.send(file);
+    });
+  };
+
+  const processFile = async (file: File, columns: string[]) => {
+
+    try {
+        // const currentPlanRes = await resCurrentPlan;
+
+        
+
+        setIsUploading(true)
+        setError(null)
+        hasFileUploadStarted(true)
+        setUploadProgress(0)
+
+        const createKPIsRes = fetch("/api/file-upload/generate-kpis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: uuid,
+              column_headers: columns
+            }),
+        });
+
+        const AISuggestedQuesRes = fetch("/api/file-upload/generate-recommended-questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: uuid,
+              column_headers: columns
+            }),
+        });
+
+        const resPresignedURL = await fetch("/api/file-upload/generate-presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              fileName: file.name,
+              fileType: file.type,
+              userId: localStorage.getItem("user_id"),
+              // uuid: uuid,
+            }),
+        });
+
+        const dataPresignedURL = await resPresignedURL.json();
+        const presignedURLData= await dataPresignedURL.data
+        console.log("presignedURLData is", JSON.stringify(presignedURLData))
+        let uploadURL;
+        if(!resPresignedURL.ok){
+          setError("Failed to process file. Please try again.")
+          setIsUploading(false)
+          console.error("Failed to generate presigned URL")
+        }
+        // if (resPresignedURL.ok){
+        //   setUploadProgress(20)
+        //   const data = await presignedURLData;
+        //   // const data = await presignedURLData.json();
+        //   console.log("Data after generating presigned URL is ", JSON.stringify(data))
+        //   const body = JSON.parse(data.body);
+        //   const { uploadUrl, s3Key } = body;
+        //   uploadURL = uploadUrl
+        //   console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
+        //   // setSessionId(sessionId);
+        //   localStorage.setItem("s3Key", s3Key)
+        // }
+        // else{
+        //   setError("Failed to process file. Please try again.")
+        //   setTimeout(()=>{
+        //     setError(null);
+        //   }, 3000)
+        //   setIsUploading(false)
+        //   console.error("Failed to generate presigned URL")
+        //   return;
+        // }
+
+        setUploadProgress(20)
+        const data = await presignedURLData;
+        // const data = await presignedURLData.json();
+        console.log("Data after generating presigned URL is ", data)
+        // console.log("Data after generating presigned URL is ", JSON.stringify(data))
+        // const body = data.body;
+        // // const body = JSON.parse(data.body);
+        // console.log("body", body)
+        const { uploadUrl, s3Key, sessionId } = data;
+        uploadURL = uploadUrl
+        console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
+        // setSessionId(sessionId);
+        localStorage.setItem("s3Key", s3Key)
+        localStorage.setItem("session_id", sessionId)
+        const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
+        const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id")?? 'test'}&sessionId=${sessionId}`);
+        
+        // keep a reference so it doesn’t get GC’d (test-only)
+        ;(window as any).__ws = ws;
+        
+        ws.onopen = () => {
+          console.log('[WS] connected', { uuid });
+        };
+        
+        // ws.onclose = () => {
+        //   console.log('[WS] disconnected');
+        // };
+
+
+        // 4. Upload file with progress
+        await uploadFileWithProgress(uploadURL, file, file.type);
+
+        setUploadProgress(40)
+
+        ws.onmessage = (evt) => {
+          try {
+            const msg = JSON.parse(evt.data);
+            console.log('[WS] message', msg);
+            if(msg.event==="convert.ready"){
+              console.log("[WS] message: CSV converted to parquet")
+              setUploadProgress(70)
+            }
+            if(msg.event==="athena.completed"){
+              console.log("Athena table created")
+              setUploadProgress(100)
+              setProcessedFile(true);
+            }
+            // QUICK TEST: show a banner/toast
+            // e.g., set some local state to display msg.event
+          } catch (e) {
+            console.log('[WS] raw', evt.data);
+          }
+        };
+
+        // const resCSVToParq = await fetch("/api/file-upload/csv-to-parquet", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //       user_id: localStorage.getItem("user_id"),
+        //       session_id: uuid,
+        //       file_type: file.type=="text/csv"? "csv": "excel",
+        //     }),
+        // });
+
+        // const dataCSVToParq = await resCSVToParq.json();
+        // const CSVToParqData= await dataCSVToParq.data
+        // console.log("CSVToParqData is", JSON.stringify(CSVToParqData))
+        // if (resCSVToParq.ok){
+        //   const data1 = await CSVToParqData;
+        //   // const data1 = await CSVToParqData.json();
+        //   console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
+        //   setUploadProgress(60)
+        // }
+        // else{
+        //   setError("Failed to process file. Please try again.")
+        //   setTimeout(()=>{
+        //     setError(null);
+        //   }, 3000)
+        //   setIsUploading(false)
+        //   console.error("Failed to convert CSV to parquet")
+        //   return;
+        // }
+
+        // const resCreateAthenaTable = await fetch("/api/file-upload/create-athena-table", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //       user_id: localStorage.getItem("user_id"),
+        //       session_id: uuid,
+        //     }),
+        // });
+
+        // const dataCreateAthenaTable = await resCreateAthenaTable.json();
+        // const createAthenaTableData= await dataCreateAthenaTable.data
+        // console.log("createAthenaData is", JSON.stringify(createAthenaTableData))
+        // if (resCreateAthenaTable.ok){
+        //   const data2 = await createAthenaTableData;
+        //   // const data2 = await createAthenaTableData.json();
+        //   console.log("Successfully converted athena table. Result is ", JSON.stringify(data2))
+        //   setUploadProgress(80)
+        //   localStorage.setItem("session_id", uuid)
+        // }
+        // else{
+        //   setError("Failed to process file. Please try again.")
+        //   setTimeout(()=>{
+        //     setError(null);
+        //   }, 3000)
+        //   setIsUploading(false)
+        //   console.error("Failed to Create Athena Table")
+        //   return;
+        // }
+
+        // Fetch KPIs result and save in storage
+        const resCreateKPIs= await createKPIsRes; 
+        const dataCreateKPIs = await resCreateKPIs.json();
+        const createKPIsData= await dataCreateKPIs.data
+        console.log("createKPIsData is", JSON.stringify(createKPIsData))
+        if (resCreateKPIs.ok){
+          const kpisData= await createKPIsData;
+          // const kpisData= await createKPIsData.json();
+          console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
+          // Parse the string inside `body`
+          const parsedBody = JSON.parse(kpisData.body);
+          console.log("Parsed body:", parsedBody);
+          console.log("KPI Questions are:", parsedBody.kpi_items);
+
+          // Transform kpi_items to include actual icon components
+          const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
+            ...item,
+            icon: Clock, // fallback to Clock
+          }));
+
+          // Set KPIs from parsed response
+          setKpis(kpisWithIcons);
+        }
+        else{
+          setError("Failed to process file. Please try again.")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          console.error("Failed to create KPIs")
+          return;
+        } 
+
+        const resAISuggestedQues= await AISuggestedQuesRes;
+        const dataAISuggestedQues = await resAISuggestedQues.json();
+        const AISuggestedQuesData= await dataAISuggestedQues.data
+        console.log("AISuggestedQuesData is", JSON.stringify(AISuggestedQuesData))
+        if (resAISuggestedQues.ok){
+          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+          // const aIRecommendedQuestionsData=   await AISuggestedQuesData.json();
+          console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
+          // Parse the string inside `body`
+          const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
+          console.log("Parsed body:", parsedBodyAIRQ);
+          console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
+          localStorage.setItem("sample_questions", JSON.stringify(parsedBodyAIRQ.sample_questions))
+          // setUploadProgress(100)
+        } 
+        else{
+          setError("Failed to process file. Please try again.")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          console.error("Failed to create AI recommended question")
+          return;
+        }
+
+        // setProcessedFile(true);
+
+    } catch (err) {
+      setError("Failed to process file. Please try again.")
+      setTimeout(()=>{
+        setError(null);
+      }, 3000)
+      console.error("File processing error:", err)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (
@@ -189,7 +480,8 @@ export function FileUploadStep() {
           </div>
         )}
 
-        {selectedOption === "upload" && !uploadedFile && (
+        {selectedOption === "upload" && !processedFile &&(
+        // {selectedOption === "upload" && !uploadedFile && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Upload Your HR Data</h3>
@@ -198,12 +490,19 @@ export function FileUploadStep() {
               </Button>
             </div>
             <FileUpload
-              onFileUpload={handleFileUpload}
+              // onFileUpload={handleFileUpload}
               hasFileUploadStarted={hasFileUploadStarted}
               onboardingMode={true}
               userContext={userContext}
-              scenarioConfig={scenarioConfig}
+              hasFileDropped={hasFileDropped}
+              // scenarioConfig={scenarioConfig}
               onBrowseFiles={handleBrowseFiles}
+              proceedToUpload={proceedToUpload}
+              isUploading={isUploading}
+              error={error}
+              setError={setError}
+              uploadProgress={uploadProgress}
+              processedFile={processedFile}
             />
           </div>
         )}
@@ -266,7 +565,7 @@ export function FileUploadStep() {
                         <span>Download to Review</span>
                       </Button>
                       <Button
-                        onClick={handleSampleFileSelect}
+                        onClick={()=> handleSampleFileSelect("true")}
                         className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                       >
                         <span>Use This Sample</span>
@@ -280,7 +579,7 @@ export function FileUploadStep() {
           </div>
         )}
 
-        {uploadedFile && (
+        {uploadedFile && processedFile && (
           <div className="mt-6 p-4 bg-green-50 rounded-lg">
             <div className="flex items-center space-x-2 mb-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
@@ -299,23 +598,24 @@ export function FileUploadStep() {
         )}
 
         <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={() => setStep(1)}>
+          <Button variant="outline" onClick={handleBack}>
+          {/* <Button variant="outline" onClick={() => setStep(1)}> */}
             Back
           </Button>
           { 
           !(selectedOption === "sample" && !uploadedFile) && (
             <div className="flex space-x-2">
-              <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={() => skipToStep(3)}>
+              {/* <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={() => skipToStep(3)}> */}
+              <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={()=> handleSampleFileSelect( "false" )}>
                 Skip file upload
               </Button>
               <Button
-                // onClick={handleContinue}
-                onClick={() => skipToStep(3)}
+                onClick={handleContinue}
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-                disabled={!uploadedFile && !hasBrowsedFiles}
+                disabled={!(fileDropped && (!isUploading))}
               >
-                <span>Continue</span>
-                <ArrowRight className="h-4 w-4" />
+                <span>{(isUploading || processedFile)? "Continue": "Upload"}</span>
+                {(isUploading || processedFile) && <ArrowRight className="h-4 w-4" />}
               </Button>
             </div>
           )}

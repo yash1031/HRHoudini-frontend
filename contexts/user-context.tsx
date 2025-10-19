@@ -3,7 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { personas } from "@/lib/demo-config"
+// import { personas } from "@/lib/demo-config"
 import {
   ArrowRight,
   ArrowLeft,
@@ -38,7 +38,7 @@ interface UserContextType {
   renewAccessToken: () => Promise<string | null>
   isTokenValid: (token: string) => boolean
 
-  // ✅ New fields for KPI management
+  // New fields for KPI management
   kpis: KpiItem[];
   setKpis: React.Dispatch<React.SetStateAction<KpiItem[]>>;
 }
@@ -130,66 +130,66 @@ const AVAILABLE_KPIS: KpiItem[] = [
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
 // Persona to role title mapping
-const PERSONA_ROLE_MAPPING: { [key: string]: string } = {
-  "hr-generalist": "HR Generalist",
-  "hr-business-partner": "HR Business Partner",
-  "talent-acquisition": "Senior Recruiter",
-  chro: "CHRO",
-  "people-ops": "People Operations",
-  "compensation-analyst": "Compensation Analyst",
-  "diversity-inclusion": "Diversity & Inclusion",
-  "hr-analyst": "HR Analyst",
-  recruiter: "Recruiter",
-  sourcer: "Sourcer",
-  "recruiting-coordinator": "Recruiting Coordinator",
-  "team-lead": "Team Lead",
-  manager: "Manager",
-  director: "Director",
-  vp: "VP",
-  ceo: "CEO",
-}
+// const PERSONA_ROLE_MAPPING: { [key: string]: string } = {
+//   "hr-generalist": "HR Generalist",
+//   "hr-business-partner": "HR Business Partner",
+//   "talent-acquisition": "Senior Recruiter",
+//   chro: "CHRO",
+//   "people-ops": "People Operations",
+//   "compensation-analyst": "Compensation Analyst",
+//   "diversity-inclusion": "Diversity & Inclusion",
+//   "hr-analyst": "HR Analyst",
+//   recruiter: "Recruiter",
+//   sourcer: "Sourcer",
+//   "recruiting-coordinator": "Recruiting Coordinator",
+//   "team-lead": "Team Lead",
+//   manager: "Manager",
+//   director: "Director",
+//   vp: "VP",
+//   ceo: "CEO",
+// }
 
 // Function to get user name from persona and company
-function getUserFromPersonaAndCompany(persona: string, company: string): { name: string; role: string } {
-  // First try to find in personas object
-  if (company && personas[company]) {
-    const companyPersonas = personas[company]
+// function getUserFromPersonaAndCompany(persona: string, company: string): { name: string; role: string } {
+//   // First try to find in personas object
+//   if (company && personas[company]) {
+//     const companyPersonas = personas[company]
 
-    // Map persona key to role title for matching
-    const roleTitle = PERSONA_ROLE_MAPPING[persona]
-    if (roleTitle) {
-      const matchingPersona = companyPersonas.find((p) => p.role === roleTitle)
-      if (matchingPersona) {
-        return { name: matchingPersona.name, role: matchingPersona.role }
-      }
-    }
-  }
+//     // Map persona key to role title for matching
+//     const roleTitle = PERSONA_ROLE_MAPPING[persona]
+//     if (roleTitle) {
+//       const matchingPersona = companyPersonas.find((p) => p.role === roleTitle)
+//       if (matchingPersona) {
+//         return { name: matchingPersona.name, role: matchingPersona.role }
+//       }
+//     }
+//   }
 
-  // Fallback to persona role mapping
-  const roleTitle = PERSONA_ROLE_MAPPING[persona] || persona.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())
+//   // Fallback to persona role mapping
+//   const roleTitle = PERSONA_ROLE_MAPPING[persona] || persona.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())
 
-  // Default names for common personas if not found in company data
-  const defaultNames: { [key: string]: string } = {
-    "hr-generalist": "Maya Jackson",
-    "talent-acquisition": "Sasha Kim",
-    "team-lead": "James Patel",
-    chro: "Dr. Patricia Williams",
-  }
+//   // Default names for common personas if not found in company data
+//   const defaultNames: { [key: string]: string } = {
+//     "hr-generalist": "Maya Jackson",
+//     "talent-acquisition": "Sasha Kim",
+//     "team-lead": "James Patel",
+//     chro: "Dr. Patricia Williams",
+//   }
 
-  const name = defaultNames[persona] || "Demo User"
+//   const name = defaultNames[persona] || "Demo User"
 
-  return { name, role: roleTitle }
-}
+//   return { name, role: roleTitle }
+// }
 
-// Function to generate avatar initials
-function generateAvatarInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
-}
+// // Function to generate avatar initials
+// function generateAvatarInitials(name: string): string {
+//   return name
+//     .split(" ")
+//     .map((n) => n[0])
+//     .join("")
+//     .toUpperCase()
+//     .slice(0, 2)
+// }
 
 // Function to decode JWT and check if it's expired
 function isTokenExpired(token: string): boolean {
@@ -217,112 +217,111 @@ function validateToken(token: string): boolean {
 
 export function UserContextProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserContextData>({
-    name: "Demo User",
+    name: "",
     email: "",
-    // company: "Demo Company", //Commented
-    company: "HealthServ", //Added
-    role: "User",
+    company: "", 
+    role: "",
     persona: "",
-    avatar: "DU",
+    avatar: "",
     isLoading: true,
   })
 
   const [kpis, setKpis] = useState<KpiItem[]>(AVAILABLE_KPIS);
-  const [isUserGoogleLoggedIn, setIsUserGoogleLoggedIn]= useState(true);
+  const [isUserGoogleLoggedIn, setIsUserGoogleLoggedIn]= useState(false);
 
   const pathname = usePathname()
   const [accessToken, setAccessTokenState] = useState<string | null>(null)
 
-  useEffect(() => {
-    console.log("[v0] UserContext pathname:", pathname)
+  // useEffect(() => {
+  //   console.log("[v0] UserContext pathname:", pathname)
 
-    const isUploadOnlyScenario =
-      pathname === "/dashboard-upload-only" ||
-      (pathname.startsWith("/dashboard/") && localStorage.getItem("upload-only-scenario") === "true")
+  //   const isUploadOnlyScenario =
+  //     pathname === "/dashboard-upload-only" ||
+  //     (pathname.startsWith("/dashboard/") && localStorage.getItem("upload-only-scenario") === "true")
 
-    if (pathname === "/dashboard-upload-only") {
-      localStorage.setItem("upload-only-scenario", "true")
-    }
+  //   if (pathname === "/dashboard-upload-only") {
+  //     localStorage.setItem("upload-only-scenario", "true")
+  //   }
 
-    if (isUploadOnlyScenario) {
-      console.log("[v0] Setting Upload-Only user data")
-      setUser({
-        name: "Maya Jackson",
-        email: "maya.jackson@healthserv.com",
-        company: "HealthServ Solutions",
-        role: "HR Generalist",
-        persona: "hr-generalist---upload-only",
-        avatar: "MJ",
-        isLoading: false,
-      })
-      return
-    }
+  //   if (isUploadOnlyScenario) {
+  //     console.log("[v0] Setting Upload-Only user data")
+  //     setUser({
+  //       name: "Maya Jackson",
+  //       email: "maya.jackson@healthserv.com",
+  //       company: "HealthServ Solutions",
+  //       role: "HR Generalist",
+  //       persona: "hr-generalist---upload-only",
+  //       avatar: "MJ",
+  //       isLoading: false,
+  //     })
+  //     return
+  //   }
 
-    if (!pathname.startsWith("/dashboard")) {
-      localStorage.removeItem("upload-only-scenario")
-    }
+  //   if (!pathname.startsWith("/dashboard")) {
+  //     localStorage.removeItem("upload-only-scenario")
+  //   }
 
-    // Parse URL params from the current location string
-    const params = new URLSearchParams(window.location.search)
+  //   // Parse URL params from the current location string
+  //   const params = new URLSearchParams(window.location.search)
 
-    const persona = params.get("persona")
-    const company = params.get("company")
+  //   const persona = params.get("persona")
+  //   const company = params.get("company")
 
-    let userData: Partial<UserContextData> = {}
+  //   let userData: Partial<UserContextData> = {}
 
-    // Try to load from localStorage first
-    try {
-      const savedOnboarding = localStorage.getItem("hr-houdini-onboarding")
-      if (savedOnboarding) {
-        const onboardingData = JSON.parse(savedOnboarding)
-        if (onboardingData.userContext) {
-          userData = {
-            name: onboardingData.userContext.name || "",
-            email: onboardingData.userContext.email || "",
-            company: onboardingData.userContext.company || "",
-            role: onboardingData.userContext.role || "",
-            persona: onboardingData.userContext.role?.toLowerCase().replace(" ", "-") || "",
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error loading onboarding data:", error)
-    }
+  //   // Try to load from localStorage first
+  //   try {
+  //     const savedOnboarding = localStorage.getItem("hr-houdini-onboarding")
+  //     if (savedOnboarding) {
+  //       const onboardingData = JSON.parse(savedOnboarding)
+  //       if (onboardingData.userContext) {
+  //         userData = {
+  //           name: onboardingData.userContext.name || "",
+  //           email: onboardingData.userContext.email || "",
+  //           company: onboardingData.userContext.company || "",
+  //           role: onboardingData.userContext.role || "",
+  //           persona: onboardingData.userContext.role?.toLowerCase().replace(" ", "-") || "",
+  //         }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error loading onboarding data:", error)
+  //   }
 
-    // Override with URL params if available
-    if (persona || company) {
-      const personaKey = persona || userData.persona || "hr-generalist"
-      const companyName = company || userData.company || "HealthServ Solutions"
+  //   // Override with URL params if available
+  //   if (persona || company) {
+  //     const personaKey = persona || userData.persona || "hr-generalist"
+  //     const companyName = company || userData.company || "HealthServ Solutions"
 
-      const { name, role } = getUserFromPersonaAndCompany(personaKey, companyName)
+  //     const { name, role } = getUserFromPersonaAndCompany(personaKey, companyName)
 
-      userData = {
-        ...userData,
-        name,
-        company: companyName,
-        role,
-        persona: personaKey,
-      }
-    }
+  //     userData = {
+  //       ...userData,
+  //       name,
+  //       company: companyName,
+  //       role,
+  //       persona: personaKey,
+  //     }
+  //   }
 
-    // Generate avatar initials
-    const avatar = userData.name ? generateAvatarInitials(userData.name) : "DU"
+  //   // Generate avatar initials
+  //   const avatar = userData.name ? generateAvatarInitials(userData.name) : "DU"
 
-    // Set final user data
-    const finalUser = {
-      name: userData.name || "Demo User",
-      email: userData.email || "",
-      // company: userData.company || "Demo Company", //commented
-      company: userData.company || "HealthServ", //Added
-      role: userData.role || "User",
-      persona: userData.persona || "",
-      avatar,
-      isLoading: false,
-    }
+  //   // Set final user data
+  //   const finalUser = {
+  //     name: userData.name || "Demo User",
+  //     email: userData.email || "",
+  //     // company: userData.company || "Demo Company", //commented
+  //     company: userData.company || "HealthServ", //Added
+  //     role: userData.role || "User",
+  //     persona: userData.persona || "",
+  //     avatar,
+  //     isLoading: false,
+  //   }
 
-    console.log("[v0] Setting final user data:", finalUser)
-    setUser(finalUser)
-  }, [pathname])
+  //   console.log("[v0] Setting final user data:", finalUser)
+  //   setUser(finalUser)
+  // }, [pathname])
 
     // Initialize access token from localStorage on mount
   useEffect(() => {
@@ -338,10 +337,6 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
   const updateUser = (updates: Partial<UserContextData>) => {
     setUser((prev) => {
       const updated = { ...prev, ...updates }
-      // Regenerate avatar if name changed
-      if (updates.name) {
-        updated.avatar = generateAvatarInitials(updates.name)
-      }
       return updated
     })
   }
@@ -399,7 +394,8 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
     }
   }
 
-  return <UserContext.Provider value={{ user, 
+  return <UserContext.Provider value={{ 
+      user, 
       updateUser, 
       accessToken, 
       setAccessToken, 

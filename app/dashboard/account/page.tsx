@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,9 @@ import Link from "next/link"
 
 export default function AccountPage() {
   const { user } = useUserContext()
-
+  const [tokensRemaining, setTokensRemaining]= useState<String>('');
+  const [fileUploads, setFileUploads]= useState<String>('');
+  const [chatMessages, setChatMessages]= useState<String>('');
   const [isEditing, setIsEditing] = useState(false)
   const [companyData, setCompanyData] = useState({
     companyName: user.company || "TechCorp Solutions",
@@ -31,6 +33,39 @@ export default function AccountPage() {
 
   const handleSave = () => {
     setIsEditing(false)
+  }
+  useEffect(()=>{
+    checkFileUpoadQuotas()
+  },[])
+
+  const checkFileUpoadQuotas = async () =>{
+    console.log("CheckFileUploadQuotas Triggered")
+    const resCurrentPlan = fetch("/api/billing/get-current-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+              user_id: localStorage.getItem("user_id")
+            }),
+      });
+
+    const currentPlanRes = await resCurrentPlan;
+
+    if(!currentPlanRes.ok){
+      console.log("Unable to check remaining tokens")
+      return;
+    }
+
+    const dataCurrentPlan = await currentPlanRes.json();
+    const currentPlanData= await dataCurrentPlan?.data
+    
+    console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
+    setTokensRemaining(currentPlanData?.subscriptions[0]?.remaining_tokens)
+    setChatMessages(currentPlanData?.subscriptions[0]?.usage_stats?.chat_messages)
+    setFileUploads(currentPlanData?.subscriptions[0]?.usage_stats?.file_uploads)
+    // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
+    //   setError("File upload quotas are exhausted.")
+    //   return;
+    // }
   }
 
   return (
@@ -153,21 +188,21 @@ export default function AccountPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">AI Chat Messages</span>
-                  <span className="font-medium">47 used</span>
+                  <span className="font-medium">{chatMessages} used</span>
                 </div>
                 <div className="text-xs text-gray-500">Unlimited during trial</div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">File Uploads</span>
-                  <span className="font-medium">12 uploaded</span>
+                  <span className="font-medium">{fileUploads} uploaded</span>
                 </div>
                 <div className="text-xs text-gray-500">Unlimited during trial</div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tokens remaining</span>
-                  <span className="font-medium">1,000 tokens</span>
+                  <span className="font-medium">{tokensRemaining} tokens</span>
                 </div>
                 <div className="text-xs text-gray-500">25,000 tokens in Freemium</div>
               </div>

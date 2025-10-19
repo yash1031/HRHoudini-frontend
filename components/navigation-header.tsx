@@ -5,6 +5,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useUserContext } from "@/contexts/user-context"
+import { useSearchParams } from "next/navigation"
 import { Settings, User, Building, LogOut, ChevronDown } from "lucide-react"
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import {signOut } from 'aws-amplify/auth';
+// import { useRouter } from "next/router"
 import { useState, useEffect } from "react"
 
 interface NavigationHeaderProps {
@@ -31,12 +33,19 @@ interface LoggedUser {
   onboarding: string,
 }
 
+interface NavItem {
+  label: string,
+  href: string,
+}
+
 /**
  * Global navigation header - shared across the entire app.
  * Matches the visual style of the production dashboard header.
  */
 export function NavigationHeader({ userName, company }: NavigationHeaderProps = {}) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  // const router = useRouter()
   const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
   const [loggedUser, setLoggedUser] = useState<Record<string, string>>({
           name: '',
@@ -45,7 +54,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
           role: '',
           onboarding: '',
     })
-
+  const [navItems, setNavItems]= useState<NavItem[]>([]);
   // let loggedInUser={};
 
   useEffect(()=>{
@@ -56,6 +65,14 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
           role: user.role,
           onboarding: "true",
     })
+    const fileUploaded: string = searchParams.get("hasFile") || "false";
+    const params = new URLSearchParams({
+        hasFile: fileUploaded,
+        showWelcome: "false",
+    })
+    const href= `/dashboard-uo-1?${params.toString()}`
+    setNavItems([{ label: "Dashboard", href: href }])
+
   }, [])
 
   console.log("[v0] NavigationHeader - pathname:", pathname)
@@ -63,22 +80,12 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   console.log("[v0] NavigationHeader - userName prop:", userName)
   console.log("[v0] NavigationHeader - company prop:", company)
 
-  const navItems = [
-    // { label: "Dashboard", href: "/dashboard" },
-    { label: "Dashboard", href: "/dashboard-uo-1" }, //added
-    // { label: "Projects", href: "/projects" }, // Hidden
-    // { label: "Reports", href: "/reports" }, // Hidden
-  ]
+  // const navItems = [
+  //   { label: "Dashboard", href: "/dashboard-uo-1" }, 
+  // ]
 
   const isDashboardActive = (pathname: string, href: string) => {
     // Commented below if block
-    // if (href === "/dashboard") {
-    //   return pathname === "/dashboard" || pathname === "/dashboard-upload-only"
-    // }
-    // if block added
-    if (href === "/dashboard-uo-1") {
-      return pathname === "/dashboard" || pathname === "/dashboard-upload-only"
-    }
     return pathname.startsWith(href)
   }
 
@@ -125,7 +132,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     return (
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
         {/* Logo */}
-        <Link href={`/onboarding-upload-only?${new URLSearchParams(loggedUser).toString()}`} className="flex items-center">
+        <Link href={`/onboarding-upload-only`} className="flex items-center">
           <Image
             src="/hr-houdini-final.png"
             alt="HR HOUDINI - Powered by PredictiveHR"
@@ -139,18 +146,21 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         {/* Primary nav */}
         <nav className="hidden md:flex gap-8">
           {navItems.map(({ label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              className={cn(
-                "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                isDashboardActive(pathname, href)
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
-              )}
-            >
-              {label}
-            </Link>
+            isDashboardActive(pathname, href) ? (
+                <span className={cn("px-3 py-2 text-sm font-medium rounded-md transition-colors bg-blue-100 text-blue-700")}>
+                  {label}
+                </span>
+              ) : (
+                <Link
+                  key={label}
+                  href={href}
+                  className={cn(
+                    "px-3 py-2 text-sm font-medium rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  {label}
+                </Link>
+              )
           ))}
         </nav>
 
@@ -173,8 +183,14 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       // Get user_id from localStorage
       const user_id = localStorage.getItem('user_id');
 
+      localStorage.clear()
+      
+      // Redirect to login page
+      window.location.href = '/';
+      // router.push('/')
+
       // Call the sign-out route
-      const response = await fetch('/api/auth/sign-out', {
+      const response =  fetch('/api/auth/sign-out', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,9 +199,12 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         credentials: 'include', // Important for HTTPOnly cookies
       });
 
+      
+      
+      const responseSignout= await response;
+
       // Remove data from local Storage on success
-      if (response.ok) {
-        localStorage.clear()
+      if (responseSignout.ok) {
         if(isUserGoogleLoggedIn){
           setIsUserGoogleLoggedIn(false);
           await signOut();
@@ -194,8 +213,6 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         else{
           console.log("User Signed out")
         }
-        // Redirect to login page
-        window.location.href = '/';
       } else {
         // Even on API failure, clean up client-side for security
         console.error('Sign out API failed, but cleaning up client-side');
@@ -210,8 +227,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
       {/* Logo */}
-      {/* <Link href="/" className="flex items-center"> */}
-      <Link href={`/onboarding-upload-only?${new URLSearchParams(loggedUser).toString()}`} className="flex items-center">
+      <Link href={`/onboarding-upload-only`} className="flex items-center">
         <Image
           src="/hr-houdini-final.png"
           alt="HR HOUDINI - Powered by PredictiveHR"
@@ -225,18 +241,21 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       {/* Primary nav */}
       <nav className="hidden md:flex gap-8">
         {navItems.map(({ label, href }) => (
-          <Link
-            key={label}
-            href={href}
-            className={cn(
-              "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-              isDashboardActive(pathname, href)
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
-            )}
-          >
-            {label}
-          </Link>
+          isDashboardActive(pathname, href) ? (
+                <span className={cn("px-3 py-2 text-sm font-medium rounded-md transition-colors bg-blue-100 text-blue-700")}>
+                  {label}
+                </span>
+              ) : (
+                <Link
+                  key={label}
+                  href={href}
+                  className={cn(
+                    "px-3 py-2 text-sm font-medium rounded-md transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  {label}
+                </Link>
+              )
         ))}
       </nav>
 
@@ -261,22 +280,26 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
-            <User className="h-4 w-4 mr-2" />
-            Profile
+          {/* <DropdownMenuItem className="opacity-50 cursor-not-allowed"> */}
+          <DropdownMenuItem asChild>
+            <Link href={`/dashboard/profile?${searchParams.toString()}`} className="flex items-center w-full">   
+          {/* <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed"> */}
+              <User className="h-4 w-4 mr-2" />
+              Profile
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/dashboard/account" className="flex items-center w-full">
+            <Link href={`/dashboard/account?${searchParams.toString()}`} className="flex items-center w-full">
               <Building className="h-4 w-4 mr-2" />
               Account
             </Link>
           </DropdownMenuItem>
-          {shouldShowManageTiles && (
+          {/* {shouldShowManageTiles && (
             <DropdownMenuItem>
               <Settings className="h-4 w-4 mr-2" />
               Manage Tiles
             </DropdownMenuItem>
-          )}
+          )} */}
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-red-600" onClick={() => {
             // Your sign out logic here

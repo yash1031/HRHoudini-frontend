@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const authHeader = req.headers.get("Authorization");
 
     // Call backend refresh endpoint with refresh_token in request body
-    const response = await fetch(`https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/auth/refresh-tokens`, {
+    const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

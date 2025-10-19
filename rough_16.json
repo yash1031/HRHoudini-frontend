@@ -1,0 +1,987 @@
+{
+  "cards": [
+    {
+      "id": "c1",
+      "icon": "Users",
+      "color": "blue",
+      "title": "Total Employees",
+      "value": "509",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Total Headcount",
+            "value": "509"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Average Employee Tenure",
+            "value": "3.5 years"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Full-Time": 380,
+              "Part-Time": 129
+            },
+            "icon": "Activity",
+            "type": "pie",
+            "field": "",
+            "title": "Employee Type Distribution",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "2020": 450,
+              "2021": 485,
+              "2022": 509
+            },
+            "icon": "Activity",
+            "type": "line",
+            "field": "",
+            "title": "Employee Growth Trend",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "c2",
+      "icon": "Activity",
+      "color": "green",
+      "field": "Employee Status",
+      "title": "Active Employees",
+      "value": "349 (68.6%)",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Active Employee Count",
+            "value": "409"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Active Employee Percentage",
+            "value": "80.4%"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Active": 409,
+              "Inactive": 100
+            },
+            "icon": "Activity",
+            "type": "bar",
+            "field": "",
+            "title": "Active vs Inactive Employees",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Sales": 150,
+              "Management": 80,
+              "Customer Service": 120
+            },
+            "icon": "Activity",
+            "type": "horizontal-bar",
+            "field": "",
+            "title": "Department-wise Active Employees",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "c3",
+      "icon": "DollarSign",
+      "color": "indigo",
+      "field": "Annual Salary",
+      "title": "Average Annual Salary",
+      "value": "58560.2",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Median Annual Salary",
+            "value": "$53,500"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Salary Range",
+            "value": "$44k - $83k"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Sales": [
+                45000,
+                55000,
+                65000
+              ],
+              "Management": [
+                65000,
+                75000,
+                85000
+              ],
+              "Customer Service": [
+                42000,
+                50000,
+                58000
+              ]
+            },
+            "icon": "Activity",
+            "type": "box",
+            "field": "",
+            "title": "Salary Distribution by Department",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Full-Time": 62000,
+              "Part-Time": 38000
+            },
+            "icon": "Activity",
+            "type": "grouped-bar",
+            "field": "",
+            "title": "Salary vs Employee Type",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "c4",
+      "icon": "AlertTriangle",
+      "color": "red",
+      "field": "Employee Status",
+      "title": "Termination Rate",
+      "value": "160 (31.4%)",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Total Terminations",
+            "value": "100"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Termination Rate",
+            "value": "19.6%"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Voluntary": 65,
+              "Involuntary": 35
+            },
+            "icon": "Activity",
+            "type": "pie",
+            "field": "",
+            "title": "Voluntary vs Involuntary Terminations",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Sales": 40,
+              "Management": 25,
+              "Customer Service": 35
+            },
+            "icon": "Activity",
+            "type": "bar",
+            "field": "",
+            "title": "Terminations by Department",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "c5",
+      "icon": "Briefcase",
+      "color": "teal",
+      "field": "Employee Type",
+      "title": "Full-Time Employees",
+      "value": "335 (65.8%)",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Full-Time Employee Count",
+            "value": "380"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Full-Time Percentage",
+            "value": "74.6%"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Sales": {
+                "Full-Time": 120,
+                "Part-Time": 30
+              },
+              "Customer Service": {
+                "Full-Time": 100,
+                "Part-Time": 20
+              }
+            },
+            "icon": "Activity",
+            "type": "stacked-bar",
+            "field": "",
+            "title": "Full-Time vs Part-Time by Department",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Full-Time": [
+                50000,
+                60000,
+                70000
+              ]
+            },
+            "icon": "Activity",
+            "type": "box",
+            "field": "",
+            "title": "Full-Time Employee Salary Range",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "c6",
+      "icon": "Globe",
+      "color": "purple",
+      "field": "Gender",
+      "title": "Gender Balance",
+      "value": "50.3% Female, 49.7% Male",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Female Employees",
+            "value": "52%"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Male Employees",
+            "value": "48%"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Sales": {
+                "Male": 70,
+                "Female": 80
+              },
+              "Customer Service": {
+                "Male": 50,
+                "Female": 70
+              }
+            },
+            "icon": "Activity",
+            "type": "stacked-bar",
+            "field": "",
+            "title": "Gender Distribution by Department",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Management": {
+                "Male": 40,
+                "Female": 40
+              },
+              "Individual Contributor": {
+                "Male": 80,
+                "Female": 110
+              }
+            },
+            "icon": "Activity",
+            "type": "grouped-bar",
+            "field": "",
+            "title": "Gender vs Job Level",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    }
+  ],
+  "charts": [
+    {
+      "id": "ch1",
+      "data": [
+        {
+          "name": "Sales",
+          "value": 178,
+          "percentage": 35
+        },
+        {
+          "name": "Customer Service",
+          "value": 110,
+          "percentage": 21.6
+        },
+        {
+          "name": "Management",
+          "value": 83,
+          "percentage": 16.3
+        },
+        {
+          "name": "Inventory",
+          "value": 56,
+          "percentage": 11
+        },
+        {
+          "name": "Security",
+          "value": 48,
+          "percentage": 9.4
+        },
+        {
+          "name": "Maintenance",
+          "value": 34,
+          "percentage": 6.7
+        }
+      ],
+      "icon": "PieChart",
+      "type": "pie",
+      "field": "Department",
+      "title": "Employee Distribution by Department",
+      "colors": [
+        "#3b82f6",
+        "#10b981",
+        "#f43f5e",
+        "#8b5cf6",
+        "#f97316"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Largest Department",
+            "value": "Sales"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Department Headcount Ratio",
+            "value": "3:2:1"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Sales": 150,
+              "Management": 80,
+              "Customer Service": 120
+            },
+            "icon": "Activity",
+            "type": "bar",
+            "field": "",
+            "title": "Department Size Comparison",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Sales": 85,
+              "Management": 60,
+              "Customer Service": 70
+            },
+            "icon": "Activity",
+            "type": "radar",
+            "field": "",
+            "title": "Department Performance Metrics",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ch2",
+      "data": [
+        {
+          "name": "Voluntary",
+          "value": 86,
+          "percentage": 53.8
+        },
+        {
+          "name": "Involuntary",
+          "value": 74,
+          "percentage": 46.2
+        }
+      ],
+      "icon": "BarChart",
+      "type": "bar",
+      "field": "Termination Type",
+      "title": "Termination Types",
+      "colors": [
+        "#10b981",
+        "#ef4444"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Voluntary Terminations",
+            "value": "65%"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Involuntary Terminations",
+            "value": "35%"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Sales": {
+                "Voluntary": 25,
+                "Involuntary": 15
+              },
+              "Customer Service": {
+                "Voluntary": 20,
+                "Involuntary": 15
+              }
+            },
+            "icon": "Activity",
+            "type": "stacked-bar",
+            "field": "",
+            "title": "Termination Type by Department",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Performance": 35,
+              "Compensation": 20,
+              "Career Growth": 30
+            },
+            "icon": "Activity",
+            "type": "pie",
+            "field": "",
+            "title": "Termination Reasons",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ch3",
+      "data": [
+        {
+          "name": "Southeast",
+          "value": 165,
+          "percentage": 32.4
+        },
+        {
+          "name": "Midwest",
+          "value": 139,
+          "percentage": 27.3
+        },
+        {
+          "name": "West",
+          "value": 127,
+          "percentage": 25
+        },
+        {
+          "name": "Northeast",
+          "value": 78,
+          "percentage": 15.3
+        }
+      ],
+      "icon": "LineChart",
+      "type": "line",
+      "field": "Region",
+      "title": "Regional Employee Distribution",
+      "colors": [
+        "#3b82f6",
+        "#10b981",
+        "#f43f5e",
+        "#8b5cf6"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Largest Region",
+            "value": "Southeast"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Regional Employee Spread",
+            "value": "40:30:20:10"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "West": 100,
+              "Midwest": 150,
+              "Northeast": 50,
+              "Southeast": 200
+            },
+            "icon": "Activity",
+            "type": "pie",
+            "field": "",
+            "title": "Employee Distribution by Region",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "West": 60000,
+              "Midwest": 52000,
+              "Northeast": 58000,
+              "Southeast": 55000
+            },
+            "icon": "Activity",
+            "type": "bar",
+            "field": "",
+            "title": "Regional Salary Comparison",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ch4",
+      "data": [
+        {
+          "name": "Black",
+          "value": 195,
+          "percentage": 38.3
+        },
+        {
+          "name": "White",
+          "value": 177,
+          "percentage": 34.8
+        },
+        {
+          "name": "Hispanic",
+          "value": 108,
+          "percentage": 21.2
+        },
+        {
+          "name": "Asian",
+          "value": 13,
+          "percentage": 2.6
+        },
+        {
+          "name": "Irish",
+          "value": 13,
+          "percentage": 2.6
+        },
+        {
+          "name": "Polish",
+          "value": 1,
+          "percentage": 0.2
+        },
+        {
+          "name": "German",
+          "value": 1,
+          "percentage": 0.2
+        },
+        {
+          "name": "Native American",
+          "value": 1,
+          "percentage": 0.2
+        }
+      ],
+      "icon": "PieChart",
+      "type": "pie",
+      "field": "Ethnicity",
+      "title": "Ethnicity Breakdown",
+      "colors": [
+        "#3b82f6",
+        "#10b981",
+        "#f43f5e",
+        "#8b5cf6",
+        "#f97316"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Most Represented Ethnicity",
+            "value": "White"
+          },
+          {
+            "icon": "TrendingUp",
+            "color": "blue",
+            "title": "Ethnic Diversity Index",
+            "value": "0.65"
+          }
+        ],
+        "charts": [
+          {
+            "data": {
+              "Asian": 50,
+              "Black": 100,
+              "White": 250,
+              "Hispanic": 80
+            },
+            "icon": "Activity",
+            "type": "pie",
+            "field": "",
+            "title": "Ethnic Composition",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          },
+          {
+            "data": {
+              "Management": {
+                "Black": 10,
+                "White": 40,
+                "Hispanic": 5
+              },
+              "Individual Contributor": {
+                "Black": 90,
+                "White": 210,
+                "Hispanic": 75
+              }
+            },
+            "icon": "Activity",
+            "type": "stacked-bar",
+            "field": "",
+            "title": "Ethnicity by Job Level",
+            "colors": [
+              "#3b82f6",
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": [
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          },
+          {
+            "type": "info",
+            "title": "Additional Insight",
+            "description": "Further analysis available upon request."
+          }
+        ]
+      }
+    }
+  ],
+  "filters": [
+    {
+      "id": "filter_department",
+      "type": "dropdown",
+      "field": "Department",
+      "label": "Department",
+      "options": [
+        {
+          "label": "Sales",
+          "value": "Sales"
+        },
+        {
+          "label": "Customer Service",
+          "value": "Customer Service"
+        },
+        {
+          "label": "Management",
+          "value": "Management"
+        },
+        {
+          "label": "Inventory",
+          "value": "Inventory"
+        },
+        {
+          "label": "Security",
+          "value": "Security"
+        },
+        {
+          "label": "Maintenance",
+          "value": "Maintenance"
+        }
+      ],
+      "placeholder": "Select Department"
+    },
+    {
+      "id": "filter_region",
+      "type": "dropdown",
+      "field": "Region",
+      "label": "Region",
+      "options": [
+        {
+          "label": "Southeast",
+          "value": "Southeast"
+        },
+        {
+          "label": "Midwest",
+          "value": "Midwest"
+        },
+        {
+          "label": "West",
+          "value": "West"
+        },
+        {
+          "label": "Northeast",
+          "value": "Northeast"
+        }
+      ],
+      "placeholder": "Select Region"
+    },
+    {
+      "id": "filter_employee_status",
+      "type": "dropdown",
+      "field": "Employee Status",
+      "label": "Employee Status",
+      "options": [
+        {
+          "label": "Active",
+          "value": "Active"
+        },
+        {
+          "label": "Terminated",
+          "value": "Terminated"
+        }
+      ],
+      "placeholder": "Select Status"
+    }
+  ],
+  "metadata": {
+    "totalRows": 509,
+    "generatedAt": "2025-10-16T16:53:31.329807",
+    "totalColumns": 39,
+    "numericFields": 7,
+    "categoricalFields": 17
+  }
+}

@@ -320,7 +320,7 @@ export default function PlansPage() {
       </div>
 
       {/* Contact Section */}
-      <div className="mt-12 text-center bg-gray-50 rounded-lg p-8">
+      {/* <div className="mt-12 text-center bg-gray-50 rounded-lg p-8">
         <h3 className="text-xl font-bold text-gray-900 mb-4">Need help choosing?</h3>
         <p className="text-gray-600 mb-6">Our team is here to help you find the perfect plan for your organization.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -331,7 +331,7 @@ export default function PlansPage() {
             <Link href="/contact">Contact Sales</Link>
           </Button>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

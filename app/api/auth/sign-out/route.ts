@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
     // Call backend logout endpoint
     const response = await fetch(
-      "https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/auth/logout",
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/logout`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

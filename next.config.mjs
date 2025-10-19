@@ -2,6 +2,7 @@
 // import amplifyConfig from './lib/amplify-config';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone', // added for ECR , App Runner deployment
   eslint: {
     ignoreDuringBuilds: true,
   },

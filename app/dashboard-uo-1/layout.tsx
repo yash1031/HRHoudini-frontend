@@ -13,12 +13,12 @@ export default function DashboardUO1Layout({
     useEffect(() => {
       if (typeof window !== "undefined") {
         const storedName = localStorage.getItem("user_name")
-        setUserName(storedName || "Maya Jackson")
+        setUserName(storedName || "")
       }
     }, [])
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavigationHeader userName={userName || "Maya Jackson"} />
+      <NavigationHeader userName={userName || ""} />
       <main className="flex-1">{children}</main>
     </div>
   )

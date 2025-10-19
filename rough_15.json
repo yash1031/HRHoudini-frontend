@@ -1,0 +1,906 @@
+{
+  "cards": [
+    {
+      "id": "c1",
+      "icon": "Users",
+      "color": "blue",
+      "field": "employeenumber",
+      "title": "Total Employees",
+      "value": "417",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "employeenumber",
+            "title": "Employee Number Range",
+            "value": "417"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "employeenumber",
+            "title": "Median Employee Number",
+            "value": "417"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "FT",
+                "value": 415,
+                "percentage": 99.5
+              },
+              {
+                "name": "PT",
+                "value": 2,
+                "percentage": 0.5
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "employeetypecode",
+            "title": "Employee Type Distribution",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "W",
+                "value": 172,
+                "percentage": 41.2
+              },
+              {
+                "name": "H",
+                "value": 112,
+                "percentage": 26.9
+              },
+              {
+                "name": "B",
+                "value": 104,
+                "percentage": 24.9
+              },
+              {
+                "name": "A",
+                "value": 29,
+                "percentage": 7
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "ethniccode",
+            "title": "Ethnic Code Breakdown",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "Significant variation in employee number range (2,862 difference)",
+            "Potential inconsistencies in employee number assignment",
+            "High disparity between full-time and part-time employee distribution"
+          ],
+          "recommended_actions": [
+            "Standardize employee number allocation process",
+            "Review employee type balance and workforce strategy",
+            "Conduct detailed audit of employee number assignment methodology"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c2",
+      "icon": "Globe",
+      "color": "green",
+      "field": "remoteflag",
+      "title": "Remote Work Ratio",
+      "value": "2",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "remoteflag",
+            "title": "Remote Work Percentage",
+            "value": "2"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "hourlypayrate",
+            "title": "Average Hourly Rate by Remote Status",
+            "value": "19.4"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "Full-Time",
+                "value": 415,
+                "percentage": 99.5
+              },
+              {
+                "name": "Part-Time",
+                "value": 2,
+                "percentage": 0.5
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "employeetype",
+            "title": "Remote Work by Employee Type",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "N",
+                "value": 374,
+                "percentage": 89.7
+              },
+              {
+                "name": "Y",
+                "value": 43,
+                "percentage": 10.3
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "remoteflag",
+            "title": "Remote Work Distribution",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "Only 41.7% of employees have remote work options",
+            "Potential disparity in remote work between full-time and part-time employees",
+            "Limited flexibility in current work arrangements"
+          ],
+          "recommended_actions": [
+            "Develop a comprehensive remote work policy",
+            "Conduct employee survey to understand remote work preferences",
+            "Create standardized remote work guidelines across employee types"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c3",
+      "icon": "Activity",
+      "color": "teal",
+      "field": "employmentstatus",
+      "title": "Active Employees",
+      "value": "2",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "employmentstatus",
+            "title": "Active Employee Percentage",
+            "value": "2"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "employeetype",
+            "title": "Full-Time Active Employees",
+            "value": "2"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "Active",
+                "value": 280,
+                "percentage": 67.1
+              },
+              {
+                "name": "Terminated",
+                "value": 137,
+                "percentage": 32.9
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "employmentstatus",
+            "title": "Employment Status Distribution",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "Full-Time",
+                "value": 415,
+                "percentage": 99.5
+              },
+              {
+                "name": "Part-Time",
+                "value": 2,
+                "percentage": 0.5
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "employeetype",
+            "title": "Active Employees by Type",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "High percentage of active employees (83.5%) indicates potential workforce stability",
+            "Significant disparity between full-time and part-time active employees",
+            "Potential risk of workforce reduction with 16.5% terminated status"
+          ],
+          "recommended_actions": [
+            "Conduct retention analysis for full-time vs part-time employees",
+            "Develop targeted engagement strategies for at-risk employee segments",
+            "Review termination patterns and implement proactive retention programs"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c4",
+      "icon": "DollarSign",
+      "color": "purple",
+      "field": "annualsalary",
+      "title": "Average Annual Salary",
+      "value": "36",
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "annualsalary",
+            "title": "Salary Range Spread",
+            "value": "36"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "hourlypayrate",
+            "title": "Average Hourly Rate",
+            "value": "19.4"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "Full-Time",
+                "value": 415,
+                "percentage": 99.5
+              },
+              {
+                "name": "Part-Time",
+                "value": 2,
+                "percentage": 0.5
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "employeetype",
+            "title": "Annual Salary Distribution by Employee Type",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "W",
+                "value": 172,
+                "percentage": 41.2
+              },
+              {
+                "name": "H",
+                "value": 112,
+                "percentage": 26.9
+              },
+              {
+                "name": "B",
+                "value": 104,
+                "percentage": 24.9
+              },
+              {
+                "name": "A",
+                "value": 29,
+                "percentage": 7
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "ethniccode",
+            "title": "Salary Breakdown by Ethnic Code",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "High salary variance across employee types",
+            "Potential pay disparity among ethnic groups",
+            "Limited salary range between minimum and maximum annual salaries"
+          ],
+          "recommended_actions": [
+            "Conduct comprehensive salary equity review",
+            "Develop standardized compensation framework",
+            "Implement transparent salary progression guidelines"
+          ]
+        }
+      }
+    }
+  ],
+  "charts": [
+    {
+      "id": "ch1",
+      "data": [
+        {
+          "name": "Sales",
+          "value": 253,
+          "percentage": 60.7
+        },
+        {
+          "name": "Administrative",
+          "value": 39,
+          "percentage": 9.4
+        },
+        {
+          "name": "Marketing",
+          "value": 35,
+          "percentage": 8.4
+        },
+        {
+          "name": "Information Technology",
+          "value": 32,
+          "percentage": 7.7
+        },
+        {
+          "name": "Human Resources",
+          "value": 27,
+          "percentage": 6.5
+        },
+        {
+          "name": "Finance",
+          "value": 27,
+          "percentage": 6.5
+        },
+        {
+          "name": "Executive",
+          "value": 4,
+          "percentage": 1
+        }
+      ],
+      "icon": "PieChart",
+      "type": "pie",
+      "field": "jobfamily",
+      "title": "Job Family Distribution",
+      "colors": [
+        "#3b82f6",
+        "#10b981",
+        "#8b5cf6",
+        "#f43f5e",
+        "#f97316"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "jobfamily",
+            "title": "Total Job Families",
+            "value": "7"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "hourlypayrate",
+            "title": "Avg Hourly Rate by Job Family",
+            "value": "19.4"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "Sales",
+                "value": 253,
+                "percentage": 60.7
+              },
+              {
+                "name": "Administrative",
+                "value": 39,
+                "percentage": 9.4
+              },
+              {
+                "name": "Marketing",
+                "value": 35,
+                "percentage": 8.4
+              },
+              {
+                "name": "Information Technology",
+                "value": 32,
+                "percentage": 7.7
+              },
+              {
+                "name": "Human Resources",
+                "value": 27,
+                "percentage": 6.5
+              },
+              {
+                "name": "Finance",
+                "value": 27,
+                "percentage": 6.5
+              },
+              {
+                "name": "Executive",
+                "value": 4,
+                "percentage": 1
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "jobfamily",
+            "title": "Job Family Employee Count",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "Min",
+                "value": 18
+              },
+              {
+                "name": "Average",
+                "value": 19.43
+              },
+              {
+                "name": "Max",
+                "value": 22.5
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "hourlypayrate",
+            "title": "Job Family Pay Distribution",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "Sales and Administrative roles dominate workforce composition",
+            "Significant pay rate variance across job families",
+            "Potential skill concentration risk in top 3 job families"
+          ],
+          "recommended_actions": [
+            "Develop targeted recruitment strategy for underrepresented job families",
+            "Conduct comprehensive pay equity review across job families",
+            "Implement cross-training programs to diversify skill sets"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ch2",
+      "data": [
+        {
+          "name": "White",
+          "value": 172,
+          "percentage": 41.2
+        },
+        {
+          "name": "Hispanic",
+          "value": 112,
+          "percentage": 26.9
+        },
+        {
+          "name": "Black or African American",
+          "value": 104,
+          "percentage": 24.9
+        },
+        {
+          "name": "Asian",
+          "value": 29,
+          "percentage": 7
+        }
+      ],
+      "icon": "BarChart",
+      "type": "bar",
+      "field": "ethnicity",
+      "title": "Ethnic Diversity",
+      "colors": [
+        "#3b82f6",
+        "#10b981",
+        "#8b5cf6",
+        "#f43f5e"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "ethnicity",
+            "title": "Ethnic Representation",
+            "value": "4"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "ethniccode",
+            "title": "Diversity Percentage",
+            "value": "4"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "White",
+                "value": 172,
+                "percentage": 41.2
+              },
+              {
+                "name": "Hispanic",
+                "value": 112,
+                "percentage": 26.9
+              },
+              {
+                "name": "Black or African American",
+                "value": 104,
+                "percentage": 24.9
+              },
+              {
+                "name": "Asian",
+                "value": 29,
+                "percentage": 7
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "ethnicity",
+            "title": "Ethnic Group Distribution",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "Min",
+                "value": 18
+              },
+              {
+                "name": "Average",
+                "value": 19.43
+              },
+              {
+                "name": "Max",
+                "value": 22.5
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "hourlypayrate",
+            "title": "Pay Rate by Ethnicity",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "Potential ethnic pay disparities",
+            "Uneven ethnic representation across workforce",
+            "Limited diversity in higher-paying roles"
+          ],
+          "recommended_actions": [
+            "Implement targeted diversity recruitment strategies",
+            "Conduct comprehensive pay equity analysis",
+            "Develop leadership development programs for underrepresented groups"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ch3",
+      "data": [
+        {
+          "name": "Male",
+          "value": 208,
+          "percentage": 49.9
+        },
+        {
+          "name": "Female",
+          "value": 185,
+          "percentage": 44.4
+        },
+        {
+          "name": "Non-binary",
+          "value": 15,
+          "percentage": 3.6
+        },
+        {
+          "name": "Prefer Not to Say",
+          "value": 9,
+          "percentage": 2.2
+        }
+      ],
+      "icon": "PieChart",
+      "type": "pie",
+      "field": "gender",
+      "title": "Gender Distribution",
+      "colors": [
+        "#3b82f6",
+        "#10b981",
+        "#f43f5e",
+        "#8b5cf6"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "gender",
+            "title": "Gender Representation",
+            "value": "4"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "hourlypayrate",
+            "title": "Avg Hourly Pay by Gender",
+            "value": "19.4"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "Min",
+                "value": 18
+              },
+              {
+                "name": "Average",
+                "value": 19.43
+              },
+              {
+                "name": "Max",
+                "value": 22.5
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "hourlypayrate",
+            "title": "Gender Pay Distribution",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "Full-Time",
+                "value": 415,
+                "percentage": 99.5
+              },
+              {
+                "name": "Part-Time",
+                "value": 2,
+                "percentage": 0.5
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "employeetype",
+            "title": "Gender Employment Type",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "Potential gender pay disparity across categories",
+            "Uneven full-time/part-time distribution by gender",
+            "Limited gender diversity representation"
+          ],
+          "recommended_actions": [
+            "Conduct comprehensive pay equity analysis",
+            "Develop targeted recruitment strategies for underrepresented genders",
+            "Implement unconscious bias training for hiring managers"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ch4",
+      "data": [
+        {
+          "name": "Performance Issues",
+          "value": 25,
+          "percentage": 18.2
+        },
+        {
+          "name": "Violation of Policy",
+          "value": 25,
+          "percentage": 18.2
+        },
+        {
+          "name": "Personal Reasons",
+          "value": 24,
+          "percentage": 17.5
+        },
+        {
+          "name": "Relocation",
+          "value": 23,
+          "percentage": 16.8
+        },
+        {
+          "name": "Accepted Another Position",
+          "value": 19,
+          "percentage": 13.9
+        },
+        {
+          "name": "Career Change",
+          "value": 19,
+          "percentage": 13.9
+        },
+        {
+          "name": "Voluntary Resignation",
+          "value": 1,
+          "percentage": 0.7
+        },
+        {
+          "name": "Retirement",
+          "value": 1,
+          "percentage": 0.7
+        }
+      ],
+      "icon": "LineChart",
+      "type": "line",
+      "field": "terminationreason",
+      "title": "Termination Reasons",
+      "colors": [
+        "#f43f5e",
+        "#3b82f6",
+        "#10b981",
+        "#8b5cf6",
+        "#f97316"
+      ],
+      "drillDown": {
+        "cards": [
+          {
+            "icon": "Users",
+            "color": "blue",
+            "field": "terminationreason",
+            "title": "Termination Rate",
+            "value": "8"
+          },
+          {
+            "icon": "Activity",
+            "color": "green",
+            "field": "hourlypayrate",
+            "title": "Average Pay of Terminated Employees",
+            "value": "19.4"
+          }
+        ],
+        "charts": [
+          {
+            "data": [
+              {
+                "name": "Performance Issues",
+                "value": 25,
+                "percentage": 18.2
+              },
+              {
+                "name": "Violation of Policy",
+                "value": 25,
+                "percentage": 18.2
+              },
+              {
+                "name": "Personal Reasons",
+                "value": 24,
+                "percentage": 17.5
+              },
+              {
+                "name": "Relocation",
+                "value": 23,
+                "percentage": 16.8
+              },
+              {
+                "name": "Accepted Another Position",
+                "value": 19,
+                "percentage": 13.9
+              },
+              {
+                "name": "Career Change",
+                "value": 19,
+                "percentage": 13.9
+              },
+              {
+                "name": "Voluntary Resignation",
+                "value": 1,
+                "percentage": 0.7
+              },
+              {
+                "name": "Retirement",
+                "value": 1,
+                "percentage": 0.7
+              }
+            ],
+            "icon": "BarChart",
+            "type": "bar",
+            "field": "terminationreason",
+            "title": "Termination Reasons Distribution",
+            "colors": [
+              "#3b82f6"
+            ]
+          },
+          {
+            "data": [
+              {
+                "name": "Full-Time",
+                "value": 415,
+                "percentage": 99.5
+              },
+              {
+                "name": "Part-Time",
+                "value": 2,
+                "percentage": 0.5
+              }
+            ],
+            "icon": "PieChart",
+            "type": "pie",
+            "field": "employeetype",
+            "title": "Terminations by Employee Type",
+            "colors": [
+              "#10b981"
+            ]
+          }
+        ],
+        "insights": {
+          "critical_issues": [
+            "High termination rate due to performance issues",
+            "Significant policy violations leading to employee dismissals",
+            "Potential retention challenges across employee types"
+          ],
+          "recommended_actions": [
+            "Implement comprehensive performance improvement programs",
+            "Review and clarify company policy communication",
+            "Develop targeted retention strategies for different employee types"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "filename": "SouthernPropertiesGroup.parquet",
+    "totalRows": 417,
+    "generatedAt": "2025-10-15T20:01:34.625361",
+    "totalColumns": 61,
+    "numericFields": 3,
+    "categoricalFields": 39
+  }
+}

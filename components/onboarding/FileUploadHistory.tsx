@@ -5,6 +5,7 @@ import { useDashboard } from '@/contexts/DashboardContext';
 
 interface FileUpload {
   id: string;
+  session_id: string;
   name: string;
   timestamp: string;
   isFavorite: boolean;
@@ -83,29 +84,26 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     setEditValue('');
   };
 
-  const handleTileClick = (id: string, dashboardJSON: any) => {
+  const handleTileClick = (id: string, session_id: string, dashboardJSON: any) => {
     if (editingId) return;
     console.log('Navigate to:', id);
     // Navigate to dashboard-upload-only with specified parameters
     const params = new URLSearchParams({
-      persona: "hr-generalist---upload-only",
-      company: "HealthServ+Solutions",
-      onboarding: "completed",
-      hasFile: "false",
-      showWelcome: "true",
-      challenges: "[object+Object],[object+Object],[object+Object],[object+Object],[object+Object],[object+Object]",
+      hasFile: "true",
+      showWelcome: "false",
     })
-    params.set("company", "HealthServ")
-    params.set("hasFile", "true")
     let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-    localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
+    // localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
+    localStorage.setItem("from_history","true")
+    localStorage.setItem("session_id",session_id)
+    localStorage.setItem("file_name",dashboardJSON?.metadata?.filename)
+    localStorage.setItem("file_row_count",dashboardJSON?.metadata?.totalRows)
     // console.log("Dashboard will now appear")
     setErrorDash(null)
-    setDashboard_data(dashboardJSON);
+    setIsLoading(true)
+    // setDashboard_data(dashboardJSON);
     router.push(dashboardUrl)
-
-    // Add your navigation logic here
-    // e.g., navigate(`/upload/${id}`);
+    //Set File name and rowCount for changed session here ---------------- to do
   };
 
   return (
@@ -146,7 +144,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
               >
                 <div 
                   className="p-4 cursor-pointer"
-                  onClick={() => handleTileClick(upload.id, upload.dashboardJSON)}
+                  onClick={() => handleTileClick(upload.id, upload.session_id, upload.dashboardJSON)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">

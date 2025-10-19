@@ -16,7 +16,7 @@ interface ChartDataItem {
 }
 
 // UPDATED: New insights structure
-interface Insights {
+interface Insight {
   critical_issues: string[];
   recommended_actions: string[];
 }
@@ -24,7 +24,7 @@ interface Insights {
 interface DrillDownData {
   cards: KPICard[];
   charts: ChartConfig[];
-  insights?: Insights; // UPDATED: Changed from InsightItem[] to Insights
+  insights?: Insight; // UPDATED: Changed from InsightItem[] to Insights
 }
 
 interface KPICard {
@@ -78,6 +78,7 @@ interface ConfigurableDashboardProps {
   kpiCards?: KPICard[];
   charts?: ChartConfig[];
   rowCount?: string;
+  filename?: string;
   tableColumns?: TableColumn[];
   colors?: string[];
 }
@@ -89,6 +90,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   kpiCards = [],
   charts = [],
   rowCount,
+  filename,
   tableColumns = [],
   colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
 }) => {
@@ -100,9 +102,10 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
 
   // console.log("kpiCards data is", kpiCards)
 
-  const [card1, card2, card3, card4]= kpiCards;
+  console.log("filename recieved in generated_dashboard is", filename)
+  console.log("rowCount recieved in generated_dashboard is", rowCount)
 
-  const file_row_count = typeof window !== 'undefined' ? localStorage.getItem("file_row_count") : null;
+  const [card1, card2, card3, card4]= kpiCards;
 
   const calculateKPI = (kpi: KPICard): string | number => {
     if (kpi?.calculationType === 'custom' && kpi?.calculate) {
@@ -213,7 +216,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   };
 
   const renderChart = (chartData: ChartDataItem[], chartConfig: Partial<ChartConfig>): React.ReactNode => {
-    console.log("kpiCards data is", kpiCards)
+    // console.log("kpiCards data is", kpiCards)
 
     if (chartConfig.type === 'pie') {
       const pieColors = generatePieColors(chartData.length);
@@ -346,7 +349,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   };
 
   // UPDATED: New InsightsSection component matching the image format
-  const InsightsSection: React.FC<{ insights: Insights }> = ({ insights }) => {
+  const InsightsSection: React.FC<{ insights: Insight }> = ({ insights }) => {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-slate-800 mb-6">Key Insights & Recommendations</h3>
@@ -493,7 +496,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 <div>
                   <h1 className="text-3xl font-bold text-white">HR Houdini</h1>
                   <p className="text-blue-100">
-                    Your AI workforce analyst - Ready to dive deeper into {localStorage.getItem("file_name")} data
+                    Your AI workforce analyst - Ready to dive deeper into {filename} data
                   </p>
                 </div>
               </div>
@@ -502,7 +505,8 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 <div className="bg-white/10 rounded-lg px-4 py-2">
                   <div className="flex items-center space-x-2 text-white">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium">{localStorage.getItem("file_name")}</span>
+                    <span className="font-medium">{filename}</span>
+                    {/* <span className="font-medium">{localStorage.getItem("file_name")}</span> */}
                     <span className="text-blue-200">•</span>
                     <span className="text-blue-200">{rowCount} records</span>
                   </div>
@@ -590,7 +594,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
         </div>
 
         <div className="mt-8 text-center text-slate-600 text-sm">
-          <p>Dashboard generated from {rowCount || data.length} total records</p>
+          <p>Dashboard generated from {rowCount} total records</p>
         </div>
 
       </div>
