@@ -6,6 +6,10 @@ export async function GET(req: Request) {
     const cookieStore = cookies(); // access browser cookies
     const refreshToken = cookieStore.get("refresh_token");
     // Get Authorization header from incoming request
+
+    console.log("=== Renew Tokens Route ===");
+    console.log("Refresh token from cookie:", refreshToken?.value ? "exists" : "missing");
+    
     
     if (!refreshToken) {
             return NextResponse.json(
@@ -14,19 +18,24 @@ export async function GET(req: Request) {
                     );
     }
 
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get("authorization");
+    console.log("Authorization header from renew tokens:", authHeader);
+
+    console.log("authHeader from renew tokens ", authHeader)
 
     // Call backend refresh endpoint with refresh_token in request body
     const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
+    // const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            ...(authHeader ? { Authorization: authHeader } : {}),
-            "Refresh_Token": refreshToken.value
+            ...(authHeader ? { authorization: authHeader } : {}),
+            // "refresh_token": refreshToken.value
         },
     });
 
     const data = await response.json();
+    console.log("data from renew tokens", data)
 
     // Create the NextResponse
     const nextResponse = NextResponse.json(data, { status: response.status });

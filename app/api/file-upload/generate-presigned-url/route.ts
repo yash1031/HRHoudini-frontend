@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {fileName, fileType, userId} = body;
-
+    const authHeader = req.headers.get("authorization");
     if (!fileName) {
       return NextResponse.json(
         { error: "fileName is required" },
@@ -26,19 +26,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    // if (!uuid) {
-    //   return NextResponse.json(
-    //     { error: "uuid is required" },
-    //     { status: 400 }
-    //   );
-    // }
 
     const response = await fetch(
         `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/generate_presigned_url`,
         // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/upload-docs`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json",
+            ...(authHeader ? { authorization: authHeader } : {}) },
           body: JSON.stringify({
             fileName: fileName,
             fileType: fileType,

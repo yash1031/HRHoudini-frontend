@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {question , user_id, session_id } = body;
-
+    const authHeader = req.headers.get("authorization");
     if (!question) {
       return NextResponse.json(
         { error: "question is required" },
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
       `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/nl-to-athena`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+            ...(authHeader ? { authorization: authHeader } : {}) },
         body: JSON.stringify({
           question: question,
           user_id: user_id,

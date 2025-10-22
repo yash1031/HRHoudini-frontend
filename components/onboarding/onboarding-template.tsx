@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { CheckCircle, Menu, X  } from "lucide-react"
 // import type { OnboardingScenarioConfig } from "@/lib/demo-config"
 import FileUploadHistory from './FileUploadHistory'
+import { useUserContext } from "@/contexts/user-context"
 
 interface UserContext {
   name: string
@@ -43,6 +44,7 @@ export function OnboardingTemplate({
   // )
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
+  const { checkIfTokenExpired } = useUserContext()
 
   // Close side panel when clicking outside
   useEffect(() => {
@@ -68,9 +70,14 @@ export function OnboardingTemplate({
 
   const fetchFileUploadHistory = useCallback(async () =>{
      // Store file upload history
+      
+      let access_token= localStorage.getItem("id_token")
+      if(!access_token) console.log("access_token not available")
+      console.log("access_token in /api/insights/fetch-all-sessions", access_token)
       const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}` },
           body: JSON.stringify({
                 user_id: localStorage.getItem("user_id"),
           }),

@@ -26,6 +26,7 @@ export default function AccountPage() {
         ? "456 Healthcare Blvd, Boston, MA 02101"
         : "123 Business Ave, San Francisco, CA 94105",
   })
+  const { checkIfTokenExpired } = useUserContext()
 
   // Mock trial data
   const trialDaysLeft = 3
@@ -35,20 +36,25 @@ export default function AccountPage() {
     setIsEditing(false)
   }
   useEffect(()=>{
-    checkFileUpoadQuotas()
+    getUserTokens()
   },[])
 
-  const checkFileUpoadQuotas = async () =>{
+  const getUserTokens = async () =>{
+
     console.log("CheckFileUploadQuotas Triggered")
-    const resCurrentPlan = fetch("/api/billing/get-current-plan", {
+    let access_token= localStorage.getItem("id_token")
+    if(!access_token) console.log("access_token not available")
+    console.log("", access_token)
+
+    const currentPlanRes = await fetch("/api/billing/get-current-plan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
         body: JSON.stringify({
               user_id: localStorage.getItem("user_id")
-            }),
+        }),
       });
 
-    const currentPlanRes = await resCurrentPlan;
 
     if(!currentPlanRes.ok){
       console.log("Unable to check remaining tokens")

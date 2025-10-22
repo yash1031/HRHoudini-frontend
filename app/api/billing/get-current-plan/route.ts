@@ -7,6 +7,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {user_id} = body;
+    // Get headers from the incoming request
+    const headers = req.headers;
+    
+    // Access specific headers
+    const authorization = headers.get('authorization');
 
     if (!user_id) {
       return NextResponse.json(
@@ -15,20 +20,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const responseCurrentPlan = fetch(
+    const responseCurrentPlan = await fetch(
         `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/billing/current-plan?user_id=${user_id}`,
         {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            ...(authorization && { authorization }),
+          },
         }
       );
 
-    const response= await responseCurrentPlan;
-    const data = await response.json();
+    // const response= await responseCurrentPlan;
+    // const data = await response.json();
+    const data = await responseCurrentPlan.json();
 
       return NextResponse.json(
           { success: true, data },
-          { status: response.status }
+          { status: responseCurrentPlan.status }
+          // { status: response.status }
         );
   } catch (error: any) {
     console.error("Error generating response", error);

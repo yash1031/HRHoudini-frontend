@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
+import {signOut } from 'aws-amplify/auth';
 // import { personas } from "@/lib/demo-config"
 import {
   ArrowRight,
@@ -37,6 +38,7 @@ interface UserContextType {
   setIsUserGoogleLoggedIn: (token: boolean) => void
   renewAccessToken: () => Promise<string | null>
   isTokenValid: (token: string) => boolean
+  checkIfTokenExpired: () => string | null
 
   // New fields for KPI management
   kpis: KpiItem[];
@@ -129,69 +131,7 @@ const AVAILABLE_KPIS: KpiItem[] = [
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
-// Persona to role title mapping
-// const PERSONA_ROLE_MAPPING: { [key: string]: string } = {
-//   "hr-generalist": "HR Generalist",
-//   "hr-business-partner": "HR Business Partner",
-//   "talent-acquisition": "Senior Recruiter",
-//   chro: "CHRO",
-//   "people-ops": "People Operations",
-//   "compensation-analyst": "Compensation Analyst",
-//   "diversity-inclusion": "Diversity & Inclusion",
-//   "hr-analyst": "HR Analyst",
-//   recruiter: "Recruiter",
-//   sourcer: "Sourcer",
-//   "recruiting-coordinator": "Recruiting Coordinator",
-//   "team-lead": "Team Lead",
-//   manager: "Manager",
-//   director: "Director",
-//   vp: "VP",
-//   ceo: "CEO",
-// }
 
-// Function to get user name from persona and company
-// function getUserFromPersonaAndCompany(persona: string, company: string): { name: string; role: string } {
-//   // First try to find in personas object
-//   if (company && personas[company]) {
-//     const companyPersonas = personas[company]
-
-//     // Map persona key to role title for matching
-//     const roleTitle = PERSONA_ROLE_MAPPING[persona]
-//     if (roleTitle) {
-//       const matchingPersona = companyPersonas.find((p) => p.role === roleTitle)
-//       if (matchingPersona) {
-//         return { name: matchingPersona.name, role: matchingPersona.role }
-//       }
-//     }
-//   }
-
-//   // Fallback to persona role mapping
-//   const roleTitle = PERSONA_ROLE_MAPPING[persona] || persona.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())
-
-//   // Default names for common personas if not found in company data
-//   const defaultNames: { [key: string]: string } = {
-//     "hr-generalist": "Maya Jackson",
-//     "talent-acquisition": "Sasha Kim",
-//     "team-lead": "James Patel",
-//     chro: "Dr. Patricia Williams",
-//   }
-
-//   const name = defaultNames[persona] || "Demo User"
-
-//   return { name, role: roleTitle }
-// }
-
-// // Function to generate avatar initials
-// function generateAvatarInitials(name: string): string {
-//   return name
-//     .split(" ")
-//     .map((n) => n[0])
-//     .join("")
-//     .toUpperCase()
-//     .slice(0, 2)
-// }
-
-// Function to decode JWT and check if it's expired
 function isTokenExpired(token: string): boolean {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
@@ -231,6 +171,90 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
 
   const pathname = usePathname()
   const [accessToken, setAccessTokenState] = useState<string | null>(null)
+
+  const handleSignOut = async () => {
+      try {
+        // Get user_id from localStorage
+        const user_id = localStorage.getItem('user_id');
+  
+        localStorage.clear()
+        
+        // Redirect to login page
+        window.location.href = '/';
+        // router.push('/')
+  
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
+
+        // Call the sign-out route
+        const response =  fetch('/api/auth/sign-out', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json', 
+            "authorization": `Bearer ${access_token}`,
+          },
+          body: JSON.stringify({ user_id }),
+          credentials: 'include', // Important for HTTPOnly cookies
+        });
+
+        const responseSignout= await response;
+  
+        // Remove data from local Storage on success
+        if (responseSignout.ok) {
+          if(isUserGoogleLoggedIn){
+            setIsUserGoogleLoggedIn(false);
+            await signOut();
+            console.log("Google User Signed out")
+          }
+          else{
+            console.log("User Signed out")
+          }
+        } else {
+          // Even on API failure, clean up client-side for security
+          console.error('Sign out API failed, but cleaning up client-side');
+        }
+        
+      } catch (error) {
+        console.error('Sign out failed:', error);
+        window.location.href = '/';
+      }
+    };
+
+  const checkIfTokenExpired= async () =>{
+    console.log("checkIfTokenExpired triggered")
+    const access_token_expiry= localStorage.getItem("access_token_expiry")
+    const refresh_token_expiry= localStorage.getItem("refresh_token_expiry")
+    //Check If access token expired
+    let access_token;
+    // let access_token= localStorage.getItem("id_token");
+    const now = new Date();
+    const isRefreshTokenExpired = refresh_token_expiry 
+    ? new Date(refresh_token_expiry) < new Date(now.getTime() - (5.5 * 60 * 60 * 1000)) 
+    : true;
+    if(isRefreshTokenExpired){
+      console.log("refreshToken expired")
+      // handleSignOut()
+      access_token= null
+      return
+    }
+    const isAccessTokenExpired = access_token_expiry 
+    ? new Date(access_token_expiry) < new Date(now.getTime() - (5.5 * 60 * 60 * 1000)) 
+    : true;
+    if(isAccessTokenExpired){
+      console.log("isAccessTokenExpired true")
+      console.log("accessToken expiry", access_token_expiry ? new Date(access_token_expiry) : 'null')
+      console.log("time now is", new Date() )
+      const access_token= await renewAccessToken()
+      // access_token= renewed_access_token
+      console.log("new access_tokens is", access_token)
+    }
+    else{
+      // access_token= accessToken
+      console.log("isAccessTokenExpired no")
+      access_token= localStorage.getItem("id_token")
+    }
+    return access_token;
+  }
 
   // useEffect(() => {
   //   console.log("[v0] UserContext pathname:", pathname)
@@ -330,7 +354,10 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
       setAccessTokenState(savedToken)
     } else if (savedToken) {
       // Remove invalid token from localStorage
-      localStorage.removeItem("access_token")
+      // localStorage.removeItem("access_token")
+      // localStorage.removeItem("access_token_expiry")
+      // localStorage.removeItem("refresh_token_expiry")
+
     }
   }, [])
 
@@ -347,7 +374,9 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
     if (token) {
       localStorage.setItem("access_token", token)
     } else {
-      localStorage.removeItem("access_token")
+      // localStorage.removeItem("access_token")
+      // localStorage.removeItem("access_token_expiry")
+      // localStorage.removeItem("refresh_token_expiry")
     }
   }
 
@@ -360,36 +389,42 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
   const renewAccessToken = async (): Promise<string | null> => {
     try {
       console.log("Attempting to renew access token...")
+      console.log("Attempting to renew access token access token ", accessToken)
       
-      const response = await fetch("/api/auth/sign-in/renew-tokens", {
+      const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
+      // const response = await fetch("/api/auth/sign-in/renew-tokens", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
+          // "authorization": `Bearer ${accessToken}`,
+          "authorization": `Bearer ${localStorage.getItem("access_token")}`,
         },
         credentials: "include", // Include cookies (refresh_token)
       })
 
       if (response.ok) {
         const data = await response.json()
-        
+        console.log("Could renew tokens")
         if (data.access_token && validateToken(data.access_token)) {
           setAccessToken(data.access_token)
+          localStorage.setItem("access_token_expiry", data.access_token_expiry)
+          localStorage.setItem("refresh_token_expiry", data.refresh_token_expiry)
           console.log("Access token renewed successfully")
           return data.access_token
         } else {
           console.error("Invalid access token received from renewal")
-          setAccessToken(null)
+          // setAccessToken(null)
           return null
         }
       } else {
         console.error("Failed to renew access token:", response.status)
-        setAccessToken(null)
+        // setAccessToken(null)
+        // signout the user
         return null
       }
     } catch (error) {
       console.error("Error renewing access token:", error)
-      setAccessToken(null)
+      // setAccessToken(null)
       return null
     }
   }
@@ -401,6 +436,7 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
       setAccessToken, 
       renewAccessToken, 
       isTokenValid,
+      checkIfTokenExpired,
       isUserGoogleLoggedIn,
       setIsUserGoogleLoggedIn,
       kpis,

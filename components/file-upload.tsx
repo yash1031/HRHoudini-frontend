@@ -97,6 +97,7 @@ export function FileUpload({
   const errorRef = useRef<string | null>(null);
   // const { step, setStep} = useOnboarding()
   const { step, setStep, uploadedFile, setUploadedFile } = useOnboarding()
+  const { checkIfTokenExpired } = useUserContext()
 
   let resCurrentPlan: Promise<Response>;
 
@@ -184,11 +185,26 @@ export function FileUpload({
         
         console.log("no futureError")
 
-        checkFileUpoadQuotas()
+        // checkFileUpoadQuotas()
 
-        const currentPlanRes = await resCurrentPlan;
+        console.log("CheckFileUploadQuotas Triggered")
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available for get current plan")
+        console.log("Getting current plan access_token received from checkIfTokenExpired", access_token)
+        const currentPlanRes = await fetch("/api/billing/get-current-plan", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`,
+            },
+            body: JSON.stringify({
+                  user_id: localStorage.getItem("user_id")
+                }),
+          });
 
-        if(!currentPlanRes.ok){
+        console.log("Fetched current plan of user", currentPlanRes)
+
+        if(!currentPlanRes?.ok){
           setError("Unable to check remaining tokens")
           return;
         }
@@ -307,17 +323,6 @@ export function FileUpload({
     if (onBrowseFiles) {
       onBrowseFiles()
     }
-  }
-
-  const checkFileUpoadQuotas = async () =>{
-    console.log("CheckFileUploadQuotas Triggered")
-    resCurrentPlan = fetch("/api/billing/get-current-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-              user_id: localStorage.getItem("user_id")
-            }),
-      });
   }
 
   return (

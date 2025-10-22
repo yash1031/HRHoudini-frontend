@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useUserContext } from "@/contexts/user-context"
 import { v4 as uuidv4 } from "uuid";
+import { useDashboard } from '@/contexts/DashboardContext';
+
 import {
   ArrowLeft,
   TrendingUp,
@@ -42,8 +44,9 @@ export function FileUploadStep() {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const {setKpis } = useUserContext()
+  const {checkIfTokenExpired, setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
+  const { wb, setWb } = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
@@ -176,10 +179,13 @@ export function FileUploadStep() {
         setError(null)
         hasFileUploadStarted(true)
         setUploadProgress(0)
-
+        
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
         const createKPIsRes = fetch("/api/file-upload/generate-kpis", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
           body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               session_id: uuid,
@@ -187,9 +193,12 @@ export function FileUploadStep() {
             }),
         });
 
+        access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
         const AISuggestedQuesRes = fetch("/api/file-upload/generate-recommended-questions", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
           body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               session_id: uuid,
@@ -197,9 +206,12 @@ export function FileUploadStep() {
             }),
         });
 
+        access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
         const resPresignedURL = await fetch("/api/file-upload/generate-presigned-url", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
           body: JSON.stringify({
               fileName: file.name,
               fileType: file.type,
@@ -255,17 +267,13 @@ export function FileUploadStep() {
         localStorage.setItem("session_id", sessionId)
         const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
         const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id")?? 'test'}&sessionId=${sessionId}`);
-        
+        setWb(ws)
         // keep a reference so it doesn’t get GC’d (test-only)
         ;(window as any).__ws = ws;
         
         ws.onopen = () => {
           console.log('[WS] connected', { uuid });
         };
-        
-        // ws.onclose = () => {
-        //   console.log('[WS] disconnected');
-        // };
 
 
         // 4. Upload file with progress
@@ -293,65 +301,6 @@ export function FileUploadStep() {
           }
         };
 
-        // const resCSVToParq = await fetch("/api/file-upload/csv-to-parquet", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //       user_id: localStorage.getItem("user_id"),
-        //       session_id: uuid,
-        //       file_type: file.type=="text/csv"? "csv": "excel",
-        //     }),
-        // });
-
-        // const dataCSVToParq = await resCSVToParq.json();
-        // const CSVToParqData= await dataCSVToParq.data
-        // console.log("CSVToParqData is", JSON.stringify(CSVToParqData))
-        // if (resCSVToParq.ok){
-        //   const data1 = await CSVToParqData;
-        //   // const data1 = await CSVToParqData.json();
-        //   console.log("Successfully converted to parquet. Result is ", JSON.stringify(data1))
-        //   setUploadProgress(60)
-        // }
-        // else{
-        //   setError("Failed to process file. Please try again.")
-        //   setTimeout(()=>{
-        //     setError(null);
-        //   }, 3000)
-        //   setIsUploading(false)
-        //   console.error("Failed to convert CSV to parquet")
-        //   return;
-        // }
-
-        // const resCreateAthenaTable = await fetch("/api/file-upload/create-athena-table", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //       user_id: localStorage.getItem("user_id"),
-        //       session_id: uuid,
-        //     }),
-        // });
-
-        // const dataCreateAthenaTable = await resCreateAthenaTable.json();
-        // const createAthenaTableData= await dataCreateAthenaTable.data
-        // console.log("createAthenaData is", JSON.stringify(createAthenaTableData))
-        // if (resCreateAthenaTable.ok){
-        //   const data2 = await createAthenaTableData;
-        //   // const data2 = await createAthenaTableData.json();
-        //   console.log("Successfully converted athena table. Result is ", JSON.stringify(data2))
-        //   setUploadProgress(80)
-        //   localStorage.setItem("session_id", uuid)
-        // }
-        // else{
-        //   setError("Failed to process file. Please try again.")
-        //   setTimeout(()=>{
-        //     setError(null);
-        //   }, 3000)
-        //   setIsUploading(false)
-        //   console.error("Failed to Create Athena Table")
-        //   return;
-        // }
-
-        // Fetch KPIs result and save in storage
         const resCreateKPIs= await createKPIsRes; 
         const dataCreateKPIs = await resCreateKPIs.json();
         const createKPIsData= await dataCreateKPIs.data

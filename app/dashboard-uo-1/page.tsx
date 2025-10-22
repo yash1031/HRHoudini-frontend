@@ -28,6 +28,7 @@ import { Loader2 } from 'lucide-react';
 import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
 import sample_dashboard_data from "@/public/sample_dashboard_data"
+import { useUserContext } from "@/contexts/user-context"
 
 declare global {
   interface Window {
@@ -184,6 +185,7 @@ export default function DashboardUO1() {
   const [file_row_count, setFile_row_count]=  useState<string|null>(null)
   const [sample_questions, setSample_questions]=  useState<string|null>(null)
   const [welcomeMessage, setWelcomeMessage]=  useState<string>('')
+  const { checkIfTokenExpired } = useUserContext()
 
 
   useEffect(() => {
@@ -217,9 +219,13 @@ export default function DashboardUO1() {
 
   const fetchFileUploadHistory = async (session_id: string) =>{
        // Store file upload history
+       
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
         const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
             body: JSON.stringify({
                   user_id: localStorage.getItem("user_id"),
             }),

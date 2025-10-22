@@ -5,7 +5,8 @@ export async function POST(req: Request) {
     const { email } = await req.json();
 
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/request-magic-link`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/start`,
+      // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/request-magic-link`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to request magic code" },
+      { data: "Failed to request magic code" },
       { status: 500 }
     );
   }

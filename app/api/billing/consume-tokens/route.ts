@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {user_id , action_name, tokens_to_consume, event_metadata } = body;
-
+    const authHeader = req.headers.get("authorization");
     if (!user_id) {
       return NextResponse.json(
         { error: "question is required" },
@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
           `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/billing/consume-tokens`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json",
+            ...(authHeader ? { authorization: authHeader } : {}) },
             body: JSON.stringify({
               user_id: user_id,
               action_name: action_name,

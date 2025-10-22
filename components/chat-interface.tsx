@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
+import { useUserContext } from "@/contexts/user-context"
 
 interface Message {
   id: string
@@ -50,6 +51,7 @@ export function ChatInterface({
   const [error, setError]= useState<any>(null)
   const [fromHistory, setFromHistory]= useState<string>("true")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { checkIfTokenExpired } = useUserContext()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -80,15 +82,19 @@ export function ChatInterface({
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
-    const resCurrentPlan = fetch("/api/billing/get-current-plan", {
+    
+    let access_token= localStorage.getItem("id_token")
+    if(!access_token) console.log("access_token not available")
+    const currentPlanRes = await fetch("/api/billing/get-current-plan", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}` },
         body: JSON.stringify({
               user_id: localStorage.getItem("user_id")
             }),
       });
 
-    const currentPlanRes = await resCurrentPlan;
+    // const currentPlanRes = await resCurrentPlan;
     if(!currentPlanRes.ok){
       setError("Unable to check remaining tokens")
       setTimeout(()=>{
@@ -117,9 +123,13 @@ export function ChatInterface({
       return;
     }
 
+
+      access_token= localStorage.getItem("id_token")
+      if(!access_token) console.log("access_token not available")
       const responseChatMessage = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}` },
         body: JSON.stringify({
               question: messageToSend,
               user_id: localStorage.getItem("user_id"),
@@ -165,9 +175,12 @@ export function ChatInterface({
       setIsLoading(false)
       if(!queryResponse.natural_language_response) return
 
+      access_token= localStorage.getItem("id_token")
+      if(!access_token) console.log("access_token not available")
       const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}` },
         body: JSON.stringify({
               user_id: localStorage.getItem("user_id"),
               action_name: "chat_message",

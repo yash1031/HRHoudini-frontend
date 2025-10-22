@@ -66,6 +66,8 @@ interface DashboardContextType {
   dashboard_data: DashboardData | null;
   setDashboard_data: (data: DashboardData | null) => void;
   isLoading: boolean;
+  wb: any;
+  setWb: any;
   setIsLoading: (loading: boolean) => void;
   errorDash: string | null;
   setErrorDash: (errorDash: string | null) => void;
@@ -79,6 +81,7 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [sample_questions, setSample_questions] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorDash, setErrorDash] = useState<string | null>(null);
+  const [wb, setWb] = useState<any>(null);
 
   return (
     <DashboardContext.Provider
@@ -91,6 +94,8 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setDashboard_data,
         isLoading,
         setIsLoading,
+        wb,
+        setWb,
         errorDash,
         setErrorDash,
       }}

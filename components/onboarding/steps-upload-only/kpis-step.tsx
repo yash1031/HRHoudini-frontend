@@ -117,13 +117,14 @@ const ROLE_KPI_RECOMMENDATIONS = {
 export function KPIsStep() {
   
   const { setStep ,userContext, uploadedFile } = useOnboarding()
-  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
+  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash, wb } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
     ROLE_KPI_RECOMMENDATIONS[userContext.role as keyof typeof ROLE_KPI_RECOMMENDATIONS] || [],
   )
   // State to hold full info (label + description)
   const [selectedKPIWithDesc, setSelectedKPIWithDesc] = useState<SelectedKPIInfo[]>([]);
+  const { checkIfTokenExpired } = useUserContext()
 
   const handleKPIToggle = (kpiId: string) => {
     setSelectedKPIs((prev) => (prev.includes(kpiId) ? prev.filter((id) => id !== kpiId) : [...prev, kpiId]))
@@ -169,74 +170,164 @@ export function KPIsStep() {
         console.log("Selected KPIs are", selectedKPIs)
         
         setIsLoading(true)
+
+        const user_id= localStorage.getItem("user_id")
+        const session_id= localStorage.getItem("session_id")
         
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
+
         // Insights Dashboard Generation
         const resCreateDash = await fetch("/api/create-dashboard", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}` },
           body: JSON.stringify({
-              s3_file_key: localStorage.getItem("s3Key"),
+              // s3_file_key: localStorage.getItem("s3Key"),
+              user_id: user_id,
+              session_id: session_id,
               selected_kpis: selectedKPIWithDesc
             }),
         });
-        // const currentPlanRes = await resCurrentPlan;
-        if(!resCreateDash.ok){
-          console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
-          setIsLoading(false)
-          setErrorDash('Failed to generate dashboard. Please try uploading file again');
-          return;
-        }
-        const createDashboardData = await resCreateDash.json();
-        const dataCreateDashboard= await createDashboardData.data
+        wb.onmessage = async (evt) => {
+          try {
+            const msg = JSON.parse(evt.data);
+            console.log('[WS] message', msg);
+            if(msg.event==="insight.ready"){
 
-        console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
-        
-        // if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
-        const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
-        console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
-        // THIS IS THE KEY LINE - Pass the code to context
-        setIsLoading(false)
-        // localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
-        setErrorDash(null);
-        setDashboard_data(dataCreateDashboard.analytics);
-        
-        const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-                user_id: localStorage.getItem("user_id"),
-                action_name: "file_upload",
-                tokens_to_consume: consumed_tokens,
-                event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
-              }),
-        });
+              console.log("[WS] message: Insight Dashboard is generated")
+              console.log("event from websockets is", msg)
+              // if(!resCreateDash.ok){
+              //   console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
+              //   setIsLoading(false)
+              //   setErrorDash('Failed to generate dashboard. Please try uploading file again');
+              //   return;
+              // }
+              // const createDashboardData = await resCreateDash.json();
+              // const dataCreateDashboard= await createDashboardData.data
+              const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
+
+              // console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
+            
+              // if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
+              const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
+              console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
+              // THIS IS THE KEY LINE - Pass the code to context
+              setIsLoading(false)
+              // localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
+              setErrorDash(null);
+              setDashboard_data(dataCreateDashboard.analytics);
+
+              access_token= localStorage.getItem("id_token")
+              if(!access_token) console.log("access_token not available")
+              
+              const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", 
+                    "authorization": `Bearer ${access_token}`
+                },
+                body: JSON.stringify({
+                      user_id: localStorage.getItem("user_id"),
+                      action_name: "file_upload",
+                      tokens_to_consume: consumed_tokens,
+                      event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
+                }),
+              });
+              // const currentPlanRes = await resCurrentPlan;
+              if(!resConsumeTokens.ok){
+                console.error("Unable to update dashboard creation tokens for the user")
+                return;
+              }
+              const consumeTokensData = await resConsumeTokens.json();
+              const dataConsumeTokens= await consumeTokensData.data
+              access_token= localStorage.getItem("id_token")
+              if(!access_token) console.log("access_token not available")
+              console.log("Dashboard creation token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
+              const resStoreDash = await fetch("/api/insights/store", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", 
+                  "authorization": `Bearer ${access_token}`
+                },
+                body: JSON.stringify({
+                    user_id: localStorage.getItem("user_id"),
+                    session_id: localStorage.getItem("session_id"),
+                    s3_location: localStorage.getItem("s3Key"),
+                    analytical_json_output: dataCreateDashboard.analytics
+                  }),
+              });
+              // const currentPlanRes = await resCurrentPlan;
+              if(!resStoreDash.ok){
+                console.error("Unable to store dashboard for this session")
+                return;
+              }
+              const storeDashData = await resStoreDash.json();
+              const dataStoreDash= await storeDashData.data
+              console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
+            }
+            // QUICK TEST: show a banner/toast
+            // e.g., set some local state to display msg.event
+          } catch (e) {
+            console.log('[WS] raw', evt.data);
+          }
+        };
         // const currentPlanRes = await resCurrentPlan;
-        if(!resConsumeTokens.ok){
-          console.error("Unable to update dashboard creation tokens for the user")
-          return;
-        }
-        const consumeTokensData = await resConsumeTokens.json();
-        const dataConsumeTokens= await consumeTokensData.data
+        // if(!resCreateDash.ok){
+        //   console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
+        //   setIsLoading(false)
+        //   setErrorDash('Failed to generate dashboard. Please try uploading file again');
+        //   return;
+        // }
+        // const createDashboardData = await resCreateDash.json();
+        // const dataCreateDashboard= await createDashboardData.data
+
+        // console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
         
-        console.log("Dashboard creation token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
-        const resStoreDash = await fetch("/api/insights/store", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: localStorage.getItem("session_id"),
-              s3_location: localStorage.getItem("s3Key"),
-              analytical_json_output: dataCreateDashboard.analytics
-            }),
-        });
-        // const currentPlanRes = await resCurrentPlan;
-        if(!resStoreDash.ok){
-          console.error("Unable to store dashboard for this session")
-          return;
-        }
-        const storeDashData = await resStoreDash.json();
-        const dataStoreDash= await storeDashData.data
-        console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
+        // // if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
+        // const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
+        // console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
+        // // THIS IS THE KEY LINE - Pass the code to context
+        // setIsLoading(false)
+        // // localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
+        // setErrorDash(null);
+        // setDashboard_data(dataCreateDashboard.analytics);
+        
+        // const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //         user_id: localStorage.getItem("user_id"),
+        //         action_name: "file_upload",
+        //         tokens_to_consume: consumed_tokens,
+        //         event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
+        //       }),
+        // });
+        // // const currentPlanRes = await resCurrentPlan;
+        // if(!resConsumeTokens.ok){
+        //   console.error("Unable to update dashboard creation tokens for the user")
+        //   return;
+        // }
+        // const consumeTokensData = await resConsumeTokens.json();
+        // const dataConsumeTokens= await consumeTokensData.data
+        
+        // console.log("Dashboard creation token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
+        // const resStoreDash = await fetch("/api/insights/store", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //       user_id: localStorage.getItem("user_id"),
+        //       session_id: localStorage.getItem("session_id"),
+        //       s3_location: localStorage.getItem("s3Key"),
+        //       analytical_json_output: dataCreateDashboard.analytics
+        //     }),
+        // });
+        // // const currentPlanRes = await resCurrentPlan;
+        // if(!resStoreDash.ok){
+        //   console.error("Unable to store dashboard for this session")
+        //   return;
+        // }
+        // const storeDashData = await resStoreDash.json();
+        // const dataStoreDash= await storeDashData.data
+        // console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
       }
 
       // router.push(`/dashboard-upload-only?${params.toString()}`)

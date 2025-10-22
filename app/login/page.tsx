@@ -57,21 +57,22 @@ export default function LoginPage() {
   const handleGoogleAuthComplete = async () => {
     try {
       const session = await fetchAuthSession()
-      const idToken = session.tokens?.idToken?.payload
+      const idToken= session.tokens?.idToken
+      const idTokenPayload = session.tokens?.idToken?.payload
       
-      if (!idToken) {
+      if (!idTokenPayload) {
         console.log("User is not logged in yet")
         return;
       }
       
       const userDetails = {
-        cognitoSub: idToken.sub as string,
-        email: idToken.email as string,
-        name: idToken.name as string,
-        emailVerified: idToken.email_verified === true || idToken.email_verified === 'true'
+        cognitoSub: idTokenPayload.sub as string,
+        email: idTokenPayload.email as string,
+        name: idTokenPayload.name as string,
+        emailVerified: idTokenPayload.email_verified === true || idTokenPayload.email_verified === 'true'
       }
       
-      console.log("✅ User details:", userDetails)
+      console.log("User details:", userDetails)
       const res = await fetch("/api/auth/sign-in/socials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +83,9 @@ export default function LoginPage() {
       if (res.ok && data.success) {
         console.log("Creating tokens is successful, data is:", JSON.stringify(data), "res status:", res.status)
         localStorage.setItem("access_token", data.access_token)
+        localStorage.setItem("id_token", idToken?String(idToken):'')
+        localStorage.setItem("access_token_expiry", data.access_token_expiry)
+        localStorage.setItem("refresh_token_expiry", data.refresh_token_expiry)
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
         localStorage.setItem("user_email", userDetails.email)
@@ -155,12 +159,17 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
+        const data= await res.json();
+        console.log("Session is", data?.session)
+        localStorage.setItem("user-session", data?.session)
         setMagicCodeRequested(true)
         setIsLoading(false)
         console.log("Magic code sent successfully")
       } else {
+        const data= await res.json();
+        console.log("Eror recieved while sending code is", data)
         setIsLoading(false)
-        setEmailNotExistError("Account does not exist. Enter valid email.");
+        setEmailNotExistError(data.message);
         setTimeout(() => {
           // Check if this is a persona login that should go to onboarding
           setEmailNotExistError("");
@@ -186,7 +195,7 @@ export default function LoginPage() {
     
     try {
       // Simulate account creation process
-      const responseCreateAccount = await fetch("/api/auth/create-account", {
+      const responseCreateAccount = await fetch("/api/auth/sign-up/create-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },  
         body: JSON.stringify({
@@ -212,6 +221,29 @@ export default function LoginPage() {
       }
       console.log("Data returned by create-user API", createAccountData)
       console.log("User_id in purchase-plan api", createAccountData.user.user_id)
+      const responseCognitoInsert = await fetch("/api/auth/sign-up/cognito-insert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.companyEmail
+        }),
+      });
+
+      const dataCognitoInsert = await responseCognitoInsert.json();
+      const cognitoInsertData= await dataCognitoInsert.data
+
+      if(!responseCognitoInsert.ok){
+        setEmailExistError(cognitoInsertData);
+        setTimeout(() => {
+          setEmailExistError("");
+        }, 5000)
+        setIsLoading(false)
+        console.error("Error in inserting data to cognito");
+      }
+      console.log("User inserted to cognito successfully:", cognitoInsertData);
+
+      //Assign Feemium for user
       const responsePurchaseFreemium = await fetch("/api/billing/purchase-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -236,6 +268,7 @@ export default function LoginPage() {
         setTimeout(() => {
           setEmailExistError("");
         }, 5000)
+        setIsLoading(false)
         console.error("Error in purchase freemium plan:", purchaseFreemiumData.error.message);
       }
     } catch (err) {
@@ -255,35 +288,56 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/sign-in/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ 
+          email: email,
+          code: code,
+          session: localStorage.getItem("user-session"),
+        }),
         credentials: "include",
       });
       console.log(`code entered is ${code}`)
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data), "res status:", res.status)
+      if (res.ok) {
+      // if (res.ok && data.success) {
+        console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data))
 
         localStorage.setItem("access_token", data.access_token)
-        localStorage.setItem("user_id", data.user_id)
-        localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
-        localStorage.setItem("user_email", email)
-        const user= {
-          name: `${data.first_name} ${data.last_name}`,
-          email: data.email,
-          company: "HealthServ",
-          role: "HRGeneralist",
-          persona: "",
-          avatar: "DU",
-          isLoading: true,
+        localStorage.setItem("id_token", data.id_token)
+        localStorage.setItem("access_token_expiry", data.expires_in)
+
+        const resSignIn = await fetch("/api/auth/sign-in/socials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email  })
+        });
+        const dataSignIn = await resSignIn.json();
+        console.log( "resSignIn.ok", resSignIn.ok)
+        if (resSignIn.ok ) {
+          console.log("Login Successfuly:", JSON.stringify(dataSignIn), "res status:", resSignIn.status)
+          localStorage.setItem("user_id", dataSignIn.user_id)
+          localStorage.setItem("user_name", `${dataSignIn.first_name} ${dataSignIn.last_name}`)
+          const user= {
+            name: `${dataSignIn.first_name} ${dataSignIn.last_name}`,
+            email: email,
+            company: "HealthServ",
+            role: "User",
+            persona: "",
+            avatar: "DU",
+            isLoading: true,
+          }
+          updateUser(user)
+          localStorage.setItem("loggedInUser", JSON.stringify(user));
+          // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+          window.location.href = `/onboarding-upload-only`;
+          setIsVerifying(false);
+          console.log("User Logged In Successfully")
+        } else {
+          console.log("Error logging in")
         }
-        updateUser(user)
-        localStorage.setItem("loggedInUser", JSON.stringify(user));
-        // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
-        window.location.href = `/onboarding-upload-only`;
-        setIsVerifying(false);
-        console.log("Magic code verified successfully")
+        
       } else {
+        console.log("The code is incorrect. Please check your email.")
         setIsVerifying(false);
         setErrorMessage("The code is incorrect. Please check your email.");
         setTimeout(() => {
@@ -747,45 +801,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* <div className="absolute bottom-0 left-0 right-0 bg-blue-900 py-6"> */}
-      {/* <div className="w-full bg-blue-900 py-6 mt-auto">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-white mb-2">Quick Demo Access</h3>
-            <p className="text-sm text-blue-100 mb-4">
-              Experience HR Houdini instantly with pre-configured demo scenarios
-            </p>
-
-            <div className="flex flex-wrap gap-3 justify-center">
-              {demoPersonas.map((persona) => {
-                const isDisabled = persona.role === "Customer Success" || persona.role === "Recruiter"
-
-                return (
-                  <button
-                    key={persona.role}
-                    type="button"
-                    onClick={() => !isDisabled && handlePersonaSelect(persona)}
-                    disabled={isDisabled}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      isDisabled
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
-                        : selectedPersona === persona.role
-                          ? "bg-blue-600 text-white shadow-lg transform scale-105"
-                          : "bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border border-gray-200 hover:border-blue-200 shadow-sm"
-                    }`}
-                  >
-                    <div className="flex flex-col items-center">
-                      <span className="font-semibold">{persona.role}</span>
-                      <span className="text-xs opacity-75">{persona.name}</span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </div> */}
     </div>
   )
 }

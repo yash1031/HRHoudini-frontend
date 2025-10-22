@@ -3,7 +3,6 @@ import type React from "react"
 import { NavigationHeader } from "@/components/navigation-header"
 import { useEffect, useState, Suspense } from "react";
 
-
 export default function DashboardLayout({
   children,
 }: {
