@@ -270,16 +270,16 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
             <div className="flex flex-col items-end text-right">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-900">{displayName}</span>
-                <span
+                {/* <span
                   className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                     planInfo.className,
                   )}
                 >
                   {planInfo.label}
-                </span>
+                </span> */}
               </div>
-              <span className="text-xs text-gray-500">{displayCompany}</span>
+              {/* <span className="text-xs text-gray-500">{displayCompany}</span> */}
             </div>
             <ChevronDown className="h-3 w-3 text-gray-400" />
           </Button>

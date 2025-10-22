@@ -130,12 +130,15 @@ export default function LoginPage() {
       if(formData.companyEmail === 'maya.jackson@healthserv.com'){
         setTimeout(() => {
           // Check if this is a persona login that should go to onboarding
-          if (selectedPersona && formData.name && formData.companyEmail && formData.company) {
+          if (selectedPersona && formData.name && formData.companyEmail ) {
+          // if (selectedPersona && formData.name && formData.companyEmail && formData.company) {
             const params = new URLSearchParams({
               name: formData.name,
               email: formData.companyEmail,
-              company: formData.company,
-              role: formData.role || selectedPersona.toLowerCase().replace(/\s+/g, "-"),
+              company: 'healthserv',
+              // company: formData.company,
+              role: "",
+              // role: formData.role || selectedPersona.toLowerCase().replace(/\s+/g, "-"),
               onboarding: "true",
             })
 
@@ -712,7 +715,7 @@ export default function LoginPage() {
                         />
                       </div>
 
-                      <div className="space-y-2">
+                      {/* <div className="space-y-2">
                         <Label htmlFor="company" className="text-sm font-medium text-gray-700">
                           Company
                         </Label>
@@ -745,7 +748,7 @@ export default function LoginPage() {
                             <option value="senior-recruiter">Senior Recruiter</option>
                           </select>
                         </div>
-                      )}
+                      )} */}
 
                       {emailExistError && <p className="text-red-500 text-sm mt-3 text-center">{emailExistError}</p>}
 
