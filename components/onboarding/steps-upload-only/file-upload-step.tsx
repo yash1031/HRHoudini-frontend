@@ -104,7 +104,8 @@ export function FileUploadStep() {
         showWelcome: showWelcome,
         })
 
-    let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    let dashboardUrl = `/dashboard?${params.toString()}`
+    // let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
     router.push(dashboardUrl)
 
     // setStep(3)

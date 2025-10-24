@@ -162,7 +162,8 @@ export function KPIsStep() {
       })
 
       localStorage.setItem("from_history","false")
-      let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+      let dashboardUrl = `/dashboard?${params.toString()}`
+      // let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
       router.push(dashboardUrl)
 
       if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){

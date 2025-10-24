@@ -3,14 +3,12 @@ import type React from "react"
 import { NavigationHeader } from "@/components/navigation-header"
 import { useEffect, useState, Suspense } from "react";
 
-export default function DashboardLayout({
+export default function DashboardUO1Layout({
   children,
 }: {
   children: React.ReactNode
 }) {
-
     const [userName, setUserName] = useState<string>("")
-    
   
     useEffect(() => {
       if (typeof window !== "undefined") {

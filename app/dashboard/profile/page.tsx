@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,9 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.johnson@techcorp.com",
+    firstName: "",
+    lastName: "",
+    email: "",
     timezone: "America/New_York",
     dateFormat: "MM/DD/YYYY",
     emailNotifications: true,
@@ -27,6 +27,18 @@ export default function ProfilePage() {
     // Save logic would go here
     setIsEditing(false)
   }
+
+  useEffect(()=>{
+    const full_name= localStorage.getItem("user_name") || ""
+    const full_name_parts= full_name.trim().split(" ");
+    const email= localStorage.getItem("user_email") || ""
+    setFormData((prev)=>({
+      ...prev,
+      firstName: full_name_parts[0] || "",
+      lastName: full_name_parts[1] || "",
+      email: email,
+    }))
+  },[])
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
