@@ -19,16 +19,23 @@ function VerifyContent() {
             setError("Token Not available")
             return
         }
-        verifyEmail(token)
+        const user_id: string|null = searchParams.get("user_id")
+        if(!user_id){
+            setIsLoading(false)
+            setError("UserId Not available")
+            return
+        }
+        verifyEmail(token, user_id)
     }, [searchParams])
 
-    const verifyEmail = async (token: string) => {
+    const verifyEmail = async (token: string, user_id: string) => {
         try{
             const responseVerifyEmail = await fetch("/api/auth/sign-up/verify-email", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     token: token,
+                    user_id: user_id,
                 }),
             })
 
@@ -44,7 +51,7 @@ function VerifyContent() {
                 }
                 else{
                     setIsLoading(false)
-                    setError(verifyEmailData.error)
+                    setError(verifyEmailData.error || "Could not verify Email")
                     console.error("Error verifying user email")
                 }
                 return
@@ -97,9 +104,9 @@ function VerifyContent() {
                     </>
                 ) : (
                     <>
-                        <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                        <h2 className="text-xl font-semibold text-slate-800 mb-2">Email Verified!</h2>
-                        <p className="text-slate-600">Redirecting to login...</p>
+                        {/* <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" /> */}
+                        <h2 className="text-xl font-semibold text-slate-800 mb-2">Email Verification in progress..</h2>
+                        {/* <p className="text-slate-600">Redirecting to login...</p> */}
                     </>
                 )}
             </div>

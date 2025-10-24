@@ -63,22 +63,25 @@ export default function HomePage() {
 
   const checkIfUserLoggedIn = async () =>{
     const access_token= localStorage.getItem("id_token");
-    if(!access_token) console.log("access_token not available");
-
-    if (isTokenValid(access_token)) {
-      setIsUserLoggedIn(true);
-      window.location.href= '/onboarding-upload-only'
-      console.log("Token is valid, user logged in")
-    } else {
-        console.log("Token expired or invalid, attempting renewal...")
-        const newToken = await renewAccessToken()
-        if (newToken) {
-          console.log("New token set successfully", newToken)
-          setIsUserLoggedIn(true);
-        } else {
-          console.log("Token renewal failed, user needs to re-login")
-        }
+    if(!access_token) {
+      console.log("access_token not available");
+      return;
     }
+    window.location.href= '/onboarding-upload-only'
+    // if (isTokenValid(access_token)) {
+    //   setIsUserLoggedIn(true);
+    //   window.location.href= '/onboarding-upload-only'
+    //   console.log("Token is valid, user logged in")
+    // } else {
+    //     console.log("Token expired or invalid, attempting renewal...")
+    //     const newToken = await renewAccessToken()
+    //     if (newToken) {
+    //       console.log("New token set successfully", newToken)
+    //       setIsUserLoggedIn(true);
+    //     } else {
+    //       console.log("Token renewal failed, user needs to re-login")
+    //     }
+    // }
   }
 
   return <LoginPage></LoginPage>

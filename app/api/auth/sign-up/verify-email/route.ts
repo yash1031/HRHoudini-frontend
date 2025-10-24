@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { token } = body;
+    const { token, user_id } = body;
 
     if (!token) {
       return NextResponse.json(
@@ -12,10 +12,16 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    if (!user_id) {
+      return NextResponse.json(
+        { error: "user_id is required" },
+        { status: 400 }
+      );
+    }
 
     // Call your AWS API Gateway
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/verify-email?token=${token}`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/verify-email?token=${token}&user_id=${user_id}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },

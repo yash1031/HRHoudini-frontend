@@ -211,7 +211,13 @@ export default function LoginPage() {
       const createAccountData= await dataCreateAccount.data
 
       if (responseCreateAccount.ok) {
+        console.log("user_id after account creation", createAccountData?.user?.user_id)
+        localStorage.setItem("user_id", createAccountData?.user?.user_id)
         console.log("Account created successfully:", createAccountData);
+        setEmail(formData.companyEmail)
+        //Redirect to login or dashboard if needed
+        setIsSignup(false)
+        setIsLoading(false)
       } else {
         console.log("Error creating the account", createAccountData);
         setIsLoading(false)
@@ -223,57 +229,57 @@ export default function LoginPage() {
         return;
       }
       console.log("Data returned by create-user API", createAccountData)
-      console.log("User_id in purchase-plan api", createAccountData.user.user_id)
-      const responseCognitoInsert = await fetch("/api/auth/sign-up/cognito-insert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.companyEmail
-        }),
-      });
+      // console.log("User_id in purchase-plan api", createAccountData.user.user_id)
+      // const responseCognitoInsert = await fetch("/api/auth/sign-up/cognito-insert", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     name: formData.name,
+      //     email: formData.companyEmail
+      //   }),
+      // });
 
-      const dataCognitoInsert = await responseCognitoInsert.json();
-      const cognitoInsertData= await dataCognitoInsert.data
+      // const dataCognitoInsert = await responseCognitoInsert.json();
+      // const cognitoInsertData= await dataCognitoInsert.data
 
-      if(!responseCognitoInsert.ok){
-        setEmailExistError(cognitoInsertData);
-        setTimeout(() => {
-          setEmailExistError("");
-        }, 5000)
-        setIsLoading(false)
-        console.error("Error in inserting data to cognito");
-      }
-      console.log("User inserted to cognito successfully:", cognitoInsertData);
+      // if(!responseCognitoInsert.ok){
+      //   setEmailExistError(cognitoInsertData);
+      //   setTimeout(() => {
+      //     setEmailExistError("");
+      //   }, 5000)
+      //   setIsLoading(false)
+      //   console.error("Error in inserting data to cognito");
+      // }
+      // console.log("User inserted to cognito successfully:", cognitoInsertData);
 
-      //Assign Feemium for user
-      const responsePurchaseFreemium = await fetch("/api/billing/purchase-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: createAccountData.user.user_id,
-          subscription_plan_name:"Freemium",
-          is_billed_annually: false
-        }),
-      });
+      // //Assign Feemium for user
+      // const responsePurchaseFreemium = await fetch("/api/billing/purchase-plan", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     user_id: createAccountData.user.user_id,
+      //     subscription_plan_name:"Freemium",
+      //     is_billed_annually: false
+      //   }),
+      // });
 
-      const dataPurchaseFreemium = await responsePurchaseFreemium.json();
-      const purchaseFreemiumData= await dataPurchaseFreemium.data
+      // const dataPurchaseFreemium = await responsePurchaseFreemium.json();
+      // const purchaseFreemiumData= await dataPurchaseFreemium.data
 
-      if (responsePurchaseFreemium.ok) {
-        console.log("Freemium plan purchase successfully:", purchaseFreemiumData);
-        setEmail(formData.companyEmail)
-        //Redirect to login or dashboard if needed
-        setIsSignup(false)
-        setIsLoading(false)
-      } else {
-        setEmailExistError(purchaseFreemiumData.error.message);
-        setTimeout(() => {
-          setEmailExistError("");
-        }, 5000)
-        setIsLoading(false)
-        console.error("Error in purchase freemium plan:", purchaseFreemiumData.error.message);
-      }
+      // if (responsePurchaseFreemium.ok) {
+      //   console.log("Freemium plan purchase successfully:", purchaseFreemiumData);
+      //   setEmail(formData.companyEmail)
+      //   //Redirect to login or dashboard if needed
+      //   setIsSignup(false)
+      //   setIsLoading(false)
+      // } else {
+      //   setEmailExistError(purchaseFreemiumData.error.message);
+      //   setTimeout(() => {
+      //     setEmailExistError("");
+      //   }, 5000)
+      //   setIsLoading(false)
+      //   console.error("Error in purchase freemium plan:", purchaseFreemiumData.error.message);
+      // }
     } catch (err) {
         setEmailExistError("Unknow Error. Please try again");
         setTimeout(() => {

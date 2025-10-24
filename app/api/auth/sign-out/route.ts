@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
     // Call backend logout endpoint
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/logout`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/logout`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

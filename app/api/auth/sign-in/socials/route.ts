@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     console.log("in socials request internal folder")
 
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/socials-sign-in`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
