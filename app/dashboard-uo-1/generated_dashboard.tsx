@@ -99,11 +99,384 @@ interface ConfigurableDashboardProps {
 }
 
 // FilterControls Component
+// FilterControls Component - UPDATED
+// FilterControls Component - ENHANCED DESIGN
+// FilterControls Component - ELEGANT DESIGN matching your dashboard
+// const FilterControls: React.FC<{
+//   filters: FilterOption[];
+//   onFilterChange: (filters: FilterState) => void;
+// }> = ({ filters, onFilterChange }) => {
+//   const [filterValues, setFilterValues] = useState<FilterState>({});
+//   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+//   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
+
+//   const handleFilterChange = (field: string, value: any) => {
+//     const newFilters = { ...filterValues, [field]: value };
+//     setFilterValues(newFilters);
+//     onFilterChange(newFilters);
+//   };
+
+//   const handleMultiSelectToggle = (field: string, option: string) => {
+//     const current = filterValues[field] || [];
+//     const newValue = current.includes(option)
+//       ? current.filter((item: string) => item !== option)
+//       : [...current, option];
+//     handleFilterChange(field, newValue);
+//   };
+
+//   const toggleDropdown = (field: string) => {
+//     setOpenDropdowns(prev => ({
+//       ...prev,
+//       [field]: !prev[field]
+//     }));
+//   };
+
+//   const handleSearch = (field: string, term: string) => {
+//     setSearchTerms(prev => ({
+//       ...prev,
+//       [field]: term
+//     }));
+//   };
+
+//   const getFilteredOptions = (filter: FilterOption) => {
+//     const searchTerm = searchTerms[filter.field]?.toLowerCase() || '';
+//     return filter.options?.filter(option => 
+//       option.toLowerCase().includes(searchTerm)
+//     ) || [];
+//   };
+
+//   const selectAll = (filter: FilterOption) => {
+//     handleFilterChange(filter.field, filter.options || []);
+//   };
+
+//   const deselectAll = (field: string) => {
+//     handleFilterChange(field, []);
+//   };
+
+//   const renderFilter = (filter: FilterOption) => {
+//     switch (filter.type) {
+//       case 'multiselect':
+//         const selectedCount = (filterValues[filter.field] || []).length;
+//         const totalCount = filter.options?.length || 0;
+//         const isOpen = openDropdowns[filter.field];
+//         const filteredOptions = getFilteredOptions(filter);
+        
+//         return (
+//           <div key={filter.field} className="space-y-2 relative">
+//             <label className="text-sm font-medium text-slate-700">
+//               {filter.label}
+//             </label>
+            
+//             {/* Dropdown Trigger - Matching your dashboard style */}
+//             <div
+//               onClick={() => toggleDropdown(filter.field)}
+//               className={`w-full px-4 py-3 border rounded-lg bg-white cursor-pointer transition-all duration-200 ${
+//                 isOpen 
+//                   ? 'border-indigo-500 shadow-md' 
+//                   : 'border-slate-200 hover:border-slate-300'
+//               }`}
+//             >
+//               <div className="flex items-center justify-between">
+//                 <div className="flex items-center space-x-2">
+//                   <Users className="w-4 h-4 text-slate-400" />
+//                   <span className="text-sm text-slate-600">
+//                     {selectedCount > 0 
+//                       ? `${selectedCount} selected` 
+//                       : `Select ${filter.label.toLowerCase()}...`}
+//                   </span>
+//                 </div>
+//                 <svg
+//                   className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+//                   fill="none"
+//                   stroke="currentColor"
+//                   viewBox="0 0 24 24"
+//                 >
+//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+//                 </svg>
+//               </div>
+//             </div>
+
+//             {/* Dropdown Menu */}
+//             {isOpen && (
+//               <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden">
+//                 {/* Search Bar */}
+//                 <div className="p-3 border-b border-slate-100">
+//                   <div className="relative">
+//                     <input
+//                       type="text"
+//                       placeholder={`Search ${filter.label.toLowerCase()}...`}
+//                       value={searchTerms[filter.field] || ''}
+//                       onChange={(e) => handleSearch(filter.field, e.target.value)}
+//                       onClick={(e) => e.stopPropagation()}
+//                       className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+//                     />
+//                     <svg
+//                       className="absolute left-3 top-2.5 w-4 h-4 text-slate-400"
+//                       fill="none"
+//                       stroke="currentColor"
+//                       viewBox="0 0 24 24"
+//                     >
+//                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+//                     </svg>
+//                   </div>
+//                 </div>
+
+//                 {/* Select All / Clear */}
+//                 <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+//                   <span className="text-xs text-slate-500">
+//                     {filteredOptions.length} {filteredOptions.length === 1 ? 'option' : 'options'}
+//                   </span>
+//                   <div className="flex items-center space-x-2">
+//                     <button
+//                       onClick={(e) => {
+//                         e.stopPropagation();
+//                         selectAll(filter);
+//                       }}
+//                       className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+//                     >
+//                       Select All
+//                     </button>
+//                     <span className="text-slate-300">|</span>
+//                     <button
+//                       onClick={(e) => {
+//                         e.stopPropagation();
+//                         deselectAll(filter.field);
+//                       }}
+//                       className="text-xs text-slate-600 hover:text-slate-800 font-medium"
+//                     >
+//                       Clear
+//                     </button>
+//                   </div>
+//                 </div>
+
+//                 {/* Options List */}
+//                 <div className="max-h-60 overflow-y-auto">
+//                   {filteredOptions.length > 0 ? (
+//                     <div className="p-1.5">
+//                       {filteredOptions.map((option) => {
+//                         const isSelected = (filterValues[filter.field] || []).includes(option);
+//                         return (
+//                           <div
+//                             key={option}
+//                             onClick={(e) => {
+//                               e.stopPropagation();
+//                               handleMultiSelectToggle(filter.field, option);
+//                             }}
+//                             className={`px-3 py-2.5 rounded-md cursor-pointer transition-colors flex items-center space-x-3 ${
+//                               isSelected
+//                                 ? 'bg-indigo-50 hover:bg-indigo-100'
+//                                 : 'hover:bg-slate-50'
+//                             }`}
+//                           >
+//                             {/* Checkbox */}
+//                             <div
+//                               className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+//                                 isSelected
+//                                   ? 'bg-indigo-600 border-indigo-600'
+//                                   : 'border-slate-300'
+//                               }`}
+//                             >
+//                               {isSelected && (
+//                                 <Check className="w-3 h-3 text-white" strokeWidth={3} />
+//                               )}
+//                             </div>
+                            
+//                             {/* Option Text */}
+//                             <span className={`text-sm flex-1 ${
+//                               isSelected 
+//                                 ? 'text-indigo-900 font-medium' 
+//                                 : 'text-slate-700'
+//                             }`}>
+//                               {option}
+//                             </span>
+//                           </div>
+//                         );
+//                       })}
+//                     </div>
+//                   ) : (
+//                     <div className="p-8 text-center">
+//                       <AlertTriangle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+//                       <p className="text-sm text-slate-500">No options found</p>
+//                     </div>
+//                   )}
+//                 </div>
+//               </div>
+//             )}
+
+//             {/* Selected Items Display */}
+//             {selectedCount > 0 && (
+//               <div className="flex flex-wrap gap-1.5 mt-2">
+//                 {(filterValues[filter.field] || []).map((item: string) => (
+//                   <div
+//                     key={item}
+//                     className="inline-flex items-center space-x-1 px-2.5 py-1 bg-indigo-600 text-white text-xs font-medium rounded-full"
+//                   >
+//                     <span>{item}</span>
+//                     <button
+//                       onClick={(e) => {
+//                         e.stopPropagation();
+//                         handleMultiSelectToggle(filter.field, item);
+//                       }}
+//                       className="hover:bg-indigo-700 rounded-full transition-colors"
+//                     >
+//                       <X className="w-3 h-3" strokeWidth={2.5} />
+//                     </button>
+//                   </div>
+//                 ))}
+//               </div>
+//             )}
+//           </div>
+//         );
+
+//       case 'select':
+//         return (
+//           <div key={filter.field} className="space-y-2">
+//             <label className="text-sm font-medium text-slate-700">{filter.label}</label>
+//             <select
+//               value={filterValues[filter.field] || ''}
+//               onChange={(e) => handleFilterChange(filter.field, e.target.value)}
+//               className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-slate-700 hover:border-slate-300"
+//             >
+//               <option value="">All</option>
+//               {filter.options?.map((option) => (
+//                 <option key={option} value={option}>
+//                   {option}
+//                 </option>
+//               ))}
+//             </select>
+//           </div>
+//         );
+
+//       case 'range':
+//         const minVal = filterValues[filter.field]?.[0] || filter.min;
+//         const maxVal = filterValues[filter.field]?.[1] || filter.max;
+//         const range = (filter.max || 100) - (filter.min || 0);
+        
+//         return (
+//           <div key={filter.field} className="space-y-3">
+//             <div className="flex items-center justify-between">
+//               <label className="text-sm font-medium text-slate-700">{filter.label}</label>
+//               <span className="px-3 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-full">
+//                 {minVal} - {maxVal}
+//               </span>
+//             </div>
+            
+//             <div className="space-y-4 px-1">
+//               {/* Minimum Slider */}
+//               <div className="space-y-1.5">
+//                 <div className="flex items-center justify-between text-xs">
+//                   <span className="text-slate-500">Minimum</span>
+//                   <span className="font-semibold text-slate-700">{minVal}</span>
+//                 </div>
+//                 <input
+//                   type="range"
+//                   min={filter.min}
+//                   max={filter.max}
+//                   value={minVal}
+//                   onChange={(e) =>
+//                     handleFilterChange(filter.field, [
+//                       parseInt(e.target.value),
+//                       maxVal,
+//                     ])
+//                   }
+//                   className="w-full h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+//                   style={{
+//                     background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((minVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 ${((minVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 100%)`
+//                   }}
+//                 />
+//               </div>
+
+//               {/* Maximum Slider */}
+//               <div className="space-y-1.5">
+//                 <div className="flex items-center justify-between text-xs">
+//                   <span className="text-slate-500">Maximum</span>
+//                   <span className="font-semibold text-slate-700">{maxVal}</span>
+//                 </div>
+//                 <input
+//                   type="range"
+//                   min={filter.min}
+//                   max={filter.max}
+//                   value={maxVal}
+//                   onChange={(e) =>
+//                     handleFilterChange(filter.field, [
+//                       minVal,
+//                       parseInt(e.target.value),
+//                     ])
+//                   }
+//                   className="w-full h-1.5 bg-slate-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+//                   style={{
+//                     background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((maxVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 ${((maxVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 100%)`
+//                   }}
+//                 />
+//               </div>
+//             </div>
+            
+//             <div className="flex items-center justify-between pt-2 text-xs text-slate-500 border-t border-slate-100">
+//               <span>Range: {filter.min}</span>
+//               <span>to {filter.max}</span>
+//             </div>
+//           </div>
+//         );
+
+//       default:
+//         return null;
+//     }
+//   };
+
+//   // Close dropdowns when clicking outside
+//   React.useEffect(() => {
+//     const handleClickOutside = (event: MouseEvent) => {
+//       const target = event.target as HTMLElement;
+//       if (!target.closest('.relative')) {
+//         setOpenDropdowns({});
+//       }
+//     };
+
+//     document.addEventListener('mousedown', handleClickOutside);
+//     return () => document.removeEventListener('mousedown', handleClickOutside);
+//   }, []);
+
+//   return (
+//     <div className="bg-slate-50 rounded-xl p-6 space-y-5 border border-slate-200">
+//       <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+//         <div className="flex items-center space-x-2">
+//           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+//             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+//             </svg>
+//           </div>
+//           <h4 className="text-base font-semibold text-slate-800">Filters</h4>
+//         </div>
+//         {Object.keys(filterValues).length > 0 && (
+//           <button
+//             onClick={() => {
+//               setFilterValues({});
+//               onFilterChange({});
+//               setOpenDropdowns({});
+//               setSearchTerms({});
+//             }}
+//             className="px-3 py-1.5 bg-white hover:bg-red-50 text-red-600 text-xs font-medium rounded-lg border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1"
+//           >
+//             <X className="w-3 h-3" />
+//             <span>Clear All</span>
+//           </button>
+//         )}
+//       </div>
+//       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//         {filters.map(renderFilter)}
+//       </div>
+//     </div>
+//   );
+// };
+
+// FilterControls Component - SLEEK & COMPACT VERSION
 const FilterControls: React.FC<{
   filters: FilterOption[];
   onFilterChange: (filters: FilterState) => void;
 }> = ({ filters, onFilterChange }) => {
   const [filterValues, setFilterValues] = useState<FilterState>({});
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
 
   const handleFilterChange = (field: string, value: any) => {
     const newFilters = { ...filterValues, [field]: value };
@@ -119,42 +492,223 @@ const FilterControls: React.FC<{
     handleFilterChange(field, newValue);
   };
 
+  const toggleDropdown = (field: string) => {
+    setOpenDropdowns(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const handleSearch = (field: string, term: string) => {
+    setSearchTerms(prev => ({
+      ...prev,
+      [field]: term
+    }));
+  };
+
+  const getFilteredOptions = (filter: FilterOption) => {
+    const searchTerm = searchTerms[filter.field]?.toLowerCase() || '';
+    return filter.options?.filter(option => 
+      option.toLowerCase().includes(searchTerm)
+    ) || [];
+  };
+
+  const selectAll = (filter: FilterOption) => {
+    handleFilterChange(filter.field, filter.options || []);
+  };
+
+  const deselectAll = (field: string) => {
+    handleFilterChange(field, []);
+  };
+
   const renderFilter = (filter: FilterOption) => {
     switch (filter.type) {
       case 'multiselect':
+        const selectedCount = (filterValues[filter.field] || []).length;
+        const totalCount = filter.options?.length || 0;
+        const isOpen = openDropdowns[filter.field];
+        const filteredOptions = getFilteredOptions(filter);
+        
         return (
-          <div key={filter.field} className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">{filter.label}</label>
-            <div className="flex flex-wrap gap-2">
-              {filter.options?.map((option) => {
-                const isSelected = (filterValues[filter.field] || []).includes(option);
-                return (
-                  <button
-                    key={option}
-                    onClick={() => handleMultiSelectToggle(filter.field, option)}
-                    className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
-                      isSelected
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
-                    }`}
-                  >
-                    {isSelected && <Check className="w-3 h-3 inline mr-1" />}
-                    {option}
-                  </button>
-                );
-              })}
+          <div key={filter.field} className="space-y-1.5 relative">
+            <label className="text-xs font-medium text-slate-700">
+              {filter.label}
+            </label>
+            
+            {/* Dropdown Trigger - Compact */}
+            <div
+              onClick={() => toggleDropdown(filter.field)}
+              className={`w-full px-3 py-2 border rounded-lg bg-white cursor-pointer transition-all ${
+                isOpen 
+                  ? 'border-indigo-500 shadow-md' 
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Users className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xs text-slate-600">
+                    {selectedCount > 0 
+                      ? `${selectedCount} selected` 
+                      : `Select...`}
+                  </span>
+                </div>
+                <svg
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
+
+            {/* Dropdown Menu - Compact */}
+            {isOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden">
+                {/* Search Bar - Compact */}
+                <div className="p-2 border-b border-slate-100">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder={`Search...`}
+                      value={searchTerms[filter.field] || ''}
+                      onChange={(e) => handleSearch(filter.field, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full pl-7 pr-2 py-1.5 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    <svg
+                      className="absolute left-2 top-2 w-3 h-3 text-slate-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Select All / Clear - Compact */}
+                <div className="px-2 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500">
+                    {filteredOptions.length} {filteredOptions.length === 1 ? 'option' : 'options'}
+                  </span>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectAll(filter);
+                      }}
+                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      All
+                    </button>
+                    <span className="text-slate-300 text-[10px]">|</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deselectAll(filter.field);
+                      }}
+                      className="text-[10px] text-slate-600 hover:text-slate-800 font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Options List - Compact */}
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredOptions.length > 0 ? (
+                    <div className="p-1">
+                      {filteredOptions.map((option) => {
+                        const isSelected = (filterValues[filter.field] || []).includes(option);
+                        return (
+                          <div
+                            key={option}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMultiSelectToggle(filter.field, option);
+                            }}
+                            className={`px-2 py-1.5 rounded-md cursor-pointer transition-colors flex items-center space-x-2 ${
+                              isSelected
+                                ? 'bg-indigo-50 hover:bg-indigo-100'
+                                : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            {/* Checkbox - Smaller */}
+                            <div
+                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
+                                isSelected
+                                  ? 'bg-indigo-600 border-indigo-600'
+                                  : 'border-slate-300'
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                              )}
+                            </div>
+                            
+                            {/* Option Text - Smaller */}
+                            <span className={`text-xs flex-1 ${
+                              isSelected 
+                                ? 'text-indigo-900 font-medium' 
+                                : 'text-slate-700'
+                            }`}>
+                              {option}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center">
+                      <AlertTriangle className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                      <p className="text-xs text-slate-500">No options found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Selected Items Display - Inline & Compact */}
+            {selectedCount > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {(filterValues[filter.field] || []).slice(0, 3).map((item: string) => (
+                  <div
+                    key={item}
+                    className="inline-flex items-center space-x-0.5 px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-medium rounded-full"
+                  >
+                    <span>{item}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMultiSelectToggle(filter.field, item);
+                      }}
+                      className="hover:bg-indigo-700 rounded-full transition-colors"
+                    >
+                      <X className="w-2.5 h-2.5" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                ))}
+                {selectedCount > 3 && (
+                  <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-medium rounded-full">
+                    +{selectedCount - 3}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         );
 
       case 'select':
         return (
-          <div key={filter.field} className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">{filter.label}</label>
+          <div key={filter.field} className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700">{filter.label}</label>
             <select
               value={filterValues[filter.field] || ''}
               onChange={(e) => handleFilterChange(filter.field, e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-slate-700 hover:border-slate-300"
             >
               <option value="">All</option>
               {filter.options?.map((option) => (
@@ -167,42 +721,67 @@ const FilterControls: React.FC<{
         );
 
       case 'range':
+        const minVal = filterValues[filter.field]?.[0] || filter.min;
+        const maxVal = filterValues[filter.field]?.[1] || filter.max;
+        const range = (filter.max || 100) - (filter.min || 0);
+        
         return (
           <div key={filter.field} className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
-              {filter.label}: {filterValues[filter.field]?.[0] || filter.min} - {filterValues[filter.field]?.[1] || filter.max}
-            </label>
-            <div className="flex items-center space-x-4">
-              <input
-                type="range"
-                min={filter.min}
-                max={filter.max}
-                value={filterValues[filter.field]?.[0] || filter.min}
-                onChange={(e) =>
-                  handleFilterChange(filter.field, [
-                    parseInt(e.target.value),
-                    filterValues[filter.field]?.[1] || filter.max,
-                  ])
-                }
-                className="flex-1"
-              />
-              <input
-                type="range"
-                min={filter.min}
-                max={filter.max}
-                value={filterValues[filter.field]?.[1] || filter.max}
-                onChange={(e) =>
-                  handleFilterChange(filter.field, [
-                    filterValues[filter.field]?.[0] || filter.min,
-                    parseInt(e.target.value),
-                  ])
-                }
-                className="flex-1"
-              />
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-700">{filter.label}</label>
+              <span className="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-semibold rounded-full">
+                {minVal} - {maxVal}
+              </span>
             </div>
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>Min: {filter.min}</span>
-              <span>Max: {filter.max}</span>
+            
+            <div className="space-y-2.5">
+              {/* Minimum Slider - Compact */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-500">Min</span>
+                  <span className="font-semibold text-slate-700">{minVal}</span>
+                </div>
+                <input
+                  type="range"
+                  min={filter.min}
+                  max={filter.max}
+                  value={minVal}
+                  onChange={(e) =>
+                    handleFilterChange(filter.field, [
+                      parseInt(e.target.value),
+                      maxVal,
+                    ])
+                  }
+                  className="w-full h-1 bg-slate-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((minVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 ${((minVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 100%)`
+                  }}
+                />
+              </div>
+
+              {/* Maximum Slider - Compact */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-500">Max</span>
+                  <span className="font-semibold text-slate-700">{maxVal}</span>
+                </div>
+                <input
+                  type="range"
+                  min={filter.min}
+                  max={filter.max}
+                  value={maxVal}
+                  onChange={(e) =>
+                    handleFilterChange(filter.field, [
+                      minVal,
+                      parseInt(e.target.value),
+                    ])
+                  }
+                  className="w-full h-1 bg-slate-200 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((maxVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 ${((maxVal - (filter.min || 0)) / range) * 100}%, #e2e8f0 100%)`
+                  }}
+                />
+              </div>
             </div>
           </div>
         );
@@ -212,23 +791,46 @@ const FilterControls: React.FC<{
     }
   };
 
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.relative')) {
+        setOpenDropdowns({});
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className="bg-slate-50 rounded-lg p-4 space-y-4 border border-slate-200">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
+    <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+        <div className="flex items-center space-x-2">
+          <div className="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </div>
+          <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
+        </div>
         {Object.keys(filterValues).length > 0 && (
           <button
             onClick={() => {
               setFilterValues({});
               onFilterChange({});
+              setOpenDropdowns({});
+              setSearchTerms({});
             }}
-            className="text-xs text-blue-600 hover:text-blue-800"
+            className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[10px] font-medium rounded-md border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1"
           >
-            Clear All
+            <X className="w-2.5 h-2.5" />
+            <span>Clear All</span>
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filters.map(renderFilter)}
       </div>
     </div>
