@@ -314,132 +314,121 @@ export default function DashboardUO1() {
     };
 
     // Transform cards into KPI cards with drill-down support
-    const kpiCards = cards.map((card: any) => {
-      const baseCard = {
-        label: card.title,
-        icon: card.icon,
-        color: colorMap[card.color] || '#3b82f6',
-        description: card.field || '',
-        calculationType: 'custom' as const,
-        calculate: () => card.value,
+  const kpiCards = cards.map((card: any) => {
+    const baseCard = {
+      label: card.title,
+      icon: card.icon,
+      color: colorMap[card.color] || '#3b82f6',
+      description: card.field || '',
+      calculationType: 'custom' as const,
+      calculate: () => card.value,
+    };
+
+    if (card.drillDown) {
+      return {
+        ...baseCard,
+        drillDownData: {
+          filters: card.drillDown.filters || [], // ADD THIS LINE
+          cards: card.drillDown.cards?.map((ddCard: any) => ({
+            label: ddCard.title,
+            icon: ddCard.icon,
+            color: colorMap[ddCard.color] || '#3b82f6',
+            description: ddCard.description || '',
+            calculationType: 'custom' as const,
+            calculate: () => ddCard.value,
+          })) || [],
+          charts: card.drillDown.charts?.map((ddChart: any) => {
+            const chartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
+            const layout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
+
+            return {
+              title: ddChart.title,
+              icon: ddChart.icon,
+              type: chartType as 'bar' | 'pie' | 'line',
+              color: ddChart.colors?.[0] || '#3b82f6',
+              dataKey: ddChart.field,
+              layout: layout,
+              height: 300,
+              customDataGenerator: () => ddChart.data.map((item: any) => ({
+                name: item.name,
+                value: item.value,
+                percentage: item.percentage
+              })),
+            };
+          }) || [],
+          insights: card.drillDown.insights ? {
+            critical_issues: card.drillDown.insights.critical_issues || [],
+            recommended_actions: card.drillDown.insights.recommended_actions || []
+          } : undefined
+        }
       };
+    }
 
-      // Add drill-down data if available
-      if (card.drillDown) {
-        return {
-          ...baseCard,
-          drillDownData: {
-            cards: card.drillDown.cards?.map((ddCard: any) => ({
-              label: ddCard.title,
-              icon: ddCard.icon,
-              color: colorMap[ddCard.color] || '#3b82f6',
-              description: ddCard.description || '',
-              calculationType: 'custom' as const,
-              calculate: () => ddCard.value,
-            })) || [],
-            charts: card.drillDown.charts?.map((ddChart: any) => {
-              const chartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
-              const layout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
+    return baseCard;
+  });
 
-              return {
-                title: ddChart.title,
-                icon: ddChart.icon,
-                type: chartType as 'bar' | 'pie' | 'line',
-                color: ddChart.colors?.[0] || '#3b82f6',
-                dataKey: ddChart.field,
-                layout: layout,
-                height: 300,
-                customDataGenerator: () => ddChart.data.map((item: any) => ({
-                  name: item.name,
-                  value: item.value,
-                  percentage: item.percentage
-                })),
-              };
-            }) || [],
-            // insights: card.drillDown.insights?.map((insight: any) => ({
-            //   type: insight.type || 'info',
-            //   title: insight.title,
-            //   description: insight.description
-            // })) || []
-            insights: card.drillDown.insights ? {
-              critical_issues: card.drillDown.insights.critical_issues || [],
-              recommended_actions: card.drillDown.insights.recommended_actions || []
-            } : undefined
-          }
-        };
-      }
+  // Transform charts with FILTERS support
+  const chartConfigs = charts.map((chart: any) => {
+    const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
+    const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar' ? 'vertical' : undefined;
 
-      return baseCard;
-    });
+    const baseChart = {
+      title: chart.title,
+      icon: chart.icon,
+      type: chartType,
+      color: chart.colors?.[0] || '#3b82f6',
+      dataKey: chart.field,
+      layout: layout,
+      height: 400,
+      customDataGenerator: () => chart.data.map((item: any) => ({
+        name: item.name,
+        value: item.value,
+        percentage: item.percentage
+      })),
+    };
 
-    // Transform charts into chart configs with drill-down support
-    const chartConfigs = charts.map((chart: any) => {
-      const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
-      const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar' ? 'vertical' : undefined;
+    if (chart.drillDown) {
+      return {
+        ...baseChart,
+        drillDownData: {
+          filters: chart.drillDown.filters || [], // ADD THIS LINE
+          cards: chart.drillDown.cards?.map((ddCard: any) => ({
+            label: ddCard.title,
+            icon: ddCard.icon,
+            color: colorMap[ddCard.color] || '#3b82f6',
+            description: ddCard.description || '',
+            calculationType: 'custom' as const,
+            calculate: () => ddCard.value,
+          })) || [],
+          charts: chart.drillDown.charts?.map((ddChart: any) => {
+            const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
+            const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
 
-      const baseChart = {
-        title: chart.title,
-        icon: chart.icon,
-        // type: chartType as 'bar' | 'pie' | 'line',
-        type: chartType,
-        color: chart.colors?.[0] || '#3b82f6',
-        dataKey: chart.field,
-        layout: layout,
-        height: 400,
-        customDataGenerator: () => chart.data.map((item: any) => ({
-          name: item.name,
-          value: item.value,
-          percentage: item.percentage
-        })),
+            return {
+              title: ddChart.title,
+              icon: ddChart.icon,
+              type: ddChartType as 'bar' | 'pie' | 'line',
+              color: ddChart.colors?.[0] || '#3b82f6',
+              dataKey: ddChart.field,
+              layout: ddLayout,
+              height: 300,
+              customDataGenerator: () => ddChart.data.map((item: any) => ({
+                name: item.name,
+                value: item.value,
+                percentage: item.percentage
+              })),
+            };
+          }) || [],
+          insights: chart.drillDown.insights ? {
+            critical_issues: chart.drillDown.insights.critical_issues || [],
+            recommended_actions: chart.drillDown.insights.recommended_actions || []
+          } : undefined
+        }
       };
+    }
 
-      // Add drill-down data if available
-      if (chart.drillDown) {
-        return {
-          ...baseChart,
-          drillDownData: {
-            cards: chart.drillDown.cards?.map((ddCard: any) => ({
-              label: ddCard.title,
-              icon: ddCard.icon,
-              color: colorMap[ddCard.color] || '#3b82f6',
-              description: ddCard.description || '',
-              calculationType: 'custom' as const,
-              calculate: () => ddCard.value,
-            })) || [],
-            charts: chart.drillDown.charts?.map((ddChart: any) => {
-              const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
-              const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
-
-              return {
-                title: ddChart.title,
-                icon: ddChart.icon,
-                type: ddChartType as 'bar' | 'pie' | 'line',
-                color: ddChart.colors?.[0] || '#3b82f6',
-                dataKey: ddChart.field,
-                layout: ddLayout,
-                height: 300,
-                customDataGenerator: () => ddChart.data.map((item: any) => ({
-                  name: item.name,
-                  value: item.value,
-                  percentage: item.percentage
-                })),
-              };
-            }) || [],
-            // insights: chart.drillDown.insights?.map((insight: any) => ({
-            //   type: insight.type || 'info',
-            //   title: insight.title,
-            //   description: insight.description
-            // })) || []
-            insights: chart.drillDown.insights ? {
-              critical_issues: chart.drillDown.insights.critical_issues || [],
-              recommended_actions: chart.drillDown.insights.recommended_actions || []
-            } : undefined
-          }
-        };
-      }
-
-      return baseChart;
-    });
+    return baseChart;
+  });
 
     console.log("filename received in page.tsx for dashboard-uo-1", metadata.filename)
     console.log("rowCount received in page.tsx for dashboard-uo-1", metadata.totalRows)

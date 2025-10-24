@@ -1,8 +1,22 @@
 "use client"
 import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, Rectangle, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Sparkles, Users, UserCheck, TrendingUp, Globe, MapPin, X, AlertTriangle, CheckCircle, Info, DollarSign, Activity } from 'lucide-react';
+import { Sparkles, Users, UserCheck, TrendingUp, Globe, MapPin, X, AlertTriangle, CheckCircle, Info, DollarSign, Activity, Check } from 'lucide-react';
 import { Badge } from "@/components/ui/badge"
+
+interface FilterOption {
+  field: string;
+  label: string;
+  type: 'multiselect' | 'select' | 'range';
+  options?: string[];
+  min?: number;
+  max?: number;
+}
+
+// Filter state interface
+interface FilterState {
+  [key: string]: any;
+}
 
 // Type Definitions
 interface DataItem {
@@ -22,6 +36,7 @@ interface Insight {
 }
 
 interface DrillDownData {
+  filters?: FilterOption[];
   cards: KPICard[];
   charts: ChartConfig[];
   insights?: Insight; // UPDATED: Changed from InsightItem[] to Insights
@@ -82,6 +97,143 @@ interface ConfigurableDashboardProps {
   tableColumns?: TableColumn[];
   colors?: string[];
 }
+
+// FilterControls Component
+const FilterControls: React.FC<{
+  filters: FilterOption[];
+  onFilterChange: (filters: FilterState) => void;
+}> = ({ filters, onFilterChange }) => {
+  const [filterValues, setFilterValues] = useState<FilterState>({});
+
+  const handleFilterChange = (field: string, value: any) => {
+    const newFilters = { ...filterValues, [field]: value };
+    setFilterValues(newFilters);
+    onFilterChange(newFilters);
+  };
+
+  const handleMultiSelectToggle = (field: string, option: string) => {
+    const current = filterValues[field] || [];
+    const newValue = current.includes(option)
+      ? current.filter((item: string) => item !== option)
+      : [...current, option];
+    handleFilterChange(field, newValue);
+  };
+
+  const renderFilter = (filter: FilterOption) => {
+    switch (filter.type) {
+      case 'multiselect':
+        return (
+          <div key={filter.field} className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">{filter.label}</label>
+            <div className="flex flex-wrap gap-2">
+              {filter.options?.map((option) => {
+                const isSelected = (filterValues[filter.field] || []).includes(option);
+                return (
+                  <button
+                    key={option}
+                    onClick={() => handleMultiSelectToggle(filter.field, option)}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+                      isSelected
+                        ? 'bg-blue-500 text-white border-blue-500'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
+                    }`}
+                  >
+                    {isSelected && <Check className="w-3 h-3 inline mr-1" />}
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+
+      case 'select':
+        return (
+          <div key={filter.field} className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">{filter.label}</label>
+            <select
+              value={filterValues[filter.field] || ''}
+              onChange={(e) => handleFilterChange(filter.field, e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All</option>
+              {filter.options?.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      case 'range':
+        return (
+          <div key={filter.field} className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">
+              {filter.label}: {filterValues[filter.field]?.[0] || filter.min} - {filterValues[filter.field]?.[1] || filter.max}
+            </label>
+            <div className="flex items-center space-x-4">
+              <input
+                type="range"
+                min={filter.min}
+                max={filter.max}
+                value={filterValues[filter.field]?.[0] || filter.min}
+                onChange={(e) =>
+                  handleFilterChange(filter.field, [
+                    parseInt(e.target.value),
+                    filterValues[filter.field]?.[1] || filter.max,
+                  ])
+                }
+                className="flex-1"
+              />
+              <input
+                type="range"
+                min={filter.min}
+                max={filter.max}
+                value={filterValues[filter.field]?.[1] || filter.max}
+                onChange={(e) =>
+                  handleFilterChange(filter.field, [
+                    filterValues[filter.field]?.[0] || filter.min,
+                    parseInt(e.target.value),
+                  ])
+                }
+                className="flex-1"
+              />
+            </div>
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>Min: {filter.min}</span>
+              <span>Max: {filter.max}</span>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="bg-slate-50 rounded-lg p-4 space-y-4 border border-slate-200">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
+        {Object.keys(filterValues).length > 0 && (
+          <button
+            onClick={() => {
+              setFilterValues({});
+              onFilterChange({});
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filters.map(renderFilter)}
+      </div>
+    </div>
+  );
+};
 
 const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   title = "Employee Analytics Dashboard",
@@ -393,94 +545,259 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     );
   };
 
-  const DrillDownModal: React.FC = () => {
-    if (!modal.isOpen || !modal.drillDownData) return null;
+// const DrillDownModal: React.FC = () => {
+//   const [activeFilters, setActiveFilters] = useState<FilterState>({});
 
-    return (
+//   if (!modal.isOpen || !modal.drillDownData) return null;
+
+//   const handleFilterChange = (filters: FilterState) => {
+//     setActiveFilters(filters);
+//     // Note: Filtering logic would need to be implemented based on your data structure
+//     // For now, just storing the filter state
+//     console.log('Active filters:', filters);
+//     console.log('Drilldown data in modal is', modal.drillDownData)
+//   };
+
+//   return (
+//     <div 
+//       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+//       onClick={closeModal}
+//     >
+//       <div 
+//         className="bg-white rounded-xl shadow-2xl w-full max-w-7xl my-8 flex flex-col"
+//         style={{ maxHeight: 'calc(100vh - 64px)' }}
+//         onClick={(e) => e.stopPropagation()}
+//       >
+//         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0 bg-white rounded-t-xl">
+//           <h2 className="text-2xl font-bold text-slate-800">{modal.title}</h2>
+//           <button 
+//             onClick={closeModal} 
+//             className="flex items-center justify-center w-10 h-10 text-slate-500 hover:text-white hover:bg-red-500 transition-all rounded-lg border-2 border-slate-300 hover:border-red-500"
+//           >
+//             <X className="w-5 h-5" />
+//           </button>
+//         </div>
+        
+//         <div className="overflow-y-auto flex-1 px-6 py-6">
+//           <div className="space-y-6">
+//             {console.log("modal.drillDownData is", modal.drillDownData)}
+//             {/* Filters Section - ADD THIS */}
+//             {modal.drillDownData.filters && modal.drillDownData.filters.length > 0 && (
+//               <FilterControls 
+//                 filters={modal.drillDownData.filters} 
+//                 onFilterChange={handleFilterChange}
+//               />
+//             )}
+
+//             {/* Charts Row */}
+//             {modal.drillDownData.charts && modal.drillDownData.charts.length > 0 && (
+//               <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(modal.drillDownData.charts.length, 2)}, 1fr)` }}>
+//                 {modal.drillDownData.charts.map((chart, idx) => {
+//                   const Icon = getIcon(chart.icon);
+//                   const chartData = generateChartData(chart);
+                  
+//                   return (
+//                     <div key={idx} className="bg-white rounded-lg shadow-md p-6">
+//                       <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+//                         <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
+//                         {chart.title}
+//                       </h3>
+//                       <ResponsiveContainer width="100%" height={chart.height || 300}>
+//                         {renderChart(chartData, chart)}
+//                       </ResponsiveContainer>
+//                     </div>
+//                   );
+//                 })}
+//               </div>
+//             )}
+
+//             {/* Insights Row */}
+//             {modal.drillDownData.insights && (
+//               <InsightsSection insights={modal.drillDownData.insights} />
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+const DrillDownModal: React.FC = () => {
+  const [activeFilters, setActiveFilters] = useState<FilterState>({});
+
+  if (!modal.isOpen || !modal.drillDownData) return null;
+
+  const handleFilterChange = (filters: FilterState) => {
+    setActiveFilters(filters);
+    console.log('Active filters:', filters);
+  };
+
+  // NEW: Filter chart data based on active filters
+  const getFilteredChartData = (chart: ChartConfig): ChartDataItem[] => {
+    const originalData = generateChartData(chart);
+    
+    // If no filters are active, return original data
+    if (Object.keys(activeFilters).length === 0) {
+      return originalData;
+    }
+
+    // Apply filters to chart data
+    return originalData.filter((dataPoint) => {
+      let includePoint = true;
+
+      // Check each active filter
+      Object.entries(activeFilters).forEach(([field, filterValue]) => {
+        // Skip if filter value is empty/null
+        if (!filterValue || 
+            (Array.isArray(filterValue) && filterValue.length === 0) || 
+            filterValue === '') {
+          return;
+        }
+
+        // Get the corresponding filter config
+        const filterConfig = modal.drillDownData?.filters?.find(f => f.field === field);
+        if (!filterConfig) return;
+
+        switch (filterConfig.type) {
+          case 'multiselect':
+            // For multiselect: check if dataPoint.name is in the selected options
+            if (Array.isArray(filterValue) && !filterValue.includes(dataPoint.name)) {
+              includePoint = false;
+            }
+            break;
+
+          case 'select':
+            // For select: check if dataPoint.name matches the selected option
+            if (filterValue && dataPoint.name !== filterValue) {
+              includePoint = false;
+            }
+            break;
+
+          case 'range':
+            // For range: check if dataPoint.name (converted to number) is within range
+            if (Array.isArray(filterValue) && filterValue.length === 2) {
+              const [min, max] = filterValue;
+              const pointValue = parseFloat(dataPoint.name || '0');
+              if (pointValue < min || pointValue > max) {
+                includePoint = false;
+              }
+            }
+            break;
+        }
+      });
+
+      return includePoint;
+    });
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={closeModal}
+    >
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-        onClick={closeModal}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-7xl my-8 flex flex-col"
+        style={{ maxHeight: 'calc(100vh - 64px)' }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div 
-          className="bg-white rounded-xl shadow-2xl w-full max-w-7xl my-8 flex flex-col"
-          style={{ maxHeight: 'calc(100vh - 64px)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0 bg-white rounded-t-xl">
-            <h2 className="text-2xl font-bold text-slate-800">{modal.title}</h2>
-            <button 
-              onClick={closeModal} 
-              className="flex items-center justify-center w-10 h-10 text-slate-500 hover:text-white hover:bg-red-500 transition-all rounded-lg border-2 border-slate-300 hover:border-red-500"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <div className="overflow-y-auto flex-1 px-6 py-6">
-            <div className="space-y-6">
-              {/* KPI Cards Row */}
-              {modal.drillDownData.cards && modal.drillDownData.cards.length > 0 && (
-                <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(modal.drillDownData.cards.length, 3)}, 1fr)` }}>
-                  {modal.drillDownData.cards.map((kpi, idx) => {
-                    const Icon = getIcon(kpi.icon);
-                    const value = calculateKPI(kpi);
-                    
-                    return (
-                      <div 
-                        key={idx}
-                        className="bg-white rounded-lg shadow-md p-6 border-l-4"
-                        style={{ borderLeftColor: kpi.color || '#3b82f6' }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-slate-600 mb-1">{kpi.label}</p>
-                            <p className="text-3xl font-bold text-slate-800">{value}</p>
-                            {kpi.description && (
-                              <p className="text-xs mt-1" style={{ color: kpi.color || '#3b82f6' }}>
-                                {kpi.description}
-                              </p>
-                            )}
-                          </div>
-                          <Icon className="w-12 h-12 opacity-80" style={{ color: kpi.color || '#3b82f6' }} />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0 bg-white rounded-t-xl">
+          <h2 className="text-2xl font-bold text-slate-800">{modal.title}</h2>
+          <button 
+            onClick={closeModal} 
+            className="flex items-center justify-center w-10 h-10 text-slate-500 hover:text-white hover:bg-red-500 transition-all rounded-lg border-2 border-slate-300 hover:border-red-500"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="overflow-y-auto flex-1 px-6 py-6">
+          <div className="space-y-6">
+            {/* Filters Section */}
+            {modal.drillDownData.filters && modal.drillDownData.filters.length > 0 && (
+              <FilterControls 
+                filters={modal.drillDownData.filters} 
+                onFilterChange={handleFilterChange}
+              />
+            )}
+
+            {/* KPI Cards Row - UPDATED to show filtered count */}
+            {/* {modal.drillDownData.cards && modal.drillDownData.cards.length > 0 && (
+              <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(modal.drillDownData.cards.length, 3)}, 1fr)` }}>
+                {modal.drillDownData.cards.map((kpi, idx) => {
+                  const Icon = getIcon(kpi.icon);
+                  const value = calculateKPI(kpi);
+                  
+                  return (
+                    <div 
+                      key={idx}
+                      className="bg-white rounded-lg shadow-md p-6 border-l-4"
+                      style={{ borderLeftColor: kpi.color || '#3b82f6' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-600 mb-1">{kpi.label}</p>
+                          <p className="text-3xl font-bold text-slate-800">{value}</p>
+                          {kpi.description && (
+                            <p className="text-xs mt-1" style={{ color: kpi.color || '#3b82f6' }}>
+                              {kpi.description}
+                            </p>
+                          )}
                         </div>
+                        <Icon className="w-12 h-12 opacity-80" style={{ color: kpi.color || '#3b82f6' }} />
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    </div>
+                  );
+                })}
+              </div>
+            )} */}
 
-              {/* Charts Row */}
-              {modal.drillDownData.charts && modal.drillDownData.charts.length > 0 && (
-                <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(modal.drillDownData.charts.length, 2)}, 1fr)` }}>
-                  {modal.drillDownData.charts.map((chart, idx) => {
-                    const Icon = getIcon(chart.icon);
-                    const chartData = generateChartData(chart);
-                    
-                    return (
-                      <div key={idx} className="bg-white rounded-lg shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-                          <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
-                          {chart.title}
-                        </h3>
+            {/* Charts Row - UPDATED to use filtered data */}
+            {modal.drillDownData.charts && modal.drillDownData.charts.length > 0 && (
+              <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${Math.min(modal.drillDownData.charts.length, 2)}, 1fr)` }}>
+                {modal.drillDownData.charts.map((chart, idx) => {
+                  const Icon = getIcon(chart.icon);
+                  const filteredChartData = getFilteredChartData(chart); // CHANGED: Use filtered data
+                  
+                  return (
+                    <div key={idx} className="bg-white rounded-lg shadow-md p-6">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                        <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
+                        {chart.title}
+                        {/* Show filtered indicator */}
+                        {Object.keys(activeFilters).length > 0 && filteredChartData.length < generateChartData(chart).length && (
+                          <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
+                            Filtered: {filteredChartData.length}/{generateChartData(chart).length}
+                          </Badge>
+                        )}
+                      </h3>
+                      {filteredChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={chart.height || 300}>
-                          {renderChart(chartData, chart)}
+                          {renderChart(filteredChartData, chart)}
                         </ResponsiveContainer>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      ) : (
+                        <div className="flex items-center justify-center h-64 text-slate-400">
+                          <div className="text-center">
+                            <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>No data matches the current filters</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-              {/* Insights Row - UPDATED */}
-              {modal.drillDownData.insights && (
-                <InsightsSection insights={modal.drillDownData.insights} />
-              )}
-            </div>
+            {/* Insights Row */}
+            {modal.drillDownData.insights && (
+              <InsightsSection insights={modal.drillDownData.insights} />
+            )}
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12">
