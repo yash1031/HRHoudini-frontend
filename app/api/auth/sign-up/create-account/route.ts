@@ -4,17 +4,23 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, company_email } = body;
+    const { full_name, company_email, newsletter_subscribed } = body;
 
     if (!full_name) {
       return NextResponse.json(
-        { error: "full_name are required" },
+        { error: "full_name is required" },
         { status: 400 }
       );
     }
     if (!company_email) {
       return NextResponse.json(
-        { error: "company_email are required" },
+        { error: "company_email is required" },
+        { status: 400 }
+      );
+    }
+    if (newsletter_subscribed === null) {
+      return NextResponse.json(
+        { error: "newsletter_subscribed is required" },
         { status: 400 }
       );
     }
@@ -25,7 +31,7 @@ export async function POST(req: Request) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name, company_email }),
+        body: JSON.stringify({ full_name, company_email, newsletter_subscribed}),
       }
     );
 

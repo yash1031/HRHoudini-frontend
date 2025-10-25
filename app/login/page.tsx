@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,6 +46,8 @@ export default function LoginPage() {
   const [verifyTokenError, setVerifyTokenError] = useState<string | null>(null);
   const [accountCreationError, setAccountCreationError] = useState<string | null>(null);
   const [tokenRequestError, setTokenRequestError] = useState<string | null>(null);
+  const [agreedToTermsAndPrivacyPolicy, setAgreedToTermsAndPrivacyPolicy] = useState<boolean>(false);
+  const [newsLetterSubscribed, setNewsLetterSubscribed] = useState<boolean>(false);
   const {updateUser} = useUserContext()
   const restrictAccountCreation= false
 
@@ -119,6 +122,7 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     name: "",
     companyEmail: "",
+    newsLetterSubscribed: false,
     company: "",
     role: "",
   })
@@ -149,6 +153,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           full_name: formData.name,          // state variable from form input
           company_email: formData.companyEmail,  // state variable from form input
+          newsletter_subscribed: formData.newsLetterSubscribed
         }),
       });
 
@@ -694,13 +699,58 @@ export default function LoginPage() {
                           </select>
                         </div>
                       )} */}
-
+                      <div className="flex items-start space-x-2">
+                        <input
+                          type="checkbox"
+                          id="termsAndPolicy"
+                          checked={agreedToTermsAndPrivacyPolicy}
+                          onChange={(e) => setAgreedToTermsAndPrivacyPolicy(e.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          required
+                        />
+                        <label htmlFor="termsAndPolicy" className="text-sm text-gray-600">
+                          By creating an account, you agree to our{" "}
+                          <Link
+                            href="/login/terms-of-service"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 underline"
+                          >
+                            Terms of Service
+                          </Link>{" "}
+                          and{" "}
+                          <Link
+                            href="/login/privacy-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 underline"
+                          >
+                            Privacy Policy
+                          </Link>
+                        </label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <input
+                          type="checkbox"
+                          id="subscribeToNewsLetter"
+                          checked={newsLetterSubscribed}
+                          onChange={(e) => 
+                            {
+                              setNewsLetterSubscribed(e.target.checked)
+                              setFormData({ ...formData, newsLetterSubscribed: e.target.checked})
+                            }}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"    
+                        />
+                        <label htmlFor="subscribeToNewsLetter" className="text-sm text-gray-600">
+                          Subscribe to our newsletter for HR insights and product updates
+                        </label>
+                      </div>
                       {accountCreationError && <p className="text-red-500 text-sm mt-3 text-center">{accountCreationError}</p>}
 
                       <Button
                         type="submit"
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                        disabled={creatingAccount|| googleSignInInProgress}
+                        disabled={creatingAccount|| googleSignInInProgress || !agreedToTermsAndPrivacyPolicy}
                       >
                         {creatingAccount ? "Creating Account..." : "Create Account"}
                       </Button>
@@ -738,11 +788,11 @@ export default function LoginPage() {
                       </Button>
                     </form>
 
-                    <div className="mt-4 text-center">
+                    {/* <div className="mt-4 text-center">
                       <p className="text-xs text-gray-500">
                         By creating an account, you agree to our Terms of Service and Privacy Policy
                       </p>
-                    </div>
+                    </div> */}
                   </CardContent>
                 </div>
               </div>
