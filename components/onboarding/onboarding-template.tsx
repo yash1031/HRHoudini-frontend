@@ -39,9 +39,6 @@ export function OnboardingTemplate({
   const [step, setStep] = useState(1)
   const [uploadedFile, setUploadedFile] = useState<any>(null)
   const [fileUploadHistoryData, setFileUploadHistoryData] = useState<any>([])
-  // const [selectedChallenges, setSelectedChallenges] = useState<string[]>(
-  //   scenarioConfig.challenges.filter((c) => c.preSelected).map((c) => c.id),
-  // )
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
   const { checkIfTokenExpired } = useUserContext()
@@ -115,50 +112,12 @@ export function OnboardingTemplate({
     setIsSidePanelOpen(false)
   }, [])
 
-  // const skipToDashboard = () => {
-  //   finishOnboarding(true)
-  // }
-
-  // const finishOnboarding = (skipped = false) => {
-  //   const onboardingData = {
-  //     user: userContext,
-  //     scenario: scenarioConfig,
-  //     uploadedFile: uploadedFile,
-  //     challenges: selectedChallenges,
-  //     completed: !skipped,
-  //     timestamp: new Date().toISOString(),
-  //   }
-
-  //   // Store in localStorage
-  //   try {
-  //     localStorage.setItem("hr-houdini-onboarding", JSON.stringify(onboardingData))
-  //   } catch (error) {
-  //     console.error("Error saving onboarding data:", error)
-  //   }
-
-  //   // Navigate to dashboard with onboarding context
-  //   const params = new URLSearchParams({
-  //     persona: userContext.role,
-  //     company: userContext.company,
-  //     challenges: selectedChallenges.join(","),
-  //     onboarding: "completed",
-  //     hasFile: uploadedFile ? "true" : "false",
-  //   })
-
-  //   router.push(`/dashboard?${params.toString()}`)
-  // }
-
   const contextValue = {
     step,
     setStep,
     uploadedFile,
     setUploadedFile,
-    // selectedChallenges,
-    // setSelectedChallenges,
     userContext,
-    // scenarioConfig,
-    // skipToDashboard,
-    // finishOnboarding,
   }
 
   return (
@@ -260,12 +219,7 @@ interface OnboardingContextType {
   setStep: (step: number) => void
   uploadedFile: any
   setUploadedFile: (file: any) => void
-  // selectedChallenges: string[]
-  // setSelectedChallenges: (challenges: string[]) => void
   userContext: UserContext
-  // scenarioConfig: OnboardingScenarioConfig
-  // skipToDashboard: () => void
-  // finishOnboarding: (skipped?: boolean) => void
 }
 
 const OnboardingContext = createContext<OnboardingContextType | null>(null)

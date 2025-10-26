@@ -20,10 +20,7 @@ import {
   BarChart3,
 } from "lucide-react"
 import { ChatInterface } from "@/components/chat-interface"
-// import { HeroInsightsTile } from "@/components/hero-insights-tile"
-// import { getDashboardConfig, saveDashboardConfig, getDefaultDashboardConfig } from "@/lib/dashboard-config"
 import { useDashboard } from '@/contexts/DashboardContext';
-// import Generated_Dashboard from './generated_dashboard'
 import Generated_Dashboard from "./generated_dashboard"
 import { Loader2 } from 'lucide-react';
 import * as Recharts from 'recharts'

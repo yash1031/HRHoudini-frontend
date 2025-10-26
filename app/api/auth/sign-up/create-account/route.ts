@@ -42,10 +42,10 @@ export async function POST(req: Request) {
       { status: response.status }
     );
   } catch (error: any) {
-    console.error("Error creating account:", error);
-    return NextResponse.json(
-      { error: "Failed to create account" },
-      { status: 500 }
-    );
+      console.error("Error creating account:", error);
+      return NextResponse.json(
+        { error: "Failed to create account" },
+        { status: 500 }
+      );
   }
 }

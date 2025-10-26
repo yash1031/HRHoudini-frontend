@@ -6,7 +6,7 @@ import { ArrowRight, Shield, BarChart3, Clock, Lock, CheckCircle, MessageSquare,
 import { useOnboarding } from "../onboarding-template"
 
 export function WelcomeStep() {
-  const { setStep, userContext, scenarioConfig } = useOnboarding()
+  const { setStep } = useOnboarding()
 
   return (
     <Card>

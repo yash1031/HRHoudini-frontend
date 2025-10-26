@@ -10,29 +10,10 @@ import { Label } from "@/components/ui/label"
 import { BarChart3, TrendingUp, Users, MessageCircle, CloudCog } from "lucide-react"
 import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { useUserContext } from "@/contexts/user-context"
+import GoogleIcon from "@/public/google-icon"
 import { useRouter } from "next/navigation"
 
-// Google Icon Component
-const GoogleIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path
-      fill="#4285F4"
-      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-    />
-  </svg>
-);
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>("")
@@ -62,26 +43,20 @@ export default function LoginPage() {
   const handleGoogleAuthComplete = async () => {
     try {
       const session = await fetchAuthSession()
-      const idToken= session.tokens?.idToken
-      const idTokenPayload = session.tokens?.idToken?.payload
+      const idToken= session?.tokens?.idToken
+      const idTokenPayload = session?.tokens?.idToken?.payload
       
       if (!idTokenPayload) {
         console.log("User is not logged in yet")
         return;
       }
       
-      const userDetails = {
-        cognitoSub: idTokenPayload.sub as string,
-        email: idTokenPayload.email as string,
-        name: idTokenPayload.name as string,
-        emailVerified: idTokenPayload.email_verified === true || idTokenPayload.email_verified === 'true'
-      }
+      const email= String(idTokenPayload?.email) 
       
-      console.log("User details:", userDetails)
-      const res = await fetch("/api/auth/sign-in/socials", {
+      const res = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: userDetails.email  })
+        body: JSON.stringify({ email: email  })
       });
       const data = await res.json();
       console.log("data.success", data.success, "res.ok", res.ok)
@@ -91,19 +66,17 @@ export default function LoginPage() {
         localStorage.setItem("id_token", idToken?String(idToken):'')
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
-        localStorage.setItem("user_email", userDetails.email)
-        const user= {
-          name: `${data.first_name} ${data.last_name}`,
-          email: userDetails.email,
-          company: "HealthServ",
-          role: "User",
-          persona: "",
-          avatar: "DU",
-          isLoading: true,
-        }
-        updateUser(user)
-        localStorage.setItem("loggedInUser", JSON.stringify(user));
-        // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+        localStorage.setItem("user_email", email)
+        // const user= {
+        //   name: `${data.first_name} ${data.last_name}`,
+        //   email: email,
+        //   company: "HealthServ",
+        //   role: "User",
+        //   persona: "",
+        //   avatar: "DU",
+        //   isLoading: true,
+        // }
+        // updateUser(user)
         window.location.href = `/onboarding-upload-only`;
       } else {
         console.log("Error setting up access token")
@@ -255,7 +228,7 @@ export default function LoginPage() {
         localStorage.setItem("id_token", data.id_token)
         localStorage.setItem("access_token_expiry", data.expires_in)
 
-        const resSignIn = await fetch("/api/auth/sign-in/socials", {
+        const resSignIn = await fetch("/api/auth/sign-in", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email  })
@@ -266,18 +239,17 @@ export default function LoginPage() {
           console.log("Login Successfuly:", JSON.stringify(dataSignIn), "res status:", resSignIn.status)
           localStorage.setItem("user_id", dataSignIn.user_id)
           localStorage.setItem("user_name", `${dataSignIn.first_name} ${dataSignIn.last_name}`)
-          const user= {
-            name: `${dataSignIn.first_name} ${dataSignIn.last_name}`,
-            email: email,
-            company: "HealthServ",
-            role: "User",
-            persona: "",
-            avatar: "DU",
-            isLoading: true,
-          }
-          updateUser(user)
-          localStorage.setItem("loggedInUser", JSON.stringify(user));
-          // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+          localStorage.setItem("user_email", email)
+          // const user= {
+          //   name: `${dataSignIn.first_name} ${dataSignIn.last_name}`,
+          //   email: email,
+          //   company: "HealthServ",
+          //   role: "User",
+          //   persona: "",
+          //   avatar: "DU",
+          //   isLoading: true,
+          // }
+          // updateUser(user)
           window.location.href = `/onboarding-upload-only`;
           setIsVerifying(false);
           console.log("User Logged In Successfully")
@@ -308,8 +280,8 @@ export default function LoginPage() {
     }
   };
 
-    // Google OAuth handlers
-  const handleGoogleSignInSignUp = async () => {
+    
+  const handleGoogleSignUp = async () => {
     // Amplify.configure(amplifyConfig as ResourcesConfig)
     try {
       localStorage.setItem("is-google-logged-in","true");
@@ -317,6 +289,24 @@ export default function LoginPage() {
       console.log("Redirecting to Home Page")
       await signInWithRedirect({
         provider: 'Google',
+        customState: JSON.stringify({ action: 'signup' })
+      });
+      
+    } catch (error) {
+      console.error('Error signing in:', error);
+      
+    }
+  };
+   
+  const handleGoogleSignIn = async () => {
+    // Amplify.configure(amplifyConfig as ResourcesConfig)
+    try {
+      localStorage.setItem("is-google-logged-in","true");
+      setGoogleSignInInProgress(true)
+      console.log("Redirecting to Home Page")
+      await signInWithRedirect({
+        provider: 'Google',
+        customState: JSON.stringify({ action: 'signin' })
       });
       
     } catch (error) {
@@ -470,7 +460,7 @@ export default function LoginPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleGoogleSignInSignUp}
+                        onClick={handleGoogleSignIn}
                         className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
                         disabled={restrictAccountCreation || requestingToken|| googleSignInInProgress}
                       >
@@ -501,11 +491,11 @@ export default function LoginPage() {
                       </div>
                     </div> */}
 
-                    <div className="mt-4 text-center">
+                    {/* <div className="mt-4 text-center">
                       <p className="text-xs text-gray-500">
                         By signing in, you agree to our Terms of Service and Privacy Policy
                       </p>
-                    </div>
+                    </div> */}
                   </CardContent>
                 </div>
 
@@ -742,7 +732,7 @@ export default function LoginPage() {
                           className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"    
                         />
                         <label htmlFor="subscribeToNewsLetter" className="text-sm text-gray-600">
-                          Subscribe to our newsletter for HR insights and product updates
+                          Subscribe to our newsletter
                         </label>
                       </div>
                       {accountCreationError && <p className="text-red-500 text-sm mt-3 text-center">{accountCreationError}</p>}
@@ -769,9 +759,9 @@ export default function LoginPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleGoogleSignInSignUp}
+                        onClick={handleGoogleSignUp}
                         className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                        disabled={restrictAccountCreation || creatingAccount || googleSignInInProgress}
+                        disabled={restrictAccountCreation || creatingAccount || googleSignInInProgress || !agreedToTermsAndPrivacyPolicy}
                       >
                         <GoogleIcon className="w-5 h-5 mr-3" />
                         {googleSignInInProgress? 'Signing up..': 'Sign up with Google'}

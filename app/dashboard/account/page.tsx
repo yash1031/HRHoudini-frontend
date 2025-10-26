@@ -17,15 +17,6 @@ export default function AccountPage() {
   const [fileUploads, setFileUploads]= useState<String>('');
   const [chatMessages, setChatMessages]= useState<String>('');
   const [isEditing, setIsEditing] = useState(false)
-  const [companyData, setCompanyData] = useState({
-    companyName: user.company || "TechCorp Solutions",
-    industry: user.company === "HealthServ Solutions" ? "Healthcare Services" : "Technology",
-    size: user.company === "HealthServ Solutions" ? "120 employees" : "500-1000 employees",
-    address:
-      user.company === "HealthServ Solutions"
-        ? "456 Healthcare Blvd, Boston, MA 02101"
-        : "123 Business Ave, San Francisco, CA 94105",
-  })
   const { checkIfTokenExpired } = useUserContext()
 
   // Mock trial data

@@ -23,78 +23,78 @@ import { useUserContext } from "@/contexts/user-context"
 import { useDashboard } from '@/contexts/DashboardContext';
 
 // Available KPI panels
-const AVAILABLE_KPIS = [
-  {
-    id: "turnover-rate",
-    label: "Turnover Rate",
-    description: "Monthly/quarterly employee turnover",
-    icon: TrendingDown,
-    category: "retention",
-  },
-  {
-    id: "employee-productivity",
-    label: "Employee Productivity Rate",
-    description: "Output per employee metrics",
-    icon: TrendingUp,
-    category: "performance",
-  },
-  {
-    id: "salary-increase",
-    label: "Salary Increase Rate",
-    description: "Compensation growth trends",
-    icon: DollarSign,
-    category: "compensation",
-  },
-  {
-    id: "engagement-score",
-    label: "Employee Engagement Score",
-    description: "Survey-based engagement metrics",
-    icon: Users,
-    category: "engagement",
-  },
-  {
-    id: "training-cost",
-    label: "Training Cost Per Employee",
-    description: "L&D investment per person",
-    icon: Award,
-    category: "development",
-  },
-  {
-    id: "revenue-per-employee",
-    label: "Revenue Per Employee",
-    description: "Business impact per person",
-    icon: DollarSign,
-    category: "business",
-  },
-  {
-    id: "cost-per-hire",
-    label: "Cost Per Hire",
-    description: "Total recruiting investment",
-    icon: Briefcase,
-    category: "recruiting",
-  },
-  {
-    id: "absenteeism-rate",
-    label: "Absenteeism Rate",
-    description: "Unplanned absence tracking",
-    icon: Calendar,
-    category: "wellness",
-  },
-  {
-    id: "offer-acceptance",
-    label: "Offer Acceptance Rate",
-    description: "Recruiting conversion success",
-    icon: Target,
-    category: "recruiting",
-  },
-  {
-    id: "time-to-fill",
-    label: "Time to Fill",
-    description: "Days to fill open positions",
-    icon: Clock,
-    category: "recruiting",
-  },
-]
+// const AVAILABLE_KPIS = [
+//   {
+//     id: "turnover-rate",
+//     label: "Turnover Rate",
+//     description: "Monthly/quarterly employee turnover",
+//     icon: TrendingDown,
+//     category: "retention",
+//   },
+//   {
+//     id: "employee-productivity",
+//     label: "Employee Productivity Rate",
+//     description: "Output per employee metrics",
+//     icon: TrendingUp,
+//     category: "performance",
+//   },
+//   {
+//     id: "salary-increase",
+//     label: "Salary Increase Rate",
+//     description: "Compensation growth trends",
+//     icon: DollarSign,
+//     category: "compensation",
+//   },
+//   {
+//     id: "engagement-score",
+//     label: "Employee Engagement Score",
+//     description: "Survey-based engagement metrics",
+//     icon: Users,
+//     category: "engagement",
+//   },
+//   {
+//     id: "training-cost",
+//     label: "Training Cost Per Employee",
+//     description: "L&D investment per person",
+//     icon: Award,
+//     category: "development",
+//   },
+//   {
+//     id: "revenue-per-employee",
+//     label: "Revenue Per Employee",
+//     description: "Business impact per person",
+//     icon: DollarSign,
+//     category: "business",
+//   },
+//   {
+//     id: "cost-per-hire",
+//     label: "Cost Per Hire",
+//     description: "Total recruiting investment",
+//     icon: Briefcase,
+//     category: "recruiting",
+//   },
+//   {
+//     id: "absenteeism-rate",
+//     label: "Absenteeism Rate",
+//     description: "Unplanned absence tracking",
+//     icon: Calendar,
+//     category: "wellness",
+//   },
+//   {
+//     id: "offer-acceptance",
+//     label: "Offer Acceptance Rate",
+//     description: "Recruiting conversion success",
+//     icon: Target,
+//     category: "recruiting",
+//   },
+//   {
+//     id: "time-to-fill",
+//     label: "Time to Fill",
+//     description: "Days to fill open positions",
+//     icon: Clock,
+//     category: "recruiting",
+//   },
+// ]
 
 interface SelectedKPIInfo {
   label: string;
@@ -163,10 +163,9 @@ export function KPIsStep() {
 
       localStorage.setItem("from_history","false")
       let dashboardUrl = `/dashboard?${params.toString()}`
-      // let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
       router.push(dashboardUrl)
 
-      if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
+      // if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
         console.log("API Dashboard call is in progress")
         console.log("Selected KPIs are", selectedKPIs)
         
@@ -190,7 +189,7 @@ export function KPIsStep() {
               selected_kpis: selectedKPIWithDesc
             }),
         });
-        wb.onmessage = async (evt) => {
+        wb.onmessage = async (evt:any) => {
           try {
             const msg = JSON.parse(evt.data);
             console.log('[WS] message', msg);
@@ -198,14 +197,6 @@ export function KPIsStep() {
 
               console.log("[WS] message: Insight Dashboard is generated")
               console.log("event from websockets is", msg)
-              // if(!resCreateDash.ok){
-              //   console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
-              //   setIsLoading(false)
-              //   setErrorDash('Failed to generate dashboard. Please try uploading file again');
-              //   return;
-              // }
-              // const createDashboardData = await resCreateDash.json();
-              // const dataCreateDashboard= await createDashboardData.data
               const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
 
               // console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
@@ -271,67 +262,8 @@ export function KPIsStep() {
             console.log('[WS] raw', evt.data);
           }
         };
-        // const currentPlanRes = await resCurrentPlan;
-        // if(!resCreateDash.ok){
-        //   console.log("Error generating dashboard. It needs to be resolved. From kpis-step")
-        //   setIsLoading(false)
-        //   setErrorDash('Failed to generate dashboard. Please try uploading file again');
-        //   return;
-        // }
-        // const createDashboardData = await resCreateDash.json();
-        // const dataCreateDashboard= await createDashboardData.data
+      // }
 
-        // console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
-        
-        // // if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
-        // const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
-        // console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
-        // // THIS IS THE KEY LINE - Pass the code to context
-        // setIsLoading(false)
-        // // localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
-        // setErrorDash(null);
-        // setDashboard_data(dataCreateDashboard.analytics);
-        
-        // const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //         user_id: localStorage.getItem("user_id"),
-        //         action_name: "file_upload",
-        //         tokens_to_consume: consumed_tokens,
-        //         event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
-        //       }),
-        // });
-        // // const currentPlanRes = await resCurrentPlan;
-        // if(!resConsumeTokens.ok){
-        //   console.error("Unable to update dashboard creation tokens for the user")
-        //   return;
-        // }
-        // const consumeTokensData = await resConsumeTokens.json();
-        // const dataConsumeTokens= await consumeTokensData.data
-        
-        // console.log("Dashboard creation token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
-        // const resStoreDash = await fetch("/api/insights/store", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //       user_id: localStorage.getItem("user_id"),
-        //       session_id: localStorage.getItem("session_id"),
-        //       s3_location: localStorage.getItem("s3Key"),
-        //       analytical_json_output: dataCreateDashboard.analytics
-        //     }),
-        // });
-        // // const currentPlanRes = await resCurrentPlan;
-        // if(!resStoreDash.ok){
-        //   console.error("Unable to store dashboard for this session")
-        //   return;
-        // }
-        // const storeDashData = await resStoreDash.json();
-        // const dataStoreDash= await storeDashData.data
-        // console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
-      }
-
-      // router.push(`/dashboard-upload-only?${params.toString()}`)
     }catch(error){
       console.log("Error is", error)
     }
