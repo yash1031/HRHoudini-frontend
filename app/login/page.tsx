@@ -47,7 +47,10 @@ export default function LoginPage() {
       const idTokenPayload = session?.tokens?.idToken?.payload
       
       if (!idTokenPayload) {
+        console.log("idTokenPayload empty")
         console.log("User is not logged in yet")
+        localStorage.removeItem("is-google-logged-in")
+        setGoogleSignInInProgress(false)
         return;
       }
       
@@ -272,11 +275,13 @@ export default function LoginPage() {
           setVerifyTokenError(null);
         }, 5000)
       }
+      localStorage.getItem("user-session")
       localStorage.removeItem("is-google-logged-in")
     } catch (err) {
       console.error("Verification error:", err);
       setVerifyTokenError("Something went wrong. Try again.");
       localStorage.removeItem("is-google-logged-in")
+      localStorage.getItem("user-session")
     }
   };
 

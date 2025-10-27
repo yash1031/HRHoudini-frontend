@@ -189,7 +189,7 @@ export function KPIsStep() {
               selected_kpis: selectedKPIWithDesc
             }),
         });
-        wb.onmessage = async (evt:any) => {
+        wb.onmessage = async (evt) => {
           try {
             const msg = JSON.parse(evt.data);
             console.log('[WS] message', msg);
