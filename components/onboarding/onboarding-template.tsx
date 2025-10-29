@@ -1,13 +1,13 @@
 "use client"
 
 import type React from "react"
-
 import { useCallback,useState, useRef, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle, Menu, X  } from "lucide-react"
 // import type { OnboardingScenarioConfig } from "@/lib/demo-config"
 import FileUploadHistory from './FileUploadHistory'
 import { useUserContext } from "@/contexts/user-context"
+import { apiFetch } from "@/lib/api/client";
 
 interface UserContext {
   name: string
@@ -41,7 +41,7 @@ export function OnboardingTemplate({
   const [fileUploadHistoryData, setFileUploadHistoryData] = useState<any>([])
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
-  const { checkIfTokenExpired } = useUserContext()
+  const { getValidIdToken, checkIfTokenExpired } = useUserContext()
 
   // Close side panel when clicking outside
   useEffect(() => {
@@ -66,26 +66,38 @@ export function OnboardingTemplate({
   },[])
 
   const fetchFileUploadHistory = useCallback(async () =>{
+    try{
      // Store file upload history
       
-      let access_token= localStorage.getItem("id_token")
-      if(!access_token) console.log("access_token not available")
-      console.log("access_token in /api/insights/fetch-all-sessions", access_token)
-      const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}` },
-          body: JSON.stringify({
-                user_id: localStorage.getItem("user_id"),
-          }),
+      // let access_token= await getValidIdToken()
+      // let access_token= localStorage.getItem("id_token")
+      // if(!access_token) console.log("access_token not available")
+      // console.log("access_token in /api/insights/fetch-all-sessions", access_token)
+      // const resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
+      let resFetchFileUploadHistory;
+      try{
+        resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            // headers: { "Content-Type": "application/json", 
+            //     "authorization": `Bearer ${access_token}` },
+            body: JSON.stringify({
+                  user_id: localStorage.getItem("user_id"),
+            }),
         });
-        // const currentPlanRes = await resCurrentPlan;
-        if(!resFetchFileUploadHistory.ok){
-          console.error("Unable to fetch all fileUpload sessions for the user")
-          return;
-        }
-        const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
-        const dataFetchFileUploadHistory= await fetchFileUploadHistoryData.data
+      }catch (error) {
+        // If apiFetch throws, the request failed
+        console.error("Unable to fetch all fileUpload sessions for the user")
+        return;
+      }
+        // if(!resFetchFileUploadHistory.ok){
+        //   console.error("Unable to fetch all fileUpload sessions for the user")
+        //   return;
+        // }
+        // const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
+        // const dataFetchFileUploadHistory= await fetchFileUploadHistoryData.data
+        const dataFetchFileUploadHistory= await resFetchFileUploadHistory.data
+
       // if (!resFetchFileUploadHistory.ok) throw new Error("Failed to fetch user files");
       // const dataFetchFileUploadHistory = await resFetchFileUploadHistory.json();
       console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
@@ -101,6 +113,11 @@ export function OnboardingTemplate({
       })
       console.log("fileUploadData is", fileUploadData)
       setFileUploadHistoryData(fileUploadData)
+    }catch (error) {
+      // If apiFetch throws, the request failed
+      console.error("Received Error", error);
+      return;
+    }
 
   },[])
 

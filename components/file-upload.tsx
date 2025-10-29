@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
+import { apiFetch } from "@/lib/api/client";
 
 
 interface FileUploadProps {
@@ -188,29 +189,36 @@ export function FileUpload({
         // checkFileUpoadQuotas()
 
         console.log("CheckFileUploadQuotas Triggered")
-        let access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available for get current plan")
-        console.log("Getting current plan access_token received from checkIfTokenExpired", access_token)
-        const currentPlanRes = await fetch("/api/billing/get-current-plan", {
-            method: "POST",
-            headers: { 
-              "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`,
-            },
-            body: JSON.stringify({
-                  user_id: localStorage.getItem("user_id")
-                }),
-          });
-
-        console.log("Fetched current plan of user", currentPlanRes)
-
-        if(!currentPlanRes?.ok){
+        // let access_token= localStorage.getItem("id_token")
+        // if(!access_token) console.log("access_token not available for get current plan")
+        // console.log("Getting current plan access_token received from checkIfTokenExpired", access_token)
+        let currentPlanRes
+        try{
+            currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                    user_id: localStorage.getItem("user_id")
+                  }),
+            });
+        }catch (error) {
+          // If apiFetch throws, the request failed
           setError("Unable to check remaining tokens")
           return;
         }
 
-        const dataCurrentPlan = await currentPlanRes.json();
-        const currentPlanData= await dataCurrentPlan.data
+        console.log("Fetched current plan of user", currentPlanRes)
+
+        // if(!currentPlanRes?.ok){
+        //   setError("Unable to check remaining tokens")
+        //   return;
+        // }
+
+        // const dataCurrentPlan = await currentPlanRes.json();
+        // const currentPlanData= await dataCurrentPlan.data
+        const currentPlanData= await currentPlanRes.data
         
         console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
         console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);

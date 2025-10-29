@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { apiFetch } from "@/lib/api/client";
 
 function VerifyContent() {
     const [isLoading, setIsLoading] = useState(true)

@@ -27,6 +27,8 @@ import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
 import sample_dashboard_data from "@/public/sample_dashboard_data"
 import { useUserContext } from "@/contexts/user-context"
+import { apiFetch } from "@/lib/api/client";
+
 
 declare global {
   interface Window {
@@ -216,24 +218,32 @@ export default function Dashboard() {
   }, [])
 
   const fetchFileUploadHistory = async (session_id: string) =>{
+    try{
        // Store file upload history
        
-        let access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available")
-        const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`, },
-            body: JSON.stringify({
-                  user_id: localStorage.getItem("user_id"),
-            }),
-          });
-          if(!resFetchFileUploadHistory.ok){
-            console.error("Unable to fetch all fileUpload sessions for the user")
-            return;
-          }
-          const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
-          const dataFetchFileUploadHistory= await fetchFileUploadHistoryData?.data
+        // let access_token= localStorage.getItem("id_token")
+        // if(!access_token) console.log("access_token not available")
+        let resFetchFileUploadHistory
+        try{
+          resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                    user_id: localStorage.getItem("user_id"),
+              }),
+            });
+        }catch (error) {
+          // If apiFetch throws, the request failed
+          console.error("Received Error", error);
+          return;
+        }
+          // if(!resFetchFileUploadHistory.ok){
+          //   console.error("Unable to fetch all fileUpload sessions for the user")
+          //   return;
+          // }
+          // const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
+          // const dataFetchFileUploadHistory= await fetchFileUploadHistoryData?.data
+          const dataFetchFileUploadHistory= await resFetchFileUploadHistory?.data
         console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
         const dashboardHistoryData= await dataFetchFileUploadHistory?.data;
         dashboardHistoryData.map((data:any, id:any)=>{
@@ -249,7 +259,11 @@ export default function Dashboard() {
             
           }
         })
-  
+      }catch (error) {
+        // If apiFetch throws, the request failed
+        console.error("Received Error ", error);
+        return;
+      }
     }
 
   const calculateChatHeight = () => {

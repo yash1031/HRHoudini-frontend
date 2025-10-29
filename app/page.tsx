@@ -54,7 +54,7 @@ export default function HomePage() {
   const [scenarios, setScenarios] = useState<DemoScenario[]>([])
   const [scenarioFilter, setScenarioFilter] = useState<"active" | "inactive" | "all">("active")
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false)
-  const { isTokenValid, renewAccessToken, setAccessToken } = useUserContext()
+  const { isTokenValid, setAccessToken } = useUserContext()
   useEffect(() => {
     // fetchData()
     checkIfUserLoggedIn()

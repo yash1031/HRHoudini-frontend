@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { CreditCard, Building, Users, Calendar, Download } from "lucide-react"
 import { useUserContext } from "@/contexts/user-context"
 import Link from "next/link"
+import { apiFetch } from "@/lib/api/client";
 
 export default function AccountPage() {
   const { user } = useUserContext()
@@ -31,38 +32,49 @@ export default function AccountPage() {
   },[])
 
   const getUserTokens = async () =>{
+    try{
+      console.log("CheckFileUploadQuotas Triggered")
+      // let access_token= localStorage.getItem("id_token")
+      // if(!access_token) console.log("access_token not available")
+      // console.log("", access_token)
+      let currentPlanRes
+      try{
+        currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                  user_id: localStorage.getItem("user_id")
+            }),
+          });
+      }catch (error) {
+      // If apiFetch throws, the request failed
+        console.log("Unable to check remaining tokens")
+        return;
+      }
 
-    console.log("CheckFileUploadQuotas Triggered")
-    let access_token= localStorage.getItem("id_token")
-    if(!access_token) console.log("access_token not available")
-    console.log("", access_token)
 
-    const currentPlanRes = await fetch("/api/billing/get-current-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`, },
-        body: JSON.stringify({
-              user_id: localStorage.getItem("user_id")
-        }),
-      });
+      // if(!currentPlanRes.ok){
+      //   console.log("Unable to check remaining tokens")
+      //   return;
+      // }
 
-
-    if(!currentPlanRes.ok){
-      console.log("Unable to check remaining tokens")
-      return;
-    }
-
-    const dataCurrentPlan = await currentPlanRes.json();
-    const currentPlanData= await dataCurrentPlan?.data
-    
-    console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
-    setTokensRemaining(currentPlanData?.subscriptions[0]?.remaining_tokens)
-    setChatMessages(currentPlanData?.subscriptions[0]?.usage_stats?.chat_messages)
-    setFileUploads(currentPlanData?.subscriptions[0]?.usage_stats?.file_uploads)
-    // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
-    //   setError("File upload quotas are exhausted.")
-    //   return;
-    // }
+      // const dataCurrentPlan = await currentPlanRes.json();
+      // const currentPlanData= await dataCurrentPlan?.data
+      const currentPlanData= await currentPlanRes?.data
+      
+      console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
+      setTokensRemaining(currentPlanData?.subscriptions[0]?.remaining_tokens)
+      setChatMessages(currentPlanData?.subscriptions[0]?.usage_stats?.chat_messages)
+      setFileUploads(currentPlanData?.subscriptions[0]?.usage_stats?.file_uploads)
+      // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
+      //   setError("File upload quotas are exhausted.")
+      //   return;
+      // }
+    }catch (error) {
+        // If apiFetch throws, the request failed
+        console.error("Received Error ", error);
+        return;
+      }
   }
 
   return (

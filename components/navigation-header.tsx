@@ -160,14 +160,13 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       // router.push('/')
 
       
-      let access_token= localStorage.getItem("id_token")
-      if(!access_token) console.log("access_token not available")
+      // let access_token= localStorage.getItem("id_token")
+      // if(!access_token) console.log("access_token not available")
       // Call the sign-out route
       const response =  fetch('/api/auth/sign-out', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', 
-           "authorization": `Bearer ${access_token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ user_id }),
         credentials: 'include', // Important for HTTPOnly cookies

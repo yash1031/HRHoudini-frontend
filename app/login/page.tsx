@@ -12,6 +12,7 @@ import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser, fetchUse
 import { useUserContext } from "@/contexts/user-context"
 import GoogleIcon from "@/public/google-icon"
 import { useRouter } from "next/navigation"
+import { setTokens } from "@/lib/auth/tokens";
 
 
 
@@ -45,6 +46,9 @@ export default function LoginPage() {
       const session = await fetchAuthSession()
       const idToken= session?.tokens?.idToken
       const idTokenPayload = session?.tokens?.idToken?.payload
+      const accessToken = session?.tokens?.accessToken // Add this line
+      // const refreshToken = session?.tokens?.refreshToken // Add this line
+
       
       if (!idTokenPayload) {
         console.log("idTokenPayload empty")
@@ -65,21 +69,26 @@ export default function LoginPage() {
       console.log("data.success", data.success, "res.ok", res.ok)
       if (res.ok && data.success) {
         console.log("Creating tokens is successful, data is:", JSON.stringify(data), "res status:", res.status)
-        localStorage.setItem("access_token", data.access_token)
-        localStorage.setItem("id_token", idToken?String(idToken):'')
+        setTokens({
+          accessToken: accessToken? String(accessToken) : "",         // from your backend
+          idToken: idToken ? String(idToken) : "",// from Amplify session
+          // If your sign-in returns expires_in (seconds), pass it:
+          // exp: data.expires_in
+        });
+        // await fetch("/api/auth/set-session", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   credentials: "include",
+        //   body: JSON.stringify({
+        //     refresh_token: data.refresh_token,
+        //     max_age_seconds: 30 * 24 * 60 * 60, // match your Cognito RT TTL
+        //   }),
+        // });
+        // localStorage.setItem("access_token", data.access_token)
+        // localStorage.setItem("id_token", idToken?String(idToken):'')
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
         localStorage.setItem("user_email", email)
-        // const user= {
-        //   name: `${data.first_name} ${data.last_name}`,
-        //   email: email,
-        //   company: "HealthServ",
-        //   role: "User",
-        //   persona: "",
-        //   avatar: "DU",
-        //   isLoading: true,
-        // }
-        // updateUser(user)
         window.location.href = `/onboarding-upload-only`;
       } else {
         console.log("Error setting up access token")
@@ -227,9 +236,26 @@ export default function LoginPage() {
       // if (res.ok && data.success) {
         console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data))
 
-        localStorage.setItem("access_token", data.access_token)
-        localStorage.setItem("id_token", data.id_token)
-        localStorage.setItem("access_token_expiry", data.expires_in)
+        const expRaw = Number(data.expires_in); // you already store this as 'access_token_expiry'
+        setTokens({
+          accessToken: data.access_token,
+          idToken: data.id_token,
+          exp: isFinite(expRaw) ? expRaw : undefined, // supports either 'expires_in' or absolute 'exp'
+        });
+
+        // await fetch("/api/auth/set-session", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   credentials: "include",
+        //   body: JSON.stringify({
+        //     refresh_token: data.refresh_token,
+        //     max_age_seconds: 30 * 24 * 60 * 60, // match your Cognito RT TTL
+        //   }),
+        // });
+
+        // localStorage.setItem("access_token", data.access_token)
+        // localStorage.setItem("id_token", data.id_token)
+        // localStorage.setItem("access_token_expiry", data.expires_in)
 
         const resSignIn = await fetch("/api/auth/sign-in", {
           method: "POST",
