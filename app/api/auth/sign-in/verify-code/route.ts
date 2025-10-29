@@ -34,7 +34,7 @@ export async function POST(req: Request) {
           code: code,
           session: session,
         }),
-        // credentials: 'include'
+        credentials: 'include'
       }
     );
 
