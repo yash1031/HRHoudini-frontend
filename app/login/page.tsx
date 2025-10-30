@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { BarChart3, TrendingUp, Users, MessageCircle, CloudCog } from "lucide-react"
-import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchAuthSession, signInWithRedirect} from 'aws-amplify/auth';
 import { useUserContext } from "@/contexts/user-context"
 import GoogleIcon from "@/public/google-icon"
 import { useRouter } from "next/navigation"
@@ -47,8 +47,17 @@ export default function LoginPage() {
       const idToken= session?.tokens?.idToken
       const idTokenPayload = session?.tokens?.idToken?.payload
       const accessToken = session?.tokens?.accessToken // Add this line
+      const exp = idTokenPayload?.exp; // Get expiration times (Unix timestamp in seconds)
       // const refreshToken = session?.tokens?.refreshToken // Add this line
+      console.log("Expiry received after google sign-in", exp)
+      console.log("session", session)
+      console.log("idToken", idToken)
+      console.log("accessToken", accessToken)
+      // Convert to seconds remaining from now
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      const secondsUntilExpiry = exp ? exp - nowInSeconds : 0;
 
+      console.log('Expires in:', secondsUntilExpiry, 'seconds'); // e.g., 285 seconds
       
       if (!idTokenPayload) {
         console.log("idTokenPayload empty")
@@ -73,19 +82,8 @@ export default function LoginPage() {
           accessToken: accessToken? String(accessToken) : "",         // from your backend
           idToken: idToken ? String(idToken) : "",// from Amplify session
           // If your sign-in returns expires_in (seconds), pass it:
-          // exp: data.expires_in
+          exp: secondsUntilExpiry
         });
-        // await fetch("/api/auth/set-session", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   credentials: "include",
-        //   body: JSON.stringify({
-        //     refresh_token: data.refresh_token,
-        //     max_age_seconds: 30 * 24 * 60 * 60, // match your Cognito RT TTL
-        //   }),
-        // });
-        // localStorage.setItem("access_token", data.access_token)
-        // localStorage.setItem("id_token", idToken?String(idToken):'')
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
         localStorage.setItem("user_email", email)
