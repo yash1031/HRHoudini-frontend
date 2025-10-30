@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     // Call your AWS API Gateway
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/register`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/register`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

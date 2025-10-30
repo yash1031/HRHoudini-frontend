@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     const responseCurrentPlan = await fetch(
-        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/billing/current-plan?user_id=${user_id}`,
+        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/subscriptions/usage?user_id=${user_id}`,
         {
           method: "GET",
           headers: { 

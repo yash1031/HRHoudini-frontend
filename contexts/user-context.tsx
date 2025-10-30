@@ -311,7 +311,7 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
   //     console.log("Attempting to renew access token...")
   //     console.log("Attempting to renew access token access token ", accessToken)
       
-  //     const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
+  //     const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/auth/refresh-tokens`, {
   //     // const response = await apiFetch("/api/auth/sign-in/renew-tokens", {
   //       method: "GET",
   //       headers: {
@@ -401,7 +401,7 @@ function isTokenExpired(token: string, bufferSeconds: number = 60): boolean {
 async function refreshTokens(): Promise<TokenResponse | null> {
   try {
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/refresh-token`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/refresh-token`,
       // "/api/auth/sign-in/renew-tokens",
       {
         method: "POST",

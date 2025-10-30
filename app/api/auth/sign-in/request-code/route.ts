@@ -12,8 +12,8 @@ export async function POST(req: Request) {
     }
 
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/request-token`,
-      // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/request-magic-link`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/request-token`,
+      // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/auth/request-magic-link`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

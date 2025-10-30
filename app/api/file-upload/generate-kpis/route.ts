@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = fetch(
-        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/generate-kpis`,
+        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/uploads/session/kpis`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json",

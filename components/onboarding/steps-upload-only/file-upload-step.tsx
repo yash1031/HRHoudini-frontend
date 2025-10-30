@@ -311,12 +311,12 @@ export function FileUploadStep() {
           // const kpisData= await createKPIsData.json();
           console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
           // Parse the string inside `body`
-          const parsedBody = JSON.parse(kpisData.body);
-          console.log("Parsed body:", parsedBody);
-          console.log("KPI Questions are:", parsedBody.kpi_items);
+          // const parsedBody = JSON.parse(kpisData.body);
+          // console.log("Parsed body:", parsedBody);
+          // console.log("KPI Questions are:", parsedBody.kpi_items);
 
           // Transform kpi_items to include actual icon components
-          const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
+          const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
             ...item,
             icon: Clock, // fallback to Clock
           }));
@@ -344,10 +344,10 @@ export function FileUploadStep() {
           // const aIRecommendedQuestionsData=   await AISuggestedQuesData.json();
           console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
           // Parse the string inside `body`
-          const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
-          console.log("Parsed body:", parsedBodyAIRQ);
-          console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
-          localStorage.setItem("sample_questions", JSON.stringify(parsedBodyAIRQ.sample_questions))
+          // const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
+          // console.log("Parsed body:", parsedBodyAIRQ);
+          // console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
+          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
           // setUploadProgress(100)
         // } 
         // else{

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await fetch(
-          `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/generate-insights/`,
+          `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/dashboard/generate`,
           // `https://${process.env.NEXT_PUBLIC_DASHBOARD_LAMBDA_URI}/`,
           {
             method: "POST",

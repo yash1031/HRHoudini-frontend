@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     console.log("Refresh token found, calling backend...");
 
     // Call your Lambda backend
-    const backendUrl = `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/refresh-token`;
+    const backendUrl = `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/refresh-token`;
     
     const response = await fetch(backendUrl, {
       method: "POST",

@@ -212,24 +212,24 @@ export function KPIsStep() {
 
               // access_token= localStorage.getItem("id_token")
               // if(!access_token) console.log("access_token not available")
-              let resConsumeTokens;
-              try{
-                resConsumeTokens = await apiFetch("/api/billing/consume-tokens", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json"
-                  },
-                  body: JSON.stringify({
-                        user_id: localStorage.getItem("user_id"),
-                        action_name: "file_upload",
-                        tokens_to_consume: consumed_tokens,
-                        event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
-                  }),
-                });
-              }catch (error) {
-                // If apiFetch throws, the request failed
-                console.error("Unable to update dashboard creation tokens for the user")
-                return;
-              }
+              // let resConsumeTokens;
+              // try{
+              //   resConsumeTokens = await apiFetch("/api/billing/consume-tokens", {
+              //     method: "POST",
+              //     headers: { "Content-Type": "application/json"
+              //     },
+              //     body: JSON.stringify({
+              //           user_id: localStorage.getItem("user_id"),
+              //           action_name: "file_upload",
+              //           tokens_to_consume: consumed_tokens,
+              //           event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
+              //     }),
+              //   });
+              // }catch (error) {
+              //   // If apiFetch throws, the request failed
+              //   console.error("Unable to update dashboard creation tokens for the user")
+              //   return;
+              // }
               // const currentPlanRes = await resCurrentPlan;
               // if(!resConsumeTokens.ok){
               //   console.error("Unable to update dashboard creation tokens for the user")
@@ -237,8 +237,8 @@ export function KPIsStep() {
               // }
               // const consumeTokensData = await resConsumeTokens.json();
               // const dataConsumeTokens= await consumeTokensData.data
-              const dataConsumeTokens= await resConsumeTokens.data
-              console.log("dataConsumeTokens after dashboard creation", dataConsumeTokens)
+              // const dataConsumeTokens= await resConsumeTokens.data
+              // console.log("dataConsumeTokens after dashboard creation", dataConsumeTokens)
               // access_token= localStorage.getItem("id_token")
               // if(!access_token) console.log("access_token not available")
               // console.log("Dashboard creation token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));

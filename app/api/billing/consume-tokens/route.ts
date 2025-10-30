@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await fetch(
-          `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/billing/consume-tokens`,
+          `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/billing/consume-tokens`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json",

@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     }
 
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/verify-token`,
-      // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/verify-magic-link`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/verify-token`,
+      // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/auth/verify-magic-link`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -53,6 +53,13 @@ export async function POST(req: Request) {
     const setCookieHeader = response.headers.get('Set-Cookie')|| response.headers.get('set-cookie');
     if (setCookieHeader) {
       nextResponse.headers.set('Set-Cookie', setCookieHeader);
+    } else {
+      // Fallback: If cookies are in the response body (shouldn't happen with HTTP API)
+      if (data.cookies && Array.isArray(data.cookies)) {
+        data.cookies.forEach((cookieStr: string) => {
+          nextResponse.headers.append('Set-Cookie', cookieStr);
+        });
+      }
     }
 
     return nextResponse;

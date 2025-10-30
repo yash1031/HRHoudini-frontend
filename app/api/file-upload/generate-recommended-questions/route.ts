@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const response = fetch(
     // const response = fetch(
-        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/ask-ai`,
+        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/uploads/session/ai-suggested-questions`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json",

@@ -25,8 +25,8 @@ export async function GET(req: Request) {
 
     // Call backend refresh endpoint with refresh_token in request body
     const response = await fetch('https://9tg2uhy952.execute-api.us-east-1.amazonaws.com/dev/account/refresh-token', {
-    // const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/refresh-token`, {
-    // const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
+    // const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/refresh-token`, {
+    // const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/auth/refresh-tokens`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

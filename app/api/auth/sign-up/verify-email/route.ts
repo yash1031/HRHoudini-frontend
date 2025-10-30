@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     // Call your AWS API Gateway
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/verify-email?token=${token}&user_id=${user_id}`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/verify-email?token=${token}&user_id=${user_id}`,
       {
         method: "GET",
         headers: { "Content-Type": "application/json" },
