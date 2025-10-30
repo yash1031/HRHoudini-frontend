@@ -8,6 +8,17 @@ import { CheckCircle, Menu, X  } from "lucide-react"
 import FileUploadHistory from './FileUploadHistory'
 import { useUserContext } from "@/contexts/user-context"
 import { apiFetch } from "@/lib/api/client";
+import Link from "next/link"
+import { Settings, User, Building, LogOut, ChevronDown } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import {signOut } from 'aws-amplify/auth';
 
 interface UserContext {
   name: string
@@ -41,7 +52,8 @@ export function OnboardingTemplate({
   const [fileUploadHistoryData, setFileUploadHistoryData] = useState<any>([])
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
-  const { getValidIdToken, checkIfTokenExpired } = useUserContext()
+  const [displayName, setDisplayName]= useState<String>("")
+  const { getValidIdToken, checkIfTokenExpired, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
 
   // Close side panel when clicking outside
   useEffect(() => {
@@ -63,6 +75,7 @@ export function OnboardingTemplate({
 
   useEffect(()=>{
    fetchFileUploadHistory()
+    setDisplayName(localStorage.getItem("user_name")||"")
   },[])
 
   const fetchFileUploadHistory = useCallback(async () =>{
@@ -137,6 +150,41 @@ export function OnboardingTemplate({
     userContext,
   }
 
+  const handleSignOut = async () => {
+    try {
+      const user_id = localStorage.getItem('user_id');
+      const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
+
+      // Fire-and-forget request with keepalive
+      fetch('/api/auth/sign-out', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ user_id }),
+        credentials: 'include',
+        keepalive: true, // Keeps request alive even after page unload
+      }).catch(err => console.error('Sign-out request failed:', err));
+
+      // Handle Google sign-out (this is fast)
+      if (is_google_logged_in) {
+        console.log("User is getting google signed out")
+        signOut().catch(err => console.error('Google sign-out failed:', err));
+      }
+
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Redirect immediately
+      window.location.href = '/';
+      
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      localStorage.clear();
+      window.location.href = '/';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 relative">
 
@@ -165,6 +213,54 @@ export function OnboardingTemplate({
           fileUploadHistoryData={memoizedFileUploadHistoryData} 
           onClose={handleCloseSidePanel} 
         />
+      </div>
+      {/* User Dropdown Menu - Top Right */}
+      <div className="fixed top-6 right-6 z-40">
+      <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-3 h-auto p-2 hover:bg-gray-50  border-0 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+                  <div className="flex flex-col items-end text-right">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900">{displayName}</span>
+                      {/* <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                          planInfo.className,
+                        )}
+                      >
+                        {planInfo.label}
+                      </span> */}
+                    </div>
+                    {/* <span className="text-xs text-gray-500">{displayCompany}</span> */}
+                  </div>
+                  <ChevronDown className="h-3 w-3 text-gray-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {/* <DropdownMenuItem className="opacity-50 cursor-not-allowed"> */}
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/profile`} className="flex items-center w-full">   
+                {/* <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed"> */}
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/account`} className="flex items-center w-full">
+                    <Building className="h-4 w-4 mr-2" />
+                    Account
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-600" onClick={() => {
+                  // Your sign out logic here
+                  handleSignOut();
+                }}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+      </DropdownMenu>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

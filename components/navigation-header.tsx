@@ -149,53 +149,39 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   const shouldShowManageTiles = pathname === "/dashboard" || pathname === "/dashboard-upload-only"
 
   const handleSignOut = async () => {
-    try {
-      // Get user_id from localStorage
-      const user_id = localStorage.getItem('user_id');
-
-      localStorage.clear()
-      
-      // Redirect to login page
-      window.location.href = '/';
-      // router.push('/')
-
-      
-      // let access_token= localStorage.getItem("id_token")
-      // if(!access_token) console.log("access_token not available")
-      // Call the sign-out route
-      const response =  fetch('/api/auth/sign-out', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id }),
-        credentials: 'include', // Important for HTTPOnly cookies
-      });
-
-      
-      
-      const responseSignout= await response;
-
-      // Remove data from local Storage on success
-      if (responseSignout.ok) {
-        if(isUserGoogleLoggedIn){
-          setIsUserGoogleLoggedIn(false);
-          await signOut();
-          console.log("Google User Signed out")
+      try {
+        const user_id = localStorage.getItem('user_id');
+        const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
+  
+        // Fire-and-forget request with keepalive
+        fetch('/api/auth/sign-out', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ user_id }),
+          credentials: 'include',
+          keepalive: true, // Keeps request alive even after page unload
+        }).catch(err => console.error('Sign-out request failed:', err));
+  
+        // Handle Google sign-out (this is fast)
+        if (is_google_logged_in) {
+          console.log("User is getting google signed out")
+          signOut().catch(err => console.error('Google sign-out failed:', err));
         }
-        else{
-          console.log("User Signed out")
-        }
-      } else {
-        // Even on API failure, clean up client-side for security
-        console.error('Sign out API failed, but cleaning up client-side');
+  
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Redirect immediately
+        window.location.href = '/';
+        
+      } catch (error) {
+        console.error('Sign out failed:', error);
+        localStorage.clear();
+        window.location.href = '/';
       }
-      
-    } catch (error) {
-      console.error('Sign out failed:', error);
-      window.location.href = '/';
-    }
-  };
+    };
 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">

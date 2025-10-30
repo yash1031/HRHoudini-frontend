@@ -93,7 +93,7 @@ export default function LoginPage() {
       } else {
         console.log("Error setting up access token")
       }
-      localStorage.removeItem("is-google-logged-in")
+      // localStorage.removeItem("is-google-logged-in")
       setGoogleSignInInProgress(false)
 
     } catch (error) {
@@ -301,13 +301,13 @@ export default function LoginPage() {
           setVerifyTokenError(null);
         }, 5000)
       }
-      localStorage.getItem("user-session")
+      localStorage.removeItem("user-session")
       localStorage.removeItem("is-google-logged-in")
     } catch (err) {
       console.error("Verification error:", err);
       setVerifyTokenError("Something went wrong. Try again.");
       localStorage.removeItem("is-google-logged-in")
-      localStorage.getItem("user-session")
+      localStorage.removeItem("user-session")
     }
   };
 
