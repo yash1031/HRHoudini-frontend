@@ -231,6 +231,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
+      {/* Logo */}
       <Link href={`/onboarding-upload-only`} className="flex items-center">
         <Image
           src="/hr-houdini-final.png"
@@ -242,6 +243,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         />
       </Link>
 
+      {/* Primary nav */}
       <nav className="hidden md:flex gap-8">
         {navItems.map(({ label, href }) => (
           isDashboardActive(pathname, href) ? (
@@ -268,23 +270,25 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
             <div className="flex flex-col items-end text-right">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-900">{displayName}</span>
-                <span
+                {/* <span
                   className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                     planInfo.className,
                   )}
                 >
                   {planInfo.label}
-                </span>
+                </span> */}
               </div>
-              <span className="text-xs text-gray-500">{displayCompany}</span>
+              {/* <span className="text-xs text-gray-500">{displayCompany}</span> */}
             </div>
             <ChevronDown className="h-3 w-3 text-gray-400" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
+          {/* <DropdownMenuItem className="opacity-50 cursor-not-allowed"> */}
           <DropdownMenuItem asChild>
             <Link href={`/dashboard/profile?${searchParams.toString()}`} className="flex items-center w-full">   
+          {/* <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed"> */}
               <User className="h-4 w-4 mr-2" />
               Profile
             </Link>
@@ -295,8 +299,15 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
               Account
             </Link>
           </DropdownMenuItem>
+          {/* {shouldShowManageTiles && (
+            <DropdownMenuItem>
+              <Settings className="h-4 w-4 mr-2" />
+              Manage Tiles
+            </DropdownMenuItem>
+          )} */}
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-red-600" onClick={() => {
+            // Your sign out logic here
             handleSignOut();
           }}>
             <LogOut className="h-4 w-4 mr-2" />

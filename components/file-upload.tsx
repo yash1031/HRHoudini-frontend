@@ -327,129 +327,127 @@ export function FileUpload({
     }
   }
 
-return (
-  <>
-    {error && (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )}
-    <Card className="w-full">
-      <CardContent className="space-y-4">
-        
-        {/* Show dropzone only when no file is uploaded */}
-        {!uploadedFile && (
-          <>
-            <div
-              {...getRootProps()} 
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragActive ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-              }`} 
-            >
-              <input {...getInputProps()} />  
-              <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              {isDragActive ? (
-                <p className="text-blue-600 font-medium">Drop the file here...</p>
-              ) : (
-                <div>
-                  <p className="text-gray-600 mb-2">Drag and drop your file here</p>
-                  <p className="text-sm text-gray-500">
-                    Supported formats: {acceptedTypes.join(", ")} (max {maxSize / (1024 * 1024)}MB)
-                  </p>
-                </div>
-              )}
-            </div>
-            <Button size="sm" variant="outline" onClick={handleBrowseClick}>
-              Browse files
-            </Button>
-          </>
-        )}
-
-        {/* Show progress bar while uploading */}
-        {isUploading && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Processing file...</span>
-              <span className="text-sm text-gray-500">{uploadProgress}%</span>
-            </div>
-            <Progress value={uploadProgress} className="w-full" />
-          </div>
-        )}
-
-        {/* Show full metadata card while uploading */}
-        {isUploading && fileMetadata && (
-          <div className="space-y-4">
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>File uploaded and getting processed...!</AlertDescription>
+  return (
+    <>
+      {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center space-x-2">
-                    <FileText className="h-5 w-5" />
-                    <span>{fileMetadata.name}</span>
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+          )}
+      <Card className="w-full">
+        <CardContent className="space-y-4">
+          {!uploadedFile  && (
+            <>
+              <div
+                {...getRootProps()} 
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  isDragActive ? "border-blue-400 bg-blue-50" : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                }`} 
+              >
+                <input {...getInputProps()} />  
+                <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                {isDragActive ? (
+                  <p className="text-blue-600 font-medium">Drop the file here...</p>
+                ) : (
                   <div>
-                    <span className="font-medium">File Size:</span>
-                    <span className="ml-2 text-gray-600">{formatFileSize(fileMetadata.size)}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Data Type:</span>
-                    <Badge variant="secondary" className="ml-2">
-                      {fileMetadata.dataType}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="font-medium">Rows:</span>
-                    <span className="ml-2 text-gray-600">{fileMetadata.rowCount?.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Columns:</span>
-                    <span className="ml-2 text-gray-600">{fileMetadata.columns?.length}</span>
-                  </div>
-                </div>
-
-                {fileMetadata.columns && (
-                  <div>
-                    <span className="font-medium text-sm">Detected Columns:</span>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {fileMetadata.columns.map((column, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {column}
-                        </Badge>
-                      ))}
-                    </div>
+                    <p className="text-gray-600 mb-2">Drag and drop your file here</p>
+                    <p className="text-sm text-gray-500">
+                      Supported formats: {acceptedTypes.join(", ")} (max {maxSize / (1024 * 1024)}MB)
+                    </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Show just filename when file selected but not uploading and not processed */}
-        {!isUploading && !processedFile && uploadedFile && fileMetadata && (
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>{fileMetadata.name}</span>
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={removeFile}>
-                <X className="h-4 w-4" />
+              </div>
+              <Button size="sm" variant="outline" onClick={handleBrowseClick}>
+                Browse files
               </Button>
-            </div>
-          </CardHeader>
-        )}
+            </>
+          )}
 
-      </CardContent>
-    </Card>
-  </>
-)
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Processing file...</span>
+                <span className="text-sm text-gray-500">{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="w-full" />
+            </div>
+          )}
+
+          {!isUploading && !processedFile && uploadedFile && fileMetadata &&  (
+          
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center space-x-2">
+                      <FileText className="h-5 w-5" />
+                      <span>{fileMetadata.name}</span>
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={removeFile}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+          )}
+
+          {isUploading && fileMetadata && (
+            <div className="space-y-4">
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>File uploaded and getting processed...!</AlertDescription>
+              </Alert>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center space-x-2">
+                      <FileText className="h-5 w-5" />
+                      <span>{fileMetadata.name}</span>
+                    </CardTitle>
+                    {/* <Button variant="ghost" size="sm" onClick={removeFile}>
+                      <X className="h-4 w-4" />
+                    </Button> */}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">File Size:</span>
+                      <span className="ml-2 text-gray-600">{formatFileSize(fileMetadata.size)}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Data Type:</span>
+                      <Badge variant="secondary" className="ml-2">
+                        {fileMetadata.dataType}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="font-medium">Rows:</span>
+                      <span className="ml-2 text-gray-600">{fileMetadata.rowCount?.toLocaleString()}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Columns:</span>
+                      <span className="ml-2 text-gray-600">{fileMetadata.columns?.length}</span>
+                    </div>
+                  </div>
+
+                  {fileMetadata.columns && (
+                    <div>
+                      <span className="font-medium text-sm">Detected Columns:</span>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {fileMetadata.columns.map((column, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {column}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  )
 }

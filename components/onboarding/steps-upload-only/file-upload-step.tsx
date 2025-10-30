@@ -39,26 +39,26 @@ export function FileUploadStep() {
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
   const [uuid] = useState<string>(uuidv4());
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
-  const [fileDropped, setFileDropped] = useState(false);
-  const [proceedToUpload, setProceedToUpload] = useState(false);
+  const [fileDropped, setFileDropped]= useState(false);
+  const [proceedToUpload, setProceedToUpload]= useState(false);
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const { checkIfTokenExpired, setKpis } = useUserContext()
-  const [processedFile, setProcessedFile] = useState(false);
+  const {checkIfTokenExpired, setKpis } = useUserContext()
+  const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   const { wb, setWb } = useDashboard();
-
+  
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
     setFileDropped(args)
   }
-
+  
 
   const handleContinue = () => {
-    if (processedFile) skipToStep(3)
+    if(processedFile) skipToStep(3)
     else {
-      const { file, metadata } = uploadedFile
+      const {file, metadata}= uploadedFile
       processFile(file, metadata.columns)
     }
   }
@@ -101,9 +101,9 @@ export function FileUploadStep() {
     setUploadedFile({ file: sampleFile, metadata: sampleMetadata })
 
     const params = new URLSearchParams({
-      hasFile: "false",
-      showWelcome: showWelcome,
-    })
+        hasFile: "false",
+        showWelcome: showWelcome,
+        })
 
     let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
     router.push(dashboardUrl)
@@ -139,7 +139,7 @@ export function FileUploadStep() {
     setFileUploadStarted(arg)
   }
 
-  const handleBack = () => {
+  const handleBack = () =>{
     setIsUploading(false)
     setFileDropped(false)
     setProcessedFile(false)
@@ -147,7 +147,7 @@ export function FileUploadStep() {
     setStep(1)
   }
 
-  // Helper: upload with progress using XMLHttpRequest
+    // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -172,176 +172,203 @@ export function FileUploadStep() {
   const processFile = async (file: File, columns: string[]) => {
 
     try {
-      setIsUploading(true)
-      setError(null)
-      hasFileUploadStarted(true)
-      setUploadProgress(0)
+        // const currentPlanRes = await resCurrentPlan;
 
-      let access_token = localStorage.getItem("id_token")
-      if (!access_token) console.log("access_token not available")
-      const createKPIsRes = fetch("/api/file-upload/generate-kpis", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "authorization": `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({
-          user_id: localStorage.getItem("user_id"),
-          session_id: uuid,
-          column_headers: columns
-        }),
-      });
-
-      access_token = localStorage.getItem("id_token")
-      if (!access_token) console.log("access_token not available")
-      const AISuggestedQuesRes = fetch("/api/file-upload/generate-recommended-questions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "authorization": `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({
-          user_id: localStorage.getItem("user_id"),
-          session_id: uuid,
-          column_headers: columns
-        }),
-      });
-
-      access_token = localStorage.getItem("id_token")
-      if (!access_token) console.log("access_token not available")
         
-      const resPresignedURL = await fetch("/api/file-upload/generate-presigned-url", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "authorization": `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          userId: localStorage.getItem("user_id"),
-        }),
-      });
 
-      const dataPresignedURL = await resPresignedURL.json();
-      const presignedURLData = await dataPresignedURL.data
-      console.log("presignedURLData is", JSON.stringify(presignedURLData))
-      let uploadURL;
-      if (!resPresignedURL.ok) {
-        setError("Failed to process file. Please try again.")
-        setIsUploading(false)
-        console.error("Failed to generate presigned URL")
-      }
+        setIsUploading(true)
+        setError(null)
+        hasFileUploadStarted(true)
+        setUploadProgress(0)
+        
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
+        const createKPIsRes = fetch("/api/file-upload/generate-kpis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
+          body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: uuid,
+              column_headers: columns
+            }),
+        });
 
-      if(resPresignedURL.ok){
-        console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
-        setIsUploaded(true);
-      }
+        access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
+        const AISuggestedQuesRes = fetch("/api/file-upload/generate-recommended-questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
+          body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: uuid,
+              column_headers: columns
+            }),
+        });
 
-      setUploadProgress(20)
-      const data = await presignedURLData;
-      console.log("Data after generating presigned URL is ", data)
-      const { uploadUrl, s3Key, sessionId } = data;
-      uploadURL = uploadUrl
-      console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
-      localStorage.setItem("s3Key", s3Key)
-      localStorage.setItem("session_id", sessionId)
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
-      const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id") ?? 'test'}&sessionId=${sessionId}`);
-      setWb(ws)
-        ; (window as any).__ws = ws;
-      ws.onopen = () => {
-        console.log('[WS] connected', { uuid });
-      };
+        access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
+        const resPresignedURL = await fetch("/api/file-upload/generate-presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
+          body: JSON.stringify({
+              fileName: file.name,
+              fileType: file.type,
+              userId: localStorage.getItem("user_id"),
+              // uuid: uuid,
+            }),
+        });
 
-
-      // 4. Upload file with progress
-      await uploadFileWithProgress(uploadURL, file, file.type);
-
-      setUploadProgress(40)
-
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-          console.log('[WS] message', msg);
-          if (msg.event === "convert.ready") {
-            console.log("[WS] message: CSV converted to parquet")
-            setUploadProgress(70)
-          }
-          if (msg.event === "athena.completed") {
-            console.log("Athena table created")
-            setUploadProgress(100)
-            setProcessedFile(true);
-          }
-          // QUICK TEST: show a banner/toast
-          // e.g., set some local state to display msg.event
-        } catch (e) {
-          console.log('[WS] raw', evt.data);
+        const dataPresignedURL = await resPresignedURL.json();
+        const presignedURLData= await dataPresignedURL.data
+        console.log("presignedURLData is", JSON.stringify(presignedURLData))
+        let uploadURL;
+        if(!resPresignedURL.ok){
+          setError("Failed to process file. Please try again.")
+          setIsUploading(false)
+          console.error("Failed to generate presigned URL")
         }
-      };
+        // if (resPresignedURL.ok){
+        //   setUploadProgress(20)
+        //   const data = await presignedURLData;
+        //   // const data = await presignedURLData.json();
+        //   console.log("Data after generating presigned URL is ", JSON.stringify(data))
+        //   const body = JSON.parse(data.body);
+        //   const { uploadUrl, s3Key } = body;
+        //   uploadURL = uploadUrl
+        //   console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
+        //   // setSessionId(sessionId);
+        //   localStorage.setItem("s3Key", s3Key)
+        // }
+        // else{
+        //   setError("Failed to process file. Please try again.")
+        //   setTimeout(()=>{
+        //     setError(null);
+        //   }, 3000)
+        //   setIsUploading(false)
+        //   console.error("Failed to generate presigned URL")
+        //   return;
+        // }
 
-      const resCreateKPIs = await createKPIsRes;
-      const dataCreateKPIs = await resCreateKPIs.json();
-      const createKPIsData = await dataCreateKPIs.data
-      console.log("createKPIsData is", JSON.stringify(createKPIsData))
-      if (resCreateKPIs.ok) {
-        const kpisData = await createKPIsData;
-        // const kpisData= await createKPIsData.json();
-        console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
-        // Parse the string inside `body`
-        const parsedBody = JSON.parse(kpisData.body);
-        console.log("Parsed body:", parsedBody);
-        console.log("KPI Questions are:", parsedBody.kpi_items);
-
-        // Transform kpi_items to include actual icon components
-        const kpisWithIcons: KpiItem[] = parsedBody.kpi_items.map((item: any) => ({
-          ...item,
-          icon: Clock, // fallback to Clock
-        }));
-
-        // Set KPIs from parsed response
-        setKpis(kpisWithIcons);
-      }
-      else {
-        setError("Failed to process file. Please try again.")
-        setTimeout(() => {
-          setError(null);
-        }, 3000)
-        setIsUploading(false)
-        console.error("Failed to create KPIs")
-        return;
+        if(resPresignedURL.ok){
+          console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
+          setIsUploaded(true);
       }
 
-      const resAISuggestedQues = await AISuggestedQuesRes;
-      const dataAISuggestedQues = await resAISuggestedQues.json();
-      const AISuggestedQuesData = await dataAISuggestedQues.data
-      console.log("AISuggestedQuesData is", JSON.stringify(AISuggestedQuesData))
-      if (resAISuggestedQues.ok) {
-        const aIRecommendedQuestionsData = await AISuggestedQuesData;
-        // const aIRecommendedQuestionsData=   await AISuggestedQuesData.json();
-        console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
-        // Parse the string inside `body`
-        const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
-        console.log("Parsed body:", parsedBodyAIRQ);
-        console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
-        localStorage.setItem("sample_questions", JSON.stringify(parsedBodyAIRQ.sample_questions))
-        // setUploadProgress(100)
-      }
-      else {
-        setError("Failed to process file. Please try again.")
-        setTimeout(() => {
-          setError(null);
-        }, 3000)
-        setIsUploading(false)
-        console.error("Failed to create AI recommended question")
-        return;
-      }
+        setUploadProgress(20)
+        const data = await presignedURLData;
+        // const data = await presignedURLData.json();
+        console.log("Data after generating presigned URL is ", data)
+        // console.log("Data after generating presigned URL is ", JSON.stringify(data))
+        // const body = data.body;
+        // // const body = JSON.parse(data.body);
+        // console.log("body", body)
+        const { uploadUrl, s3Key, sessionId } = data;
+        uploadURL = uploadUrl
+        console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
+        // setSessionId(sessionId);
+        localStorage.setItem("s3Key", s3Key)
+        localStorage.setItem("session_id", sessionId)
+        const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
+        const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id")?? 'test'}&sessionId=${sessionId}`);
+        setWb(ws)
+        // keep a reference so it doesn’t get GC’d (test-only)
+        ;(window as any).__ws = ws;
+        
+        ws.onopen = () => {
+          console.log('[WS] connected', { uuid });
+        };
 
-      // setProcessedFile(true);
+
+        // 4. Upload file with progress
+        await uploadFileWithProgress(uploadURL, file, file.type);
+
+        setUploadProgress(40)
+
+        ws.onmessage = (evt) => {
+          try {
+            const msg = JSON.parse(evt.data);
+            console.log('[WS] message', msg);
+            if(msg.event==="convert.ready"){
+              console.log("[WS] message: CSV converted to parquet")
+              setUploadProgress(70)
+            }
+            if(msg.event==="athena.completed"){
+              console.log("Athena table created")
+              setUploadProgress(100)
+              setProcessedFile(true);
+            }
+            // QUICK TEST: show a banner/toast
+            // e.g., set some local state to display msg.event
+          } catch (e) {
+            console.log('[WS] raw', evt.data);
+          }
+        };
+
+        const resCreateKPIs= await createKPIsRes; 
+        const dataCreateKPIs = await resCreateKPIs.json();
+        const createKPIsData= await dataCreateKPIs.data
+        console.log("createKPIsData is", JSON.stringify(createKPIsData))
+        if (resCreateKPIs.ok){
+          const kpisData= await createKPIsData;
+          // const kpisData= await createKPIsData.json();
+          console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
+          // Parse the string inside `body`
+          // const parsedBody = JSON.parse(kpisData.body);
+          // console.log("Parsed body:", parsedBody);
+          // console.log("KPI Questions are:", parsedBody.kpi_items);
+
+          // Transform kpi_items to include actual icon components
+          const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
+            ...item,
+            icon: Clock, // fallback to Clock
+          }));
+
+          // Set KPIs from parsed response
+          setKpis(kpisWithIcons);
+        }
+        else{
+          setError("Failed to process file. Please try again.")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          console.error("Failed to create KPIs")
+          return;
+        } 
+
+        const resAISuggestedQues= await AISuggestedQuesRes;
+        const dataAISuggestedQues = await resAISuggestedQues.json();
+        const AISuggestedQuesData= await dataAISuggestedQues.data
+        console.log("AISuggestedQuesData is", JSON.stringify(AISuggestedQuesData))
+        if (resAISuggestedQues.ok){
+          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+          // const aIRecommendedQuestionsData=   await AISuggestedQuesData.json();
+          console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
+          // Parse the string inside `body`
+          // const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
+          // console.log("Parsed body:", parsedBodyAIRQ);
+          // console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
+          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
+          // setUploadProgress(100)
+        } 
+        else{
+          setError("Failed to process file. Please try again.")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          console.error("Failed to create AI recommended question")
+          return;
+        }
+
+        // setProcessedFile(true);
 
     } catch (err) {
       setError("Failed to process file. Please try again.")
-      setTimeout(() => {
+      setTimeout(()=>{
         setError(null);
       }, 3000)
       console.error("File processing error:", err)
@@ -407,9 +434,9 @@ export function FileUploadStep() {
             </div>
           </div>
         )}
-        {console.log("<<-----410 :::Selected option is:::", selectedOption, ":::processedFile is:::", processedFile, ":::isUploaded is:::", isUploaded)}
-        {selectedOption === "upload" && !(processedFile && isUploaded) && (
-          // {selectedOption === "upload" && !uploadedFile && (
+
+         {selectedOption === "upload" && !(processedFile && isUploaded) && (
+        // {selectedOption === "upload" && !uploadedFile && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Upload Your HR Data</h3>
@@ -494,7 +521,7 @@ export function FileUploadStep() {
                         <span>Download to Review</span>
                       </Button>
                       <Button
-                        onClick={() => handleSampleFileSelect("true")}
+                        onClick={()=> handleSampleFileSelect("true")}
                         className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                       >
                         <span>Use This Sample</span>
@@ -528,26 +555,26 @@ export function FileUploadStep() {
 
         <div className="flex justify-between mt-6">
           <Button variant="outline" onClick={handleBack}>
-            {/* <Button variant="outline" onClick={() => setStep(1)}> */}
+          {/* <Button variant="outline" onClick={() => setStep(1)}> */}
             Back
           </Button>
-          {
-            !(selectedOption === "sample" && !uploadedFile) && (
-              <div className="flex space-x-2">
-                {/* <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={() => skipToStep(3)}> */}
-                <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={() => handleSampleFileSelect("false")}>
-                  Skip file upload
-                </Button>
-                <Button
-                  onClick={handleContinue}
-                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-                  disabled={!(fileDropped && (!isUploading))}
-                >
-                  <span>{(isUploading || processedFile) ? "Continue" : "Upload"}</span>
-                  {(isUploading || processedFile) && <ArrowRight className="h-4 w-4" />}
-                </Button>
-              </div>
-            )}
+          { 
+          !(selectedOption === "sample" && !uploadedFile) && (
+            <div className="flex space-x-2">
+              {/* <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={() => skipToStep(3)}> */}
+              <Button variant="outline" disabled={fileUploadStarted || uploadedFile} onClick={()=> handleSampleFileSelect( "false" )}>
+                Skip file upload
+              </Button>
+              <Button
+                onClick={handleContinue}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                disabled={!(fileDropped && (!isUploading))}
+              >
+                <span>{(isUploading || processedFile)? "Continue": "Upload"}</span>
+                {(isUploading || processedFile) && <ArrowRight className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
