@@ -20,15 +20,15 @@ import {
   BarChart3,
 } from "lucide-react"
 import { ChatInterface } from "@/components/chat-interface"
+// import { HeroInsightsTile } from "@/components/hero-insights-tile"
+// import { getDashboardConfig, saveDashboardConfig, getDefaultDashboardConfig } from "@/lib/dashboard-config"
 import { useDashboard } from '@/contexts/DashboardContext';
-import Generated_Dashboard from "./generated_dashboard"
+import Generated_Dashboard from './generated_dashboard'
 import { Loader2 } from 'lucide-react';
 import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
 import sample_dashboard_data from "@/public/sample_dashboard_data"
 import { useUserContext } from "@/contexts/user-context"
-import { apiFetch } from "@/lib/api/client";
-
 
 declare global {
   interface Window {
@@ -114,12 +114,18 @@ interface ConfigurableDashboardProps {
   filters?: FilterConfig[];
   kpiCards?: KPICard[];
   charts?: ChartConfig[];
-  rowCount?: string,
-  filename?: string,
+  rowCount?: string;
+  filename?: string;
   tableColumns?: TableColumn[];
   colors?: string[];
+  parquetDataUrl?: string;
+  columns?: string[];
+  metadataFields?: {
+    numericFields: string[];
+    categoricalFields: string[];
+    tokenMapsUrl?: string;  
+  };
 }
-
 const FileProcessingTooltip = ({
   children,
   fileName,
@@ -171,7 +177,7 @@ const FileProcessingTooltip = ({
   )
 }
 
-export default function Dashboard() {
+export default function DashboardUO1() {
   const searchParams = useSearchParams()
   const [dashboardConfig, setDashboardConfig] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -195,75 +201,54 @@ export default function Dashboard() {
     }
     // const sample_questions= localStorage.getItem("sample_questions")
     const fileUploaded = searchParams.get("hasFile")
-    console.log("fileUploaded", fileUploaded)
     if(fileUploaded=="false"){
-      console.log("sample_dashboard_data", sample_dashboard_data)
       setFileName("SharpMedian.csv")
       setFile_row_count("512")
       setDashboard_data(sample_dashboard_data);
       setWelcomeMessage(`Great! I can see you've successfully uploaded SharpMedian.csv with 512 employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
       return;
     }
-    console.log("for welcome message, file_name", localStorage.getItem("file_name"), "row_count", localStorage.getItem("file_row_count"))
     setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
     setIsLoading(true)
     setSample_questions(localStorage.getItem("sample_questions"))
     const session_id= localStorage.getItem("session_id")
-    console.log("session_id captured in dashboard-uo-1", session_id)
     if(session_id) fetchFileUploadHistory(session_id);
     else{
       setErrorDash("Failed to generate dashboard")
-      console.log("didn't recieve session_id in dashboard-uo-1")
     }
   }, [])
 
   const fetchFileUploadHistory = async (session_id: string) =>{
-    try{
-       // Store file upload history
        
-        // let access_token= localStorage.getItem("id_token")
-        // if(!access_token) console.log("access_token not available")
-        let resFetchFileUploadHistory
-        try{
-          resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                    user_id: localStorage.getItem("user_id"),
-              }),
-            });
-        }catch (error) {
-          // If apiFetch throws, the request failed
-          console.error("Received Error", error);
-          return;
-        }
-          // if(!resFetchFileUploadHistory.ok){
-          //   console.error("Unable to fetch all fileUpload sessions for the user")
-          //   return;
-          // }
-          // const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
-          // const dataFetchFileUploadHistory= await fetchFileUploadHistoryData?.data
-          const dataFetchFileUploadHistory= await resFetchFileUploadHistory?.data
-        console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
+        let access_token= localStorage.getItem("id_token")
+        if(!access_token) console.log("access_token not available")
+        const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", 
+              "authorization": `Bearer ${access_token}`, },
+            body: JSON.stringify({
+                  user_id: localStorage.getItem("user_id"),
+            }),
+          });
+          if(!resFetchFileUploadHistory.ok){
+            console.error("Unable to fetch all fileUpload sessions for the user")
+            return;
+          }
+          const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
+          const dataFetchFileUploadHistory= await fetchFileUploadHistoryData?.data
         const dashboardHistoryData= await dataFetchFileUploadHistory?.data;
         dashboardHistoryData.map((data:any, id:any)=>{
           if(data.session_id=== session_id){ 
-            console.log("Setting up dashboard data in fetchFileUploadHistory as", data?.analytical_json_output)
             setIsLoading(false)
             setErrorDash(null)
             setDashboard_data(data?.analytical_json_output|| null)
-            console.log("for welcome message, file_name", localStorage.getItem("file_name"), "row_count", localStorage.getItem("file_row_count"))
             setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
             setFileName(data?.analytical_json_output?.metadata?.filename)
             setFile_row_count(data?.analytical_json_output?.metadata?.totalRows)
             
           }
         })
-      }catch (error) {
-        // If apiFetch throws, the request failed
-        console.error("Received Error ", error);
-        return;
-      }
+  
     }
 
   const calculateChatHeight = () => {
@@ -292,10 +277,6 @@ export default function Dashboard() {
   }, [])
 
   const recordCount = employeeData.length || 1247
-  // const welcomeMessage= 
-  //   `Great! I can see you've successfully uploaded ${fileName?fileName: "HRIS_Export_HealthServ_2024.csv"} with ${file_row_count?file_row_count: "1,247"} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`
-
-  
 
   const suggestedQueries= sample_questions? JSON.parse(sample_questions): [
     "Show me a breakdown of our 1,247 employees by department",
@@ -306,26 +287,30 @@ export default function Dashboard() {
     "What insights can you provide for our next leadership meeting?",
   ]
   
-  useEffect(() => {
-    if (!dashboard_data) return;
+useEffect(() => {
+  if (!dashboard_data) return;
 
-    console.log("Dashboard data is", dashboard_data);
+  const { cards, charts, metadata } = dashboard_data;
 
-    const { cards, charts, metadata } = dashboard_data;
+  const parquetDataUrl = metadata?.parquetDataUrl as string | undefined;
+  const columns = metadata?.columns as string[] | undefined;
+  const numericFields = (metadata?.numericFieldsList || []) as string[];
+  const categoricalFields = (metadata?.categoricalFieldsList || []) as string[];
+  const tokenMapsUrl = metadata?.tokenMapsUrl as string | undefined; // ✅ ADD THIS
 
-    // Color mapping for different color names
-    const colorMap: Record<string, string> = {
-      blue: '#3b82f6',
-      green: '#10b981',
-      purple: '#8b5cf6',
-      orange: '#f59e0b',
-      teal: '#14b8a6',
-      indigo: '#6366f1',
-      red: '#ef4444',
-      pink: '#ec4899'
-    };
+  // Color mapping for different color names
+  const colorMap: Record<string, string> = {
+    blue: '#3b82f6',
+    green: '#10b981',
+    purple: '#8b5cf6',
+    orange: '#f59e0b',
+    teal: '#14b8a6',
+    indigo: '#6366f1',
+    red: '#ef4444',
+    pink: '#ec4899'
+  };
 
-    // Transform cards into KPI cards with drill-down support
+  // Transform cards into KPI cards with drill-down support
   const kpiCards = cards.map((card: any) => {
     const baseCard = {
       label: card.title,
@@ -340,7 +325,7 @@ export default function Dashboard() {
       return {
         ...baseCard,
         drillDownData: {
-          filters: card.drillDown.filters || [], // ADD THIS LINE
+          filters: card.drillDown.filters || [],
           cards: card.drillDown.cards?.map((ddCard: any) => ({
             label: ddCard.title,
             icon: ddCard.icon,
@@ -350,6 +335,7 @@ export default function Dashboard() {
             calculate: () => ddCard.value,
           })) || [],
           charts: card.drillDown.charts?.map((ddChart: any) => {
+            
             const chartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
             const layout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
 
@@ -358,14 +344,18 @@ export default function Dashboard() {
               icon: ddChart.icon,
               type: chartType as 'bar' | 'pie' | 'line',
               color: ddChart.colors?.[0] || '#3b82f6',
+              colors: ddChart.colors,
               dataKey: ddChart.field,
+              field: ddChart.field,
               layout: layout,
               height: 300,
-              customDataGenerator: () => ddChart.data.map((item: any) => ({
+              queryObject: ddChart.queryObject,  // ✅ CRITICAL: Add queryObject
+              data: ddChart.data || [],  // Keep for fallback
+              customDataGenerator: ddChart.data ? () => ddChart.data.map((item: any) => ({
                 name: item.name,
                 value: item.value,
                 percentage: item.percentage
-              })),
+              })) : undefined,
             };
           }) || [],
           insights: card.drillDown.insights ? {
@@ -379,7 +369,7 @@ export default function Dashboard() {
     return baseCard;
   });
 
-  // Transform charts with FILTERS support
+  // Transform charts with FILTERS and QUERY OBJECTS support
   const chartConfigs = charts.map((chart: any) => {
     const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
     const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar' ? 'vertical' : undefined;
@@ -389,79 +379,90 @@ export default function Dashboard() {
       icon: chart.icon,
       type: chartType,
       color: chart.colors?.[0] || '#3b82f6',
+      colors: chart.colors,
       dataKey: chart.field,
+      field: chart.field,
       layout: layout,
       height: 400,
-      customDataGenerator: () => chart.data.map((item: any) => ({
+      // queryObject: chart.queryObject,  // ✅ Add main chart queryObject
+      data: chart.data || [],  // Keep for fallback
+      customDataGenerator: chart.data ? () => chart.data.map((item: any) => ({
         name: item.name,
         value: item.value,
         percentage: item.percentage
-      })),
+      })) : undefined,
     };
 
-    if (chart.drillDown) {
-      return {
-        ...baseChart,
-        drillDownData: {
-          filters: chart.drillDown.filters || [], // ADD THIS LINE
-          cards: chart.drillDown.cards?.map((ddCard: any) => ({
-            label: ddCard.title,
-            icon: ddCard.icon,
-            color: colorMap[ddCard.color] || '#3b82f6',
-            description: ddCard.description || '',
-            calculationType: 'custom' as const,
-            calculate: () => ddCard.value,
-          })) || [],
-          charts: chart.drillDown.charts?.map((ddChart: any) => {
-            const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
-            const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
+  if (chart.drillDown) {
+    return {
+      ...baseChart,
+      drillDownData: {
+        filters: chart.drillDown.filters || [],
+        cards: chart.drillDown.cards?.map((ddCard: any) => ({
+          label: ddCard.title,
+          icon: ddCard.icon,
+          color: colorMap[ddCard.color] || '#3b82f6',
+          description: ddCard.description || '',
+          calculationType: 'custom' as const,
+          calculate: () => ddCard.value,
+        })) || [],
+        charts: chart.drillDown.charts?.map((ddChart: any) => {
+          
+          const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
+          const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
 
-            return {
-              title: ddChart.title,
-              icon: ddChart.icon,
-              type: ddChartType as 'bar' | 'pie' | 'line',
-              color: ddChart.colors?.[0] || '#3b82f6',
-              dataKey: ddChart.field,
-              layout: ddLayout,
-              height: 300,
-              customDataGenerator: () => ddChart.data.map((item: any) => ({
-                name: item.name,
-                value: item.value,
-                percentage: item.percentage
-              })),
-            };
-          }) || [],
-          insights: chart.drillDown.insights ? {
-            critical_issues: chart.drillDown.insights.critical_issues || [],
-            recommended_actions: chart.drillDown.insights.recommended_actions || []
-          } : undefined
-        }
-      };
+          return {
+            title: ddChart.title,
+            icon: ddChart.icon,
+            type: ddChartType as 'bar' | 'pie' | 'line',
+            color: ddChart.colors?.[0] || '#3b82f6',
+            colors: ddChart.colors,
+            dataKey: ddChart.field,
+            field: ddChart.field,
+            layout: ddLayout,
+            height: 300,
+            queryObject: ddChart.queryObject,  // ✅ KEEP for drilldown charts
+            data: ddChart.data || [],
+            customDataGenerator: ddChart.data ? () => ddChart.data.map((item: any) => ({
+              name: item.name,
+              value: item.value,
+              percentage: item.percentage
+            })) : undefined,
+          };
+        }) || [],
+        insights: chart.drillDown.insights ? {
+          critical_issues: chart.drillDown.insights.critical_issues || [],
+          recommended_actions: chart.drillDown.insights.recommended_actions || []
+        } : undefined
+      }
+    };
+  }
+
+  return baseChart;
+});
+
+  const newConfig: ConfigurableDashboardProps = {
+    title: "Analytics Dashboard",
+    subtitle: "Interactive insights from your data",
+    data: [], // No raw data needed since we're using queries
+    filters: [],
+    kpiCards,
+    charts: chartConfigs,
+    filename: metadata.filename,
+    rowCount: String(metadata.totalRows),
+    tableColumns: [],
+    colors: charts[0]?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1'],
+    parquetDataUrl: parquetDataUrl,
+    columns: columns,
+    metadataFields: { 
+      numericFields, 
+      categoricalFields,
+      tokenMapsUrl  // ✅ ADD THIS
     }
+  };
 
-    return baseChart;
-  });
-
-    console.log("filename received in page.tsx for dashboard-uo-1", metadata.filename)
-    console.log("rowCount received in page.tsx for dashboard-uo-1", metadata.totalRows)
-
-
-    // Create dashboard config
-    const newConfig: ConfigurableDashboardProps = {
-      title: "Analytics Dashboard",
-      subtitle: "Interactive insights from your data",
-      data: [], // No raw data needed since we're using custom generators
-      filters: [],
-      kpiCards,
-      charts: chartConfigs,
-      filename: metadata.filename,
-      rowCount: String(metadata.totalRows),
-      tableColumns: [], // Add if needed
-      colors: charts[0]?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1']
-    };
-
-    setConfig(newConfig);
-  }, [dashboard_data]);
+  setConfig(newConfig);
+}, [dashboard_data]);
 
   return (
     <>
@@ -471,7 +472,6 @@ export default function Dashboard() {
         onLoad={() => console.log('Babel loaded')}
       />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      {/* DesignVersionToggle is hidden */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-6">
         { isLoading?
             <div className="min-h-screen flex items-center justify-center">
@@ -481,7 +481,6 @@ export default function Dashboard() {
               </div>
             </div>:
       
-
         errorDash?
             <div className="min-h-screen flex items-center justify-center">
               <div className="bg-red-50 border border-red-200 rounded-lg p-6">
