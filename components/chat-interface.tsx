@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
 import { useUserContext } from "@/contexts/user-context"
+import { apiFetch } from "@/lib/api/client";
 
 interface Message {
   id: string
@@ -83,19 +84,20 @@ export function ChatInterface({
     setInput("")
     setIsLoading(true)
     
-    let access_token= localStorage.getItem("id_token")
-    if(!access_token) console.log("access_token not available")
-    const currentPlanRes = await fetch("/api/billing/get-current-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}` },
-        body: JSON.stringify({
-              user_id: localStorage.getItem("user_id")
-            }),
-      });
-
-    // const currentPlanRes = await resCurrentPlan;
-    if(!currentPlanRes.ok){
+    // let access_token= localStorage.getItem("id_token")
+    // if(!access_token) console.log("access_token not available")
+    let currentPlanRes;
+    try{
+      currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json"},
+          body: JSON.stringify({
+                user_id: localStorage.getItem("user_id")
+              }),
+        });
+    }catch (error) {
+      // If apiFetch throws, the request failed
+      console.error("Received Error", error);
       setError("Unable to check remaining tokens")
       setTimeout(()=>{
         setError(null);
@@ -103,9 +105,19 @@ export function ChatInterface({
       setIsLoading(false)
       return;
     }
+    // const currentPlanRes = await resCurrentPlan;
+    // if(!currentPlanRes.ok){
+    //   setError("Unable to check remaining tokens")
+    //   setTimeout(()=>{
+    //     setError(null);
+    //   }, 3000)
+    //   setIsLoading(false)
+    //   return;
+    // }
 
-    const dataCurrentPlan = await currentPlanRes.json();
-    const currentPlanData= await dataCurrentPlan.data
+    // const dataCurrentPlan = await currentPlanRes.json();
+    // const currentPlanData= await dataCurrentPlan.data
+    const currentPlanData= await currentPlanRes.data
 
     // const dataCurrentPlan = await resCurrentPlan;
     // if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
@@ -124,23 +136,21 @@ export function ChatInterface({
     }
 
 
-      access_token= localStorage.getItem("id_token")
-      if(!access_token) console.log("access_token not available")
-      const responseChatMessage = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}` },
-        body: JSON.stringify({
-              question: messageToSend,
-              user_id: localStorage.getItem("user_id"),
-              session_id: localStorage.getItem("session_id")
-            }),
-      });
-
-      const dataChatMessage = await responseChatMessage.json();
-      const chatMessageData= await dataChatMessage.data
-      console.log("chatMessageData is", JSON.stringify(chatMessageData))
-      if (!responseChatMessage.ok){
+      // access_token= localStorage.getItem("id_token")
+      // if(!access_token) console.log("access_token not available")
+      let responseChatMessage
+      try{
+        responseChatMessage = await apiFetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json"},
+          body: JSON.stringify({
+                question: messageToSend,
+                user_id: localStorage.getItem("user_id"),
+                session_id: localStorage.getItem("session_id")
+              }),
+        });
+      }catch (error) {
+        // If apiFetch throws, the request failed
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
@@ -151,57 +161,81 @@ export function ChatInterface({
         setMessages((prev) => [...prev, assistantMessage])
         setIsLoading(false)
         return;
-      }     
+      }
 
-      const responseQuery= await chatMessageData.body;
-      const queryResponse= JSON.parse(responseQuery);
+      // const dataChatMessage = await responseChatMessage.json();
+      // const chatMessageData= await dataChatMessage.data
+      const chatMessageData= await responseChatMessage.data
+      console.log("chatMessageData is", JSON.stringify(chatMessageData))
+      // if (!responseChatMessage.ok){
+      //   const assistantMessage: Message = {
+      //     id: (Date.now() + 1).toString(),
+      //     // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
+      //     content: "Failed to request answer. Try with some other question",
+      //     sender: "assistant",
+      //     timestamp: new Date(),
+      //   }
+      //   setMessages((prev) => [...prev, assistantMessage])
+      //   setIsLoading(false)
+      //   return;
+      // }     
+
+      // const responseQuery= await chatMessageData.body;
+      // const queryResponse= JSON.parse(responseQuery);
 
 
-      console.log("queryResponse is", JSON.stringify(queryResponse))
-      console.log("queryResponse natural language response is", queryResponse.natural_language_response)
-      const tokens_to_consume= queryResponse.token_usage?.total_tokens|| 1800;
-      console.log("Tokens to consume for the chat message", tokens_to_consume)
+      console.log("queryResponse is", JSON.stringify(chatMessageData))
+      console.log("queryResponse natural language response is", chatMessageData.natural_language_response)
+      // const tokens_to_consume= queryResponse.token_usage?.total_tokens|| 1800;
+      // console.log("Tokens to consume for the chat message", tokens_to_consume)
       // setResponse(queryResponse.natural_language_response)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
-        content: queryResponse.natural_language_response?queryResponse.natural_language_response:"Failed to fetch answer, try with some other question",
+        content: chatMessageData.natural_language_response?chatMessageData.natural_language_response:"Failed to fetch answer, try with some other question",
         sender: "assistant",
         timestamp: new Date(),
       }
       console.log("Now consume-tokens API should fire at second place")
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-      if(!queryResponse.natural_language_response) return
+      // if(!chatMessageData.natural_language_response) return
 
-      access_token= localStorage.getItem("id_token")
-      if(!access_token) console.log("access_token not available")
-      const resConsumeTokens = await fetch("/api/billing/consume-tokens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}` },
-        body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              action_name: "chat_message",
-              tokens_to_consume: tokens_to_consume,
-              event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
-            }),
-      });
+      // access_token= localStorage.getItem("id_token")
+      // if(!access_token) console.log("access_token not available")
+      // let resConsumeTokens
+      // try{
+      //   resConsumeTokens = await apiFetch("/api/billing/consume-tokens", {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json"},
+      //     body: JSON.stringify({
+      //           user_id: localStorage.getItem("user_id"),
+      //           action_name: "chat_message",
+      //           tokens_to_consume: tokens_to_consume,
+      //           event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
+      //         }),
+      //   });
+      // }catch (error) {
+      //   // If apiFetch throws, the request failed
+      //   console.error("Unable to update tokens for the user")
+      //   return;
+      // }
 
       // const currentPlanRes = await resCurrentPlan;
-      if(!resConsumeTokens.ok){
-        console.error("Unable to update tokens for the user")
-        return;
-      }
+      // if(!resConsumeTokens.ok){
+      //   console.error("Unable to update tokens for the user")
+      //   return;
+      // }
 
-      const consumeTokensData = await resConsumeTokens.json();
-      const dataConsumeTokens= await consumeTokensData.data
-
+      // const consumeTokensData = await resConsumeTokens.json();
+      // const dataConsumeTokens= await consumeTokensData.data
+      // const dataConsumeTokens= await resConsumeTokens.data
+      // console.log("Token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
+      
         // if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce user tokens for chat message");
 
         // const dataConsumeTokens = await resConsumeTokens.json();
-      console.log("Token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

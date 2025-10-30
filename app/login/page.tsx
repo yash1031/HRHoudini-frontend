@@ -1,159 +1,186 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { BarChart3, TrendingUp, Users, MessageCircle, CloudCog } from "lucide-react"
-import { fetchAuthSession, signInWithRedirect, signOut, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchAuthSession, signInWithRedirect} from 'aws-amplify/auth';
 import { useUserContext } from "@/contexts/user-context"
+import GoogleIcon from "@/public/google-icon"
 import { useRouter } from "next/navigation"
+import { setTokens } from "@/lib/auth/tokens";
 
-// Google Icon Component
-const GoogleIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path
-      fill="#4285F4"
-      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-    />
-  </svg>
-);
+
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedPersona, setSelectedPersona] = useState<string | null>(null)
-  const [isSignup, setIsSignup] = useState(false)
-  const [magicCodeRequested, setMagicCodeRequested] = useState(false);
-  const [isCodeVerRequest, setIsCodeVerRequest] = useState(false);
-  const [code, setCode] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [emailExistError, setEmailExistError] = useState("");
-  const [emailNotExistError, setEmailNotExistError] = useState("");
-  const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn,  updateUser} = useUserContext()
-  const [userRedirected, setUserRedirected]= useState(false);
-  const router = useRouter()
+  const [email, setEmail] = useState<string>("")
+  const [requestingToken, setRequestingToken] = useState<boolean>(false)
+  const [creatingAccount, setCreatingAccount] = useState<boolean>(false)
+  const [googleSignInInProgress, setGoogleSignInInProgress] = useState<boolean>(false)
+  const [isSignup, setIsSignup] = useState<boolean>(false)
+  const [magicCodeRequested, setMagicCodeRequested] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [code, setCode] = useState<string>("");
+  const [verifyTokenError, setVerifyTokenError] = useState<string | null>(null);
+  const [accountCreationError, setAccountCreationError] = useState<string | null>(null);
+  const [tokenRequestError, setTokenRequestError] = useState<string | null>(null);
+  const [agreedToTermsAndPrivacyPolicy, setAgreedToTermsAndPrivacyPolicy] = useState<boolean>(false);
+  const [newsLetterSubscribed, setNewsLetterSubscribed] = useState<boolean>(false);
+  const {updateUser} = useUserContext()
   const restrictAccountCreation= false
 
   useEffect(() => {
-    const is_google_logged_in= localStorage.getItem("is_google_logged_in")==="true"?true: false;
-    if(is_google_logged_in) handleGoogleAuthComplete()
+    const is_google_logged_in= localStorage.getItem("is-google-logged-in")==="true"?true: false;
+    if(is_google_logged_in) {
+      setGoogleSignInInProgress(true)
+      handleGoogleAuthComplete()
+    }
   }, [])
 
   const handleGoogleAuthComplete = async () => {
     try {
       const session = await fetchAuthSession()
-      const idToken= session.tokens?.idToken
-      const idTokenPayload = session.tokens?.idToken?.payload
+      const idToken= session?.tokens?.idToken
+      const idTokenPayload = session?.tokens?.idToken?.payload
+      const accessToken = session?.tokens?.accessToken // Add this line
+      const exp = idTokenPayload?.exp; // Get expiration times (Unix timestamp in seconds)
+      // const refreshToken = session?.tokens?.refreshToken // Add this line
+      console.log("Expiry received after google sign-in", exp)
+      console.log("session", session)
+      console.log("idToken", idToken)
+      console.log("accessToken", accessToken)
+      // Convert to seconds remaining from now
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      const secondsUntilExpiry = exp ? exp - nowInSeconds : 0;
+
+      console.log('Expires in:', secondsUntilExpiry, 'seconds'); // e.g., 285 seconds
       
       if (!idTokenPayload) {
+        console.log("idTokenPayload empty")
         console.log("User is not logged in yet")
+        localStorage.removeItem("is-google-logged-in")
+        setGoogleSignInInProgress(false)
         return;
       }
       
-      const userDetails = {
-        cognitoSub: idTokenPayload.sub as string,
-        email: idTokenPayload.email as string,
-        name: idTokenPayload.name as string,
-        emailVerified: idTokenPayload.email_verified === true || idTokenPayload.email_verified === 'true'
-      }
+      const email= String(idTokenPayload?.email) 
       
-      console.log("User details:", userDetails)
-      const res = await fetch("/api/auth/sign-in/socials", {
+      const res = await fetch("/api/auth/sign-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: userDetails.email  })
+        body: JSON.stringify({ email: email  })
       });
       const data = await res.json();
       console.log("data.success", data.success, "res.ok", res.ok)
       if (res.ok && data.success) {
         console.log("Creating tokens is successful, data is:", JSON.stringify(data), "res status:", res.status)
-        localStorage.setItem("access_token", data.access_token)
-        localStorage.setItem("id_token", idToken?String(idToken):'')
-        localStorage.setItem("access_token_expiry", data.access_token_expiry)
-        localStorage.setItem("refresh_token_expiry", data.refresh_token_expiry)
+        setTokens({
+          accessToken: accessToken? String(accessToken) : "",         // from your backend
+          idToken: idToken ? String(idToken) : "",// from Amplify session
+          // If your sign-in returns expires_in (seconds), pass it:
+          exp: secondsUntilExpiry
+        });
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
-        localStorage.setItem("user_email", userDetails.email)
-        const user= {
-          name: `${data.first_name} ${data.last_name}`,
-          email: userDetails.email,
-          company: "HealthServ",
-          role: "User",
-          persona: "",
-          avatar: "DU",
-          isLoading: true,
-        }
-        updateUser(user)
-        localStorage.setItem("loggedInUser", JSON.stringify(user));
-        // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+        localStorage.setItem("user_email", email)
         window.location.href = `/onboarding-upload-only`;
       } else {
         console.log("Error setting up access token")
       }
-      
+      // localStorage.removeItem("is-google-logged-in")
+      setGoogleSignInInProgress(false)
 
     } catch (error) {
       console.error('Error fetching user after Google sign-in:', error)
+      localStorage.removeItem("is-google-logged-in")
+      setGoogleSignInInProgress(false)
     }
   }
 
-  const [isVerifying, setIsVerifying] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: "",
     companyEmail: "",
+    newsLetterSubscribed: false,
     company: "",
     role: "",
   })
 
+  const switchToAccountCreation = () => {
+    setIsSignup(true)
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const switchToLogin = () => {
+    setIsSignup(false)
+  }
+
+  const switchToLoginFromTokenVerification = () => {
+    setMagicCodeRequested(false);
+    setEmail("");
+    setCode("");
+    setVerifyTokenError(null);
+  };
+
+  const handleAccountCreation = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setCreatingAccount(true)
+    
+    try {
+      const responseCreateAccount = await fetch("/api/auth/sign-up/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },  
+        body: JSON.stringify({
+          full_name: formData.name,          // state variable from form input
+          company_email: formData.companyEmail,  // state variable from form input
+          newsletter_subscribed: formData.newsLetterSubscribed
+        }),
+      });
+
+      const dataCreateAccount = await responseCreateAccount.json();
+      const createAccountData= await dataCreateAccount.data
+
+      if (responseCreateAccount.ok) {
+        console.log("user_id after account creation", createAccountData?.user?.user_id)
+        // localStorage.setItem("user_id", createAccountData?.user?.user_id)
+        console.log("Account created successfully:", createAccountData);
+        setEmail(formData.companyEmail)
+        //Redirect to login or dashboard if needed
+        setIsSignup(false)
+        setCreatingAccount(false)
+        // setIsLoading(false)
+      } else {
+        console.log("Error creating the account", createAccountData);
+        // setIsLoading(false)
+        setCreatingAccount(false)
+        setAccountCreationError(createAccountData.error.message);
+        setTimeout(() => {
+          setAccountCreationError(null);
+        }, 5000)
+        console.error("Signup error:", createAccountData.error.message);
+        return;
+      }
+      console.log("Data returned by create-user API", createAccountData)
+    } catch (err) {
+        setAccountCreationError("Unknow Error. Please try again");
+        setTimeout(() => {
+          setAccountCreationError(null);
+        }, 5000)
+        setCreatingAccount(false)
+        console.error("Unexpected error:", err);
+    }
+
+  }
+
+  const handleRequestToken = async (e: React.FormEvent) => {
+    e.preventDefault()
+    // setIsLoading(true)
+    setRequestingToken(true)
 
     try{
-      // Simulate login process
-      if(formData.companyEmail === 'maya.jackson@healthserv.com'){
-        setTimeout(() => {
-          // Check if this is a persona login that should go to onboarding
-          if (selectedPersona && formData.name && formData.companyEmail ) {
-          // if (selectedPersona && formData.name && formData.companyEmail && formData.company) {
-            const params = new URLSearchParams({
-              name: formData.name,
-              email: formData.companyEmail,
-              company: 'healthserv',
-              // company: formData.company,
-              role: "",
-              // role: formData.role || selectedPersona.toLowerCase().replace(/\s+/g, "-"),
-              onboarding: "true",
-            })
-
-            if (selectedPersona === "HR Generalist - Upload Only") {
-              window.location.href = `/onboarding-upload-only?${params.toString()}`
-            } else {
-              window.location.href = `/onboarding?${params.toString()}`
-            }
-          } else {
-            // Regular login - go to dashboard
-            window.location.href = "/dashboard"
-          }
-        }, 1500)
-        return
-      }  
       
       const res = await fetch("/api/auth/sign-in/request-code", {
         method: "POST",
@@ -166,16 +193,18 @@ export default function LoginPage() {
         console.log("Session is", data?.session)
         localStorage.setItem("user-session", data?.session)
         setMagicCodeRequested(true)
-        setIsLoading(false)
+        // setIsLoading(false)
+        setRequestingToken(false)
         console.log("Magic code sent successfully")
       } else {
         const data= await res.json();
         console.log("Eror recieved while sending code is", data)
-        setIsLoading(false)
-        setEmailNotExistError(data.message);
+        // setIsLoading(false)
+        setRequestingToken(false)
+        setTokenRequestError(data.error);
         setTimeout(() => {
           // Check if this is a persona login that should go to onboarding
-          setEmailNotExistError("");
+          setTokenRequestError(null);
         }, 5000)
         console.error("Sign-in error: Account does not exists");
       }
@@ -184,116 +213,10 @@ export default function LoginPage() {
     }
   }
 
-  const handleCreateAccount = () => {
-    setIsSignup(true)
-  }
-
-  const handleBackToLogin = () => {
-    setIsSignup(false)
-  }
-
-  const handleSignupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    
-    try {
-      // Simulate account creation process
-      const responseCreateAccount = await fetch("/api/auth/sign-up/create-account", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },  
-        body: JSON.stringify({
-          full_name: formData.name,          // state variable from form input
-          company_email: formData.companyEmail,  // state variable from form input
-        }),
-      });
-
-      const dataCreateAccount = await responseCreateAccount.json();
-      const createAccountData= await dataCreateAccount.data
-
-      if (responseCreateAccount.ok) {
-        console.log("user_id after account creation", createAccountData?.user?.user_id)
-        localStorage.setItem("user_id", createAccountData?.user?.user_id)
-        console.log("Account created successfully:", createAccountData);
-        setEmail(formData.companyEmail)
-        //Redirect to login or dashboard if needed
-        setIsSignup(false)
-        setIsLoading(false)
-      } else {
-        console.log("Error creating the account", createAccountData);
-        setIsLoading(false)
-        setEmailExistError(createAccountData.error.message);
-        setTimeout(() => {
-          setEmailExistError("");
-        }, 5000)
-        console.error("Signup error:", createAccountData.error.message);
-        return;
-      }
-      console.log("Data returned by create-user API", createAccountData)
-      // console.log("User_id in purchase-plan api", createAccountData.user.user_id)
-      // const responseCognitoInsert = await fetch("/api/auth/sign-up/cognito-insert", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     name: formData.name,
-      //     email: formData.companyEmail
-      //   }),
-      // });
-
-      // const dataCognitoInsert = await responseCognitoInsert.json();
-      // const cognitoInsertData= await dataCognitoInsert.data
-
-      // if(!responseCognitoInsert.ok){
-      //   setEmailExistError(cognitoInsertData);
-      //   setTimeout(() => {
-      //     setEmailExistError("");
-      //   }, 5000)
-      //   setIsLoading(false)
-      //   console.error("Error in inserting data to cognito");
-      // }
-      // console.log("User inserted to cognito successfully:", cognitoInsertData);
-
-      // //Assign Feemium for user
-      // const responsePurchaseFreemium = await fetch("/api/billing/purchase-plan", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     user_id: createAccountData.user.user_id,
-      //     subscription_plan_name:"Freemium",
-      //     is_billed_annually: false
-      //   }),
-      // });
-
-      // const dataPurchaseFreemium = await responsePurchaseFreemium.json();
-      // const purchaseFreemiumData= await dataPurchaseFreemium.data
-
-      // if (responsePurchaseFreemium.ok) {
-      //   console.log("Freemium plan purchase successfully:", purchaseFreemiumData);
-      //   setEmail(formData.companyEmail)
-      //   //Redirect to login or dashboard if needed
-      //   setIsSignup(false)
-      //   setIsLoading(false)
-      // } else {
-      //   setEmailExistError(purchaseFreemiumData.error.message);
-      //   setTimeout(() => {
-      //     setEmailExistError("");
-      //   }, 5000)
-      //   setIsLoading(false)
-      //   console.error("Error in purchase freemium plan:", purchaseFreemiumData.error.message);
-      // }
-    } catch (err) {
-        setEmailExistError("Unknow Error. Please try again");
-        setTimeout(() => {
-          setEmailExistError("");
-        }, 5000)
-        console.error("Unexpected error:", err);
-    }
-
-  }
-
   const handleVerifyCode = async () => {
     try {
       setIsVerifying(true);
-      localStorage.setItem("is_google_logged_in","false");
+      localStorage.setItem("is-google-logged-in","false");
       const res = await fetch("/api/auth/sign-in/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -311,11 +234,28 @@ export default function LoginPage() {
       // if (res.ok && data.success) {
         console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data))
 
-        localStorage.setItem("access_token", data.access_token)
-        localStorage.setItem("id_token", data.id_token)
-        localStorage.setItem("access_token_expiry", data.expires_in)
+        const expRaw = Number(data.expires_in); // you already store this as 'access_token_expiry'
+        setTokens({
+          accessToken: data.access_token,
+          idToken: data.id_token,
+          exp: isFinite(expRaw) ? expRaw : undefined, // supports either 'expires_in' or absolute 'exp'
+        });
 
-        const resSignIn = await fetch("/api/auth/sign-in/socials", {
+        // await fetch("/api/auth/set-session", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   credentials: "include",
+        //   body: JSON.stringify({
+        //     refresh_token: data.refresh_token,
+        //     max_age_seconds: 30 * 24 * 60 * 60, // match your Cognito RT TTL
+        //   }),
+        // });
+
+        // localStorage.setItem("access_token", data.access_token)
+        // localStorage.setItem("id_token", data.id_token)
+        // localStorage.setItem("access_token_expiry", data.expires_in)
+
+        const resSignIn = await fetch("/api/auth/sign-in", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email  })
@@ -326,57 +266,76 @@ export default function LoginPage() {
           console.log("Login Successfuly:", JSON.stringify(dataSignIn), "res status:", resSignIn.status)
           localStorage.setItem("user_id", dataSignIn.user_id)
           localStorage.setItem("user_name", `${dataSignIn.first_name} ${dataSignIn.last_name}`)
-          const user= {
-            name: `${dataSignIn.first_name} ${dataSignIn.last_name}`,
-            email: email,
-            company: "HealthServ",
-            role: "User",
-            persona: "",
-            avatar: "DU",
-            isLoading: true,
-          }
-          updateUser(user)
-          localStorage.setItem("loggedInUser", JSON.stringify(user));
-          // window.location.href = `/onboarding-upload-only?${localStorage.getItem("loggedInUser")}`;
+          localStorage.setItem("user_email", email)
+          // const user= {
+          //   name: `${dataSignIn.first_name} ${dataSignIn.last_name}`,
+          //   email: email,
+          //   company: "HealthServ",
+          //   role: "User",
+          //   persona: "",
+          //   avatar: "DU",
+          //   isLoading: true,
+          // }
+          // updateUser(user)
           window.location.href = `/onboarding-upload-only`;
           setIsVerifying(false);
           console.log("User Logged In Successfully")
         } else {
+          setIsVerifying(false);
+          setVerifyTokenError("Failed To Login")
+          setTimeout(() => {
+            // Check if this is a persona login that should go to onboarding
+            setVerifyTokenError(null);
+          }, 5000)
           console.log("Error logging in")
         }
         
       } else {
         console.log("The code is incorrect. Please check your email.")
         setIsVerifying(false);
-        setErrorMessage("The code is incorrect. Please check your email.");
+        setVerifyTokenError("The code is incorrect. Please check your email.");
         setTimeout(() => {
           // Check if this is a persona login that should go to onboarding
-          setErrorMessage("");
+          setVerifyTokenError(null);
         }, 5000)
       }
+      localStorage.removeItem("user-session")
+      localStorage.removeItem("is-google-logged-in")
     } catch (err) {
       console.error("Verification error:", err);
-      setErrorMessage("Something went wrong. Try again.");
+      setVerifyTokenError("Something went wrong. Try again.");
+      localStorage.removeItem("is-google-logged-in")
+      localStorage.removeItem("user-session")
     }
   };
 
-  const handleBackToLoginFromMagicCode = () => {
-    setMagicCodeRequested(false);
-    setIsCodeVerRequest(false);
-    setEmail("");
-    setCode("");
-    setErrorMessage("");
-  };
-
-    // Google OAuth handlers
-  const handleGoogleSignInSignUp = async () => {
+    
+  const handleGoogleSignUp = async () => {
     // Amplify.configure(amplifyConfig as ResourcesConfig)
     try {
-      localStorage.setItem("is_google_logged_in","true");
-      setUserRedirected(true);
-      console.log("About to redirect")
+      localStorage.setItem("is-google-logged-in","true");
+      setGoogleSignInInProgress(true)
+      console.log("Redirecting to Home Page")
       await signInWithRedirect({
         provider: 'Google',
+        customState: JSON.stringify({ action: 'signup' })
+      });
+      
+    } catch (error) {
+      console.error('Error signing in:', error);
+      
+    }
+  };
+   
+  const handleGoogleSignIn = async () => {
+    // Amplify.configure(amplifyConfig as ResourcesConfig)
+    try {
+      localStorage.setItem("is-google-logged-in","true");
+      setGoogleSignInInProgress(true)
+      console.log("Redirecting to Home Page")
+      await signInWithRedirect({
+        provider: 'Google',
+        customState: JSON.stringify({ action: 'signin' })
       });
       
     } catch (error) {
@@ -486,7 +445,8 @@ export default function LoginPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form className="space-y-4">
+                    {/* <form onSubmit={handleRequestToken} className="space-y-4"> */}
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                           Email Address
@@ -502,15 +462,16 @@ export default function LoginPage() {
                         />
                       </div>
 
-                      {emailNotExistError && <p className="text-red-500 text-sm mt-3 text-center">{emailNotExistError}</p>}
+                      {tokenRequestError && <p className="text-red-500 text-sm mt-3 text-center">{tokenRequestError}</p>}
 
 
                       <Button
                         type="submit"
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                        disabled={isLoading || !email}
+                        disabled={requestingToken || !email || googleSignInInProgress}
+                        onClick={handleRequestToken}
                       >
-                        {isLoading ? "Signing In..." : "Sign In"}
+                        {requestingToken ? "Signing In..." : "Sign In"}
                       </Button>
 
                       {/* OR Divider */}
@@ -528,20 +489,20 @@ export default function LoginPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleGoogleSignInSignUp}
+                        onClick={handleGoogleSignIn}
                         className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                        disabled={restrictAccountCreation}
+                        disabled={restrictAccountCreation || requestingToken|| googleSignInInProgress}
                       >
                         <GoogleIcon className="w-5 h-5 mr-3" />
-                        Continue with Google
+                        {googleSignInInProgress? 'Signing in..': 'Continue with Google'}
                       </Button>
 
                       <Button
                         type="button"
                         variant="outline"
                         className="w-full mt-3 border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                        onClick={handleCreateAccount}
-                        disabled={restrictAccountCreation}
+                        onClick={switchToAccountCreation}
+                        disabled={restrictAccountCreation || requestingToken || googleSignInInProgress}
                       >
                         Create Account
                       </Button>
@@ -559,11 +520,11 @@ export default function LoginPage() {
                       </div>
                     </div> */}
 
-                    <div className="mt-4 text-center">
+                    {/* <div className="mt-4 text-center">
                       <p className="text-xs text-gray-500">
                         By signing in, you agree to our Terms of Service and Privacy Policy
                       </p>
-                    </div>
+                    </div> */}
                   </CardContent>
                 </div>
 
@@ -579,7 +540,8 @@ export default function LoginPage() {
                       </div>
                       <CardTitle className="text-2xl font-bold text-gray-900">Magic Link Login</CardTitle>
                       <CardDescription className="text-gray-600">
-                        Enter the 10-digit verification code from your email (format: XXX-XXX-XXXX)
+                        Enter the 6-digit verification code from your email
+                        {/* Enter the 10-digit verification code from your email (format: XXX-XXX-XXXX) */}
                       </CardDescription>
                     </CardHeader>
                     
@@ -595,17 +557,17 @@ export default function LoginPage() {
                             <div className="flex space-x-1">
                               <input
                                 type="text"
-                                maxLength={3}
-                                className="w-12 h-12 text-center border border-gray-300 rounded-md text-lg font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                placeholder="XXX"
-                                value={code.slice(0, 3)}
+                                maxLength={6}
+                                className="w-20 h-12 text-center border border-gray-300 rounded-md text-lg font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                placeholder="XXXXXX"
+                                value={code.slice(0, 6)}
                                 onChange={(e) => {
                                   const newValue = e.target.value.replace(/\D/g, '');
-                                  setCode(newValue + code.slice(3));
+                                  setCode(newValue + code.slice(6));
                                 }}
                               />
                             </div>
-                            <span className="text-gray-400 font-bold">-</span>
+                            {/* <span className="text-gray-400 font-bold">-</span>
                             <div className="flex space-x-1">
                               <input
                                 type="text"
@@ -632,7 +594,7 @@ export default function LoginPage() {
                                   setCode(code.slice(0, 6) + newValue);
                                 }}
                               />
-                            </div>
+                            </div> */}
                           </div>
                           
                           {/* <p className="text-xs text-gray-500 text-center mb-4">
@@ -643,7 +605,8 @@ export default function LoginPage() {
                         <div className="flex space-x-3">
                           <Button
                             variant="outline"
-                            onClick={handleBackToLoginFromMagicCode}
+                            onClick={switchToLoginFromTokenVerification}
+                            disabled={isVerifying}
                             className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
                           >
                             Back
@@ -657,7 +620,7 @@ export default function LoginPage() {
                           </Button>
                         </div>
 
-                        {errorMessage && <p className="text-red-500 text-sm mt-3 text-center">{errorMessage}</p>}
+                        {verifyTokenError && <p className="text-red-500 text-sm mt-3 text-center">{verifyTokenError}</p>}
                         
                         {/* Success message */}
                         <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
@@ -690,7 +653,7 @@ export default function LoginPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSignupSubmit} className="space-y-4">
+                    <form onSubmit={handleAccountCreation} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                           Full Name
@@ -755,15 +718,60 @@ export default function LoginPage() {
                           </select>
                         </div>
                       )} */}
-
-                      {emailExistError && <p className="text-red-500 text-sm mt-3 text-center">{emailExistError}</p>}
+                      <div className="flex items-start space-x-2">
+                        <input
+                          type="checkbox"
+                          id="termsAndPolicy"
+                          checked={agreedToTermsAndPrivacyPolicy}
+                          onChange={(e) => setAgreedToTermsAndPrivacyPolicy(e.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          required
+                        />
+                        <label htmlFor="termsAndPolicy" className="text-sm text-gray-600">
+                          By creating an account, you agree to our{" "}
+                          <Link
+                            href="/login/terms-of-service"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 underline"
+                          >
+                            Terms of Service
+                          </Link>{" "}
+                          and{" "}
+                          <Link
+                            href="/login/privacy-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 underline"
+                          >
+                            Privacy Policy
+                          </Link>
+                        </label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <input
+                          type="checkbox"
+                          id="subscribeToNewsLetter"
+                          checked={newsLetterSubscribed}
+                          onChange={(e) => 
+                            {
+                              setNewsLetterSubscribed(e.target.checked)
+                              setFormData({ ...formData, newsLetterSubscribed: e.target.checked})
+                            }}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"    
+                        />
+                        <label htmlFor="subscribeToNewsLetter" className="text-sm text-gray-600">
+                          Subscribe to our newsletter
+                        </label>
+                      </div>
+                      {accountCreationError && <p className="text-red-500 text-sm mt-3 text-center">{accountCreationError}</p>}
 
                       <Button
                         type="submit"
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                        disabled={isLoading}
+                        disabled={creatingAccount|| googleSignInInProgress || !agreedToTermsAndPrivacyPolicy}
                       >
-                        {isLoading ? "Creating Account..." : "Create Account"}
+                        {creatingAccount ? "Creating Account..." : "Create Account"}
                       </Button>
 
                       {/* OR Divider */}
@@ -780,29 +788,30 @@ export default function LoginPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleGoogleSignInSignUp}
+                        onClick={handleGoogleSignUp}
                         className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                        disabled={restrictAccountCreation}
+                        disabled={restrictAccountCreation || creatingAccount || googleSignInInProgress || !agreedToTermsAndPrivacyPolicy}
                       >
                         <GoogleIcon className="w-5 h-5 mr-3" />
-                        Sign up with Google
+                        {googleSignInInProgress? 'Signing up..': 'Sign up with Google'}
                       </Button>
 
                       <Button
                         type="button"
                         variant="outline"
                         className="w-full mt-3 border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
-                        onClick={handleBackToLogin}
+                        onClick={switchToLogin}
+                        disabled={creatingAccount || googleSignInInProgress}
                       >
                         Back to Sign In
                       </Button>
                     </form>
 
-                    <div className="mt-4 text-center">
+                    {/* <div className="mt-4 text-center">
                       <p className="text-xs text-gray-500">
                         By creating an account, you agree to our Terms of Service and Privacy Policy
                       </p>
-                    </div>
+                    </div> */}
                   </CardContent>
                 </div>
               </div>

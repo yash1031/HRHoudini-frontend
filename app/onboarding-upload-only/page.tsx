@@ -6,7 +6,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { HRGeneralistUploadOnlyOnboarding } from "@/components/onboarding/scenarios/hr-generalist-upload-only-onboarding"
 import Image from "next/image"
-import { useUserContext } from "@/contexts/user-context" 
 
 interface UserContext {
   name: string
@@ -18,30 +17,16 @@ interface UserContext {
 export default function OnboardingUploadOnlyPage() {
   const router = useRouter()
   const [userContext, setUserContext] = useState<UserContext | null>(null)
-  
-  // const { user} = useUserContext()
 
   useEffect(() => {
-    const user= JSON.parse(localStorage.getItem("loggedInUser")||"")
-    console.log("user fetched is", JSON.stringify(user))
-    const {name, email, company, role}= user
+    const name= localStorage.getItem("user_name")||""
+    const email= localStorage.getItem("user_email")||""
+    const company= localStorage.getItem("user_company")||""
+    const role= localStorage.getItem("user_role")||""
+    console.log("In onboarding-upload-only page", "name", name, "email", email, "company", company, "role", role)
     const context = { name, email, company, role }
     setUserContext(context)
-    // onboardingFun()
   }, [])
-
-  // const onboardingFun = async () => {
-  //   const urlParams = new URLSearchParams(window.location.search)
-  //     const name = urlParams.get("name")
-  //     const email = urlParams.get("email")
-  //     const company = urlParams.get("company")
-  //     const role = urlParams.get("role")
-
-  //     if (name && email && company && role) {
-  //       const context = { name, email, company, role }
-  //       setUserContext(context)
-  //     }
-  // }
 
   if (!userContext) {
     return (

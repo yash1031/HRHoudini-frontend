@@ -92,7 +92,8 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
       hasFile: "true",
       showWelcome: "false",
     })
-    let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    let dashboardUrl = `/dashboard?${params.toString()}`
+    // let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
     // localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
     localStorage.setItem("from_history","true")
     localStorage.setItem("session_id",session_id)

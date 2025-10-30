@@ -25,13 +25,6 @@ interface NavigationHeaderProps {
   /** Optional override for company name */
   company?: string
 }
-interface LoggedUser {
-  name: string,
-  email: string,
-  company: string,
-  role: string,
-  onboarding: string,
-}
 
 interface NavItem {
   label: string,
@@ -45,62 +38,37 @@ interface NavItem {
 export function NavigationHeader({ userName, company }: NavigationHeaderProps = {}) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [user_name, setUserName]= useState<string>('')
+  const [plan_type, setPlanType]= useState<string>("Freemium")
+
   // const router = useRouter()
   const { user, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
-  const [loggedUser, setLoggedUser] = useState<Record<string, string>>({
-          name: '',
-          email: '',
-          company: '',
-          role: '',
-          onboarding: '',
-    })
   const [navItems, setNavItems]= useState<NavItem[]>([]);
   const { checkIfTokenExpired } = useUserContext()
-  // let loggedInUser={};
-
+  
   useEffect(()=>{
-    setLoggedUser({
-          name: localStorage.getItem("user_name")||'',
-          email: localStorage.getItem("user_email")||'',
-          company: 'HealthServ',
-          role: user.role,
-          onboarding: "true",
-    })
+    setUserName(localStorage.getItem("user_name")||"")
+    setUserName(localStorage.getItem("plan_type")||"Freemium")
     const fileUploaded: string = searchParams.get("hasFile") || "false";
     const params = new URLSearchParams({
         hasFile: fileUploaded,
         showWelcome: "false",
     })
-    const href= `/dashboard-uo-1?${params.toString()}`
+    const href= `/dashboard?${params.toString()}`
     setNavItems([{ label: "Dashboard", href: href }])
 
   }, [])
 
-  console.log("[v0] NavigationHeader - pathname:", pathname)
-  console.log("[v0] NavigationHeader - user from context:", user)
-  console.log("[v0] NavigationHeader - userName prop:", userName)
-  console.log("[v0] NavigationHeader - company prop:", company)
-
-  // const navItems = [
-  //   { label: "Dashboard", href: "/dashboard-uo-1" }, 
-  // ]
 
   const isDashboardActive = (pathname: string, href: string) => {
     // Commented below if block
     return pathname.startsWith(href)
   }
 
-  const displayName = userName || user.name || "User"
-  // const displayCompany = company || user.company || "Demo Company" //Commented
-  const displayCompany = company || user.company || "HealthServ" //Added
-  const displayAvatar = user.avatar || "DU"
-
-  console.log("[v0] NavigationHeader - displayName:", displayName)
-  console.log("[v0] NavigationHeader - displayCompany:", displayCompany)
+  const displayName = userName || user_name || ""
 
   const trialDaysLeft = 3
   const isOnTrial = trialDaysLeft > 0
-  const planType = isOnTrial ? "trial" : "starter" // trial, starter, professional, enterprise
 
   const getPlanInfo = () => {
     if (isOnTrial) {
@@ -114,22 +82,23 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       }
     }
 
-    switch (planType) {
+    switch (plan_type) {
       case "starter":
-        return { label: "Starter Plan", className: "bg-blue-100 text-blue-700 border border-blue-200" }
+        return { label: "Starter", className: "bg-blue-100 text-blue-700 border border-blue-200" }
       case "professional":
-        return { label: "Pro Plan", className: "bg-purple-100 text-purple-800 border border-purple-200" }
+        return { label: "Professional", className: "bg-purple-100 text-purple-800 border border-purple-200" }
       case "enterprise":
         return { label: "Enterprise", className: "bg-amber-100 text-amber-800 border border-amber-200" }
       default:
-        return { label: "Free", className: "bg-gray-100 text-gray-800 border border-gray-200" }
+        return { label: "Freemium", className: "bg-gray-100 text-gray-800 border border-gray-200" }
     }
   }
 
   const planInfo = getPlanInfo()
 
   // Show loading state if context is still loading and no props provided
-  if (user.isLoading && !userName && !company) {
+  if (!userName && !company) {
+  // if (user.isLoading && !userName && !company) {
     return (
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
         {/* Logo */}
@@ -180,54 +149,39 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   const shouldShowManageTiles = pathname === "/dashboard" || pathname === "/dashboard-upload-only"
 
   const handleSignOut = async () => {
-    try {
-      // Get user_id from localStorage
-      const user_id = localStorage.getItem('user_id');
-
-      localStorage.clear()
-      
-      // Redirect to login page
-      window.location.href = '/';
-      // router.push('/')
-
-      
-      let access_token= localStorage.getItem("id_token")
-      if(!access_token) console.log("access_token not available")
-      // Call the sign-out route
-      const response =  fetch('/api/auth/sign-out', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json', 
-           "authorization": `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({ user_id }),
-        credentials: 'include', // Important for HTTPOnly cookies
-      });
-
-      
-      
-      const responseSignout= await response;
-
-      // Remove data from local Storage on success
-      if (responseSignout.ok) {
-        if(isUserGoogleLoggedIn){
-          setIsUserGoogleLoggedIn(false);
-          await signOut();
-          console.log("Google User Signed out")
+      try {
+        const user_id = localStorage.getItem('user_id');
+        const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
+  
+        // Fire-and-forget request with keepalive
+        fetch('/api/auth/sign-out', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ user_id }),
+          credentials: 'include',
+          keepalive: true, // Keeps request alive even after page unload
+        }).catch(err => console.error('Sign-out request failed:', err));
+  
+        // Handle Google sign-out (this is fast)
+        if (is_google_logged_in) {
+          console.log("User is getting google signed out")
+          signOut().catch(err => console.error('Google sign-out failed:', err));
         }
-        else{
-          console.log("User Signed out")
-        }
-      } else {
-        // Even on API failure, clean up client-side for security
-        console.error('Sign out API failed, but cleaning up client-side');
+  
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Redirect immediately
+        window.location.href = '/';
+        
+      } catch (error) {
+        console.error('Sign out failed:', error);
+        localStorage.clear();
+        window.location.href = '/';
       }
-      
-    } catch (error) {
-      console.error('Sign out failed:', error);
-      window.location.href = '/';
-    }
-  };
+    };
 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">

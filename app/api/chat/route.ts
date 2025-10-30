@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/nl-to-athena`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/dashboard/query`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json",

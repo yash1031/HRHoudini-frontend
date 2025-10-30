@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await fetch(
-        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/generate_presigned_url`,
-        // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/upload-docs`,
+        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/uploads/session`,
+        // `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/upload-docs`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json",

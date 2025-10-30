@@ -4,28 +4,34 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, company_email } = body;
+    const { full_name, company_email, newsletter_subscribed } = body;
 
     if (!full_name) {
       return NextResponse.json(
-        { error: "full_name are required" },
+        { error: "full_name is required" },
         { status: 400 }
       );
     }
     if (!company_email) {
       return NextResponse.json(
-        { error: "company_email are required" },
+        { error: "company_email is required" },
+        { status: 400 }
+      );
+    }
+    if (newsletter_subscribed === null) {
+      return NextResponse.json(
+        { error: "newsletter_subscribed is required" },
         { status: 400 }
       );
     }
 
     // Call your AWS API Gateway
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/account/register`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/register`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name, company_email }),
+        body: JSON.stringify({ full_name, company_email, newsletter_subscribed}),
       }
     );
 
@@ -36,10 +42,10 @@ export async function POST(req: Request) {
       { status: response.status }
     );
   } catch (error: any) {
-    console.error("Error creating account:", error);
-    return NextResponse.json(
-      { error: "Failed to create account" },
-      { status: 500 }
-    );
+      console.error("Error creating account:", error);
+      return NextResponse.json(
+        { error: "Failed to create account" },
+        { status: 500 }
+      );
   }
 }

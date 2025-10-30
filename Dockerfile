@@ -47,7 +47,7 @@ RUN pnpm build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
+ENV NEXT_PUBLIC_NODE_ENV=production
 
 # Security: Non-root User
 RUN addgroup --system --gid 1001 nodejs

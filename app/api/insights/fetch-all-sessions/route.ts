@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await fetch(
-        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/update-chat-history?user_id=${user_id}`,
+        `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/sessions/list?user_id=${user_id}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json",

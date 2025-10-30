@@ -18,6 +18,7 @@ import {
   Calendar,
   Briefcase,
 } from "lucide-react"
+import { apiFetch } from "@/lib/api/client";
 
 interface UserContextData {
   name: string
@@ -35,8 +36,9 @@ interface UserContextType {
   accessToken: string | null
   setAccessToken: (token: string | null) => void
   isUserGoogleLoggedIn: boolean
+  getValidIdToken: () => Promise<string | null>
   setIsUserGoogleLoggedIn: (token: boolean) => void
-  renewAccessToken: () => Promise<string | null>
+  // renewAccessToken: () => Promise<string | null>
   isTokenValid: (token: string) => boolean
   checkIfTokenExpired: () => string | null
 
@@ -128,6 +130,17 @@ const AVAILABLE_KPIS: KpiItem[] = [
   },
 ];
 
+interface TokenResponse {
+  access_token: string;
+  id_token: string;
+  expires_in: number;
+  token_type: string;
+}
+
+interface DecodedToken {
+  exp: number;
+  [key: string]: any;
+}
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
@@ -183,15 +196,14 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
         window.location.href = '/';
         // router.push('/')
   
-        let access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available")
+        // let access_token= localStorage.getItem("id_token")
+        // if(!access_token) console.log("access_token not available")
 
         // Call the sign-out route
-        const response =  fetch('/api/auth/sign-out', {
+        const response =  apiFetch('/api/auth/sign-out', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json', 
-            "authorization": `Bearer ${access_token}`,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ user_id }),
           credentials: 'include', // Important for HTTPOnly cookies
@@ -244,7 +256,7 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
       console.log("isAccessTokenExpired true")
       console.log("accessToken expiry", access_token_expiry ? new Date(access_token_expiry) : 'null')
       console.log("time now is", new Date() )
-      const access_token= await renewAccessToken()
+      // const access_token= await renewAccessToken()
       // access_token= renewed_access_token
       console.log("new access_tokens is", access_token)
     }
@@ -255,99 +267,7 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
     }
     return access_token;
   }
-
-  // useEffect(() => {
-  //   console.log("[v0] UserContext pathname:", pathname)
-
-  //   const isUploadOnlyScenario =
-  //     pathname === "/dashboard-upload-only" ||
-  //     (pathname.startsWith("/dashboard/") && localStorage.getItem("upload-only-scenario") === "true")
-
-  //   if (pathname === "/dashboard-upload-only") {
-  //     localStorage.setItem("upload-only-scenario", "true")
-  //   }
-
-  //   if (isUploadOnlyScenario) {
-  //     console.log("[v0] Setting Upload-Only user data")
-  //     setUser({
-  //       name: "Maya Jackson",
-  //       email: "maya.jackson@healthserv.com",
-  //       company: "HealthServ Solutions",
-  //       role: "HR Generalist",
-  //       persona: "hr-generalist---upload-only",
-  //       avatar: "MJ",
-  //       isLoading: false,
-  //     })
-  //     return
-  //   }
-
-  //   if (!pathname.startsWith("/dashboard")) {
-  //     localStorage.removeItem("upload-only-scenario")
-  //   }
-
-  //   // Parse URL params from the current location string
-  //   const params = new URLSearchParams(window.location.search)
-
-  //   const persona = params.get("persona")
-  //   const company = params.get("company")
-
-  //   let userData: Partial<UserContextData> = {}
-
-  //   // Try to load from localStorage first
-  //   try {
-  //     const savedOnboarding = localStorage.getItem("hr-houdini-onboarding")
-  //     if (savedOnboarding) {
-  //       const onboardingData = JSON.parse(savedOnboarding)
-  //       if (onboardingData.userContext) {
-  //         userData = {
-  //           name: onboardingData.userContext.name || "",
-  //           email: onboardingData.userContext.email || "",
-  //           company: onboardingData.userContext.company || "",
-  //           role: onboardingData.userContext.role || "",
-  //           persona: onboardingData.userContext.role?.toLowerCase().replace(" ", "-") || "",
-  //         }
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error("Error loading onboarding data:", error)
-  //   }
-
-  //   // Override with URL params if available
-  //   if (persona || company) {
-  //     const personaKey = persona || userData.persona || "hr-generalist"
-  //     const companyName = company || userData.company || "HealthServ Solutions"
-
-  //     const { name, role } = getUserFromPersonaAndCompany(personaKey, companyName)
-
-  //     userData = {
-  //       ...userData,
-  //       name,
-  //       company: companyName,
-  //       role,
-  //       persona: personaKey,
-  //     }
-  //   }
-
-  //   // Generate avatar initials
-  //   const avatar = userData.name ? generateAvatarInitials(userData.name) : "DU"
-
-  //   // Set final user data
-  //   const finalUser = {
-  //     name: userData.name || "Demo User",
-  //     email: userData.email || "",
-  //     // company: userData.company || "Demo Company", //commented
-  //     company: userData.company || "HealthServ", //Added
-  //     role: userData.role || "User",
-  //     persona: userData.persona || "",
-  //     avatar,
-  //     isLoading: false,
-  //   }
-
-  //   console.log("[v0] Setting final user data:", finalUser)
-  //   setUser(finalUser)
-  // }, [pathname])
-
-    // Initialize access token from localStorage on mount
+  
   useEffect(() => {
     const savedToken = localStorage.getItem("access_token")
     if (savedToken && validateToken(savedToken)) {
@@ -386,57 +306,205 @@ export function UserContextProvider({ children }: { children: React.ReactNode })
   }
 
   // Function to renew access token, need to add syntax for Authorization header into it
-  const renewAccessToken = async (): Promise<string | null> => {
-    try {
-      console.log("Attempting to renew access token...")
-      console.log("Attempting to renew access token access token ", accessToken)
+  // const renewAccessToken = async (): Promise<string | null> => {
+  //   try {
+  //     console.log("Attempting to renew access token...")
+  //     console.log("Attempting to renew access token access token ", accessToken)
       
-      const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/${process.env.NEXT_PUBLIC_STAGE}/auth/refresh-tokens`, {
-      // const response = await fetch("/api/auth/sign-in/renew-tokens", {
-        method: "GET",
+  //     const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/auth/refresh-tokens`, {
+  //     // const response = await apiFetch("/api/auth/sign-in/renew-tokens", {
+  //       method: "GET",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       credentials: "include", // Include cookies (refresh_token)
+  //     })
+
+  //     if (response.ok) {
+  //       const data = await response.json()
+  //       console.log("Could renew tokens")
+  //       if (data.access_token && validateToken(data.access_token)) {
+  //         setAccessToken(data.access_token)
+  //         localStorage.setItem("access_token_expiry", data.access_token_expiry)
+  //         localStorage.setItem("refresh_token_expiry", data.refresh_token_expiry)
+  //         console.log("Access token renewed successfully")
+  //         return data.access_token
+  //       } else {
+  //         console.error("Invalid access token received from renewal")
+  //         // setAccessToken(null)
+  //         return null
+  //       }
+  //     } else {
+  //       console.error("Failed to renew access token:", response.status)
+  //       // setAccessToken(null)
+  //       // signout the user
+  //       return null
+  //     }
+  //   } catch (error) {
+  //     console.error("Error renewing access token:", error)
+  //     // setAccessToken(null)
+  //     return null
+  //   }
+  // }
+
+  // utils/auth/tokenManager.ts
+
+
+
+/**
+ * Decode JWT token without verification (just to read payload)
+ */
+function decodeJWT(token: string): DecodedToken | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const payload = parts[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded;
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if token is expired or will expire in the next 60 seconds
+ */
+function isTokenExpired(token: string, bufferSeconds: number = 60): boolean {
+  const decoded = decodeJWT(token);
+  if (!decoded || !decoded.exp) return true;
+  
+  const currentTime = Math.floor(Date.now() / 1000);
+  return decoded.exp <= (currentTime + bufferSeconds);
+}
+
+/**
+ * Get refresh token from cookies
+ */
+// function getRefreshTokenFromCookie(): string | null {
+//   if (typeof document === 'undefined') return null;
+  
+//   const cookies = document.cookie.split(';');
+//   for (const cookie of cookies) {
+//     const [name, value] = cookie.trim().split('=');
+//     if (name === 'rt') {
+//       return value;
+//     }
+//   }
+//   return null;
+// }
+
+/**
+ * Call the refresh token API
+ */
+async function refreshTokens(): Promise<TokenResponse | null> {
+  try {
+    const response = await fetch(
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/refresh-token`,
+      // "/api/auth/sign-in/renew-tokens",
+      {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // "authorization": `Bearer ${accessToken}`,
-          "authorization": `Bearer ${localStorage.getItem("access_token")}`,
         },
         credentials: "include", // Include cookies (refresh_token)
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Could renew tokens")
-        if (data.access_token && validateToken(data.access_token)) {
-          setAccessToken(data.access_token)
-          localStorage.setItem("access_token_expiry", data.access_token_expiry)
-          localStorage.setItem("refresh_token_expiry", data.refresh_token_expiry)
-          console.log("Access token renewed successfully")
-          return data.access_token
-        } else {
-          console.error("Invalid access token received from renewal")
-          // setAccessToken(null)
-          return null
-        }
-      } else {
-        console.error("Failed to renew access token:", response.status)
-        // setAccessToken(null)
-        // signout the user
-        return null
       }
-    } catch (error) {
-      console.error("Error renewing access token:", error)
-      // setAccessToken(null)
-      return null
+    );
+
+    if (!response.ok) {
+      console.error('Token refresh failed:', response.status);
+      return null;
     }
+
+    const data: TokenResponse = await response.json();
+    
+    // Store new tokens in localStorage
+    if (data.id_token) {
+      console.log("New id_token", data.id_token)
+      localStorage.setItem('id_token', data.id_token);
+    }
+    if (data.access_token) {
+      console.log("New access_token", data.access_token)
+      localStorage.setItem('access_token', data.access_token);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error refreshing tokens:', error);
+    return null;
   }
+}
+
+/**
+ * Sign out the user
+ */
+async function signOut(): Promise<void> {
+  // Clear localStorage tokens
+  // handleSignOut()
+  localStorage.clear()
+
+  // localStorage.removeItem('id_token');
+  // localStorage.removeItem('access_token');
+  
+  // Redirect to login page
+  window.location.href = '/';
+}
+
+/**
+ * Main function: Get valid ID token
+ * Returns null if user needs to re-authenticate
+ */
+async function getValidIdToken(): Promise<string | null> {
+  // 1. Try to get id_token from localStorage
+  let idToken = localStorage.getItem('id_token');
+  
+  if (!idToken) {
+    console.log('No id_token found in localStorage');
+    // await signOut();
+    return null;
+  }
+
+  // 2. Check if id_token is expired
+  // if (!isTokenExpired(idToken)) {
+  //   console.log("IdToken is not expired")
+  //   // Token is still valid
+  //   return idToken;
+  // }
+
+  console.log('id_token expired, attempting refresh...');
+
+  // 3. Check if refresh_token exists in cookies
+  // const refreshToken = getRefreshTokenFromCookie();
+  
+  // if (!refreshToken) {
+  //   console.log('No refresh token found in cookies');
+  //   // await signOut();
+  //   return null;
+  // }
+
+  // 4. Refresh tokens
+  const newTokens = await refreshTokens();
+  
+  if (!newTokens || !newTokens.id_token) {
+    console.log('Failed to refresh tokens');
+    // await signOut();
+    return null;
+  }
+
+  // 5. Return new id_token
+  return newTokens.id_token;
+}
 
   return <UserContext.Provider value={{ 
       user, 
       updateUser, 
       accessToken, 
       setAccessToken, 
-      renewAccessToken, 
+      // renewAccessToken, 
       isTokenValid,
       checkIfTokenExpired,
+      getValidIdToken,
       isUserGoogleLoggedIn,
       setIsUserGoogleLoggedIn,
       kpis,
