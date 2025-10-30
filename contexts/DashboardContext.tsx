@@ -49,6 +49,11 @@ export interface AnalyticsMetadata {
   generatedAt: string;
   numericFields: number;
   categoricalFields: number;
+  parquetDataUrl?: string;
+  columns?: string[];
+  numericFieldsList?: string[];
+  categoricalFieldsList?: string[];
+  columnTypes?: Record<string, string>;
 }
 
 // Full dashboard data matching API response
