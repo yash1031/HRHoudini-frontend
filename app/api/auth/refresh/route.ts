@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
  
-const COG_DOMAIN = process.env.COG_DOMAIN!;
-const COG_CLIENT_ID = process.env.COG_CLIENT_ID!;
+const NEXT_PUBLIC_COG_DOMAIN = process.env.NEXT_PUBLIC_COG_DOMAIN!;
+const NEXT_PUBLIC_COG_CLIENT_ID = process.env.NEXT_PUBLIC_COG_CLIENT_ID!;
 const COG_CLIENT_SECRET = process.env.COG_CLIENT_SECRET || "";
  
 function json(status: number, body: any) {
@@ -12,8 +12,8 @@ function json(status: number, body: any) {
 export async function POST(_req: NextRequest) {
   try {
     // 1) Basic config validation
-    if (!COG_DOMAIN || !COG_CLIENT_ID) {
-      return json(500, { error: "server_config_missing", detail: { COG_DOMAIN: !!COG_DOMAIN, COG_CLIENT_ID: !!COG_CLIENT_ID } });
+    if (!NEXT_PUBLIC_COG_DOMAIN || !NEXT_PUBLIC_COG_CLIENT_ID) {
+      return json(500, { error: "server_config_missing", detail: { NEXT_PUBLIC_COG_DOMAIN: !!NEXT_PUBLIC_COG_DOMAIN, NEXT_PUBLIC_COG_CLIENT_ID: !!NEXT_PUBLIC_COG_CLIENT_ID } });
     }
  
     // 2) Cookie check
@@ -21,15 +21,15 @@ export async function POST(_req: NextRequest) {
     if (!rt) return json(401, { error: "no_refresh_cookie" });
  
     // 3) Compose OAuth request to Cognito
-    const url = `${COG_DOMAIN}/oauth2/token`;
+    const url = `${NEXT_PUBLIC_COG_DOMAIN}/oauth2/token`;
     const body = new URLSearchParams();
     body.set("grant_type", "refresh_token");
     body.set("refresh_token", rt);
-    body.set("client_id", COG_CLIENT_ID);
+    body.set("client_id", NEXT_PUBLIC_COG_CLIENT_ID);
  
     const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded" };
     if (COG_CLIENT_SECRET) {
-      const basic = Buffer.from(`${COG_CLIENT_ID}:${COG_CLIENT_SECRET}`).toString("base64");
+      const basic = Buffer.from(`${NEXT_PUBLIC_COG_CLIENT_ID}:${COG_CLIENT_SECRET}`).toString("base64");
       headers.Authorization = `Basic ${basic}`;
       // (client_id in body is optional when using Basic, but harmless to keep)
     }
@@ -53,8 +53,8 @@ export async function POST(_req: NextRequest) {
  
     // 5) If refresh token rotated, update cookie
     if (data.refresh_token) {
-      const isProd = process.env.NODE_ENV === "production";
-      const domain = process.env.COOKIE_DOMAIN || undefined;
+      const isProd = process.env.NEXT_PUBLIC_NODE_ENV === "production";
+      const domain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || undefined;
       (await NextResponse.next()).cookies.set("rt", data.refresh_token, {
         httpOnly: true,
         secure: isProd,

@@ -1,4 +1,4 @@
-import { IS_PROD, APP_ORIGIN } from "./env";
+import { IS_PROD, NEXT_PUBLIC_APP_ORIGIN } from "./env";
  
 export function assertSameSiteRequest(req: Request) {
   if (!IS_PROD) return; // dev: be flexible on localhost
@@ -7,11 +7,11 @@ export function assertSameSiteRequest(req: Request) {
  
   // Allow only our app origin in prod
   const ok =
-    (origin && origin === APP_ORIGIN) ||
-    (referer && referer.startsWith(APP_ORIGIN));
+    (origin && origin === NEXT_PUBLIC_APP_ORIGIN) ||
+    (referer && referer.startsWith(NEXT_PUBLIC_APP_ORIGIN));
  
   if (!ok) {
-    const msg = `Blocked by strict origin policy. Expected ${APP_ORIGIN}`;
+    const msg = `Blocked by strict origin policy. Expected ${NEXT_PUBLIC_APP_ORIGIN}`;
     // Throwing here will be caught in the route and turned into 403
     throw new Error(msg);
   }
