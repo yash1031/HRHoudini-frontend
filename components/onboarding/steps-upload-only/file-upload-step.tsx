@@ -106,7 +106,7 @@ export function FileUploadStep() {
         showWelcome: showWelcome,
         })
 
-    let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
+    let dashboardUrl = `/dashboard?${params.toString()}`
     router.push(dashboardUrl)
 
     // setStep(3)
@@ -173,10 +173,6 @@ export function FileUploadStep() {
   const processFile = async (file: File, columns: string[]) => {
 
     try {
-        // const currentPlanRes = await resCurrentPlan;
-
-        
-
         setIsUploading(true)
         setError(null)
         hasFileUploadStarted(true)
@@ -286,6 +282,8 @@ export function FileUploadStep() {
               console.log("Athena table created")
               setUploadProgress(100)
               setProcessedFile(true);
+              setIsUploading(false)
+              hasFileUploadStarted(false)
             }
             // QUICK TEST: show a banner/toast
             // e.g., set some local state to display msg.event
@@ -382,7 +380,7 @@ export function FileUploadStep() {
           </div>
         )}
 
-         {selectedOption === "upload" && !(processedFile && isUploaded) && (
+        {selectedOption === "upload" && !(processedFile && isUploaded) && (
         // {selectedOption === "upload" && !uploadedFile && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
