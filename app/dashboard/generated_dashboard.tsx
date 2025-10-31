@@ -532,6 +532,61 @@ const FilterControls: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // return (
+  //   <div
+  //     className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200"
+  //     onClick={(e) => e.stopPropagation()}
+  //   >
+  //     <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+  //       <div className="flex items-center space-x-2">
+  //         <div className="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center">
+  //           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+  //           </svg>
+  //         </div>
+  //         <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
+  //         {activeFilterCount > 0 && (
+  //           <Badge className="bg-indigo-100 text-indigo-800 text-[10px]">
+  //             {activeFilterCount} active
+  //           </Badge>
+  //         )}
+  //       </div>
+  //       {activeFilterCount > 0 && (
+  //         <button
+  //           onClick={clearAllFilters}
+  //           className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[10px] font-medium rounded-md border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1"
+  //         >
+  //           <X className="w-2.5 h-2.5" />
+  //           <span>Clear All</span>
+  //         </button>
+  //       )}
+  //     </div>
+
+  //     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+  //       {filters.map(renderFilter)}
+  //     </div>
+
+  //     {/* Apply Filters Button */}
+  //     <div className="pt-1.5 flex items-center justify-between">
+  //       <span className="text-[10px] text-slate-500">
+  //         {activeFilterCount > 0 ? `${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} selected` : 'No filters applied'}
+  //       </span>
+  //       <button
+  //         onClick={(e) => {
+  //           e.stopPropagation();
+  //           applyFilters();
+  //         }}
+  //         className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded transition-all flex items-center space-x-1"
+  //       >
+  //         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+  //         </svg>
+  //         <span>Apply</span>
+  //       </button>
+  //     </div>
+  //   </div>
+  // );
+
   return (
     <div
       className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200"
@@ -551,38 +606,33 @@ const FilterControls: React.FC<{
             </Badge>
           )}
         </div>
-        {activeFilterCount > 0 && (
+        <div className="flex items-center space-x-2">
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearAllFilters}
+              className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[10px] font-medium rounded-md border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1"
+            >
+              <X className="w-2.5 h-2.5" />
+              <span>Clear All</span>
+            </button>
+          )}
           <button
-            onClick={clearAllFilters}
-            className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[10px] font-medium rounded-md border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              applyFilters();
+            }}
+            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded transition-all flex items-center space-x-1"
           >
-            <X className="w-2.5 h-2.5" />
-            <span>Clear All</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Apply</span>
           </button>
-        )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filters.map(renderFilter)}
-      </div>
-
-      {/* Apply Filters Button */}
-      <div className="pt-1.5 flex items-center justify-between">
-        <span className="text-[10px] text-slate-500">
-          {activeFilterCount > 0 ? `${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} selected` : 'No filters applied'}
-        </span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            applyFilters();
-          }}
-          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded transition-all flex items-center space-x-1"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-          <span>Apply</span>
-        </button>
       </div>
     </div>
   );
@@ -1115,7 +1165,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 <div>
                   <h1 className="text-3xl font-bold text-white">HR Houdini</h1>
                   <p className="text-blue-100">
-                    Your AI workforce analyst - Ready to dive deeper into {filename} data
+                    Your AI workforce analyst - Ready to dive deeper into {filename?.split('.')[0]} data
                   </p>
                 </div>
               </div>
@@ -1124,7 +1174,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 <div className="bg-white/10 rounded-lg px-4 py-2">
                   <div className="flex items-center space-x-2 text-white">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium">{filename}</span>
+                    <span className="font-medium">{filename?.split('.')[0]}</span>
                     {/* <span className="font-medium">{localStorage.getItem("file_name")}</span> */}
                     <span className="text-blue-200">•</span>
                     <span className="text-blue-200">{rowCount} records</span>
@@ -1175,11 +1225,11 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                     <div>
                       <p className="text-sm text-slate-600 mb-1">{kpi.label}</p>
                       <p className="text-3xl font-bold text-slate-800">{value}</p>
-                      {kpi.description && (
+                      {/* {kpi.description && (
                         <p className="text-xs mt-1" style={{ color: kpi.color || '#3b82f6' }}>
                           {kpi.description}
                         </p>
-                      )}
+                      )} */}
                     </div>
                     <Icon className="w-12 h-12 opacity-80" style={{ color: kpi.color || '#3b82f6' }} />
                   </div>
