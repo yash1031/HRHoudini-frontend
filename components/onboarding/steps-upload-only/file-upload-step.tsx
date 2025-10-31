@@ -317,9 +317,7 @@ export function FileUploadStep() {
         setError(null);
       }, 3000)
       console.error("File processing error:", err)
-    } finally {
-      setIsUploading(false)
-    }
+    } 
   }
 
   return (
