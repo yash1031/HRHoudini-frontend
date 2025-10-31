@@ -61,7 +61,7 @@ export default function LoginPage() {
       
       if (!idTokenPayload) {
         console.log("idTokenPayload empty")
-        console.log("User is not logged in yet")
+        console.log("User is not logged in yet, removing is-google-logged-in")
         localStorage.removeItem("is-google-logged-in")
         setGoogleSignInInProgress(false)
         return;
@@ -91,11 +91,11 @@ export default function LoginPage() {
       } else {
         console.log("Error setting up access token")
       }
-      // localStorage.removeItem("is-google-logged-in")
       setGoogleSignInInProgress(false)
 
     } catch (error) {
       console.error('Error fetching user after Google sign-in:', error)
+      console.log('Removing is-google-logged-in')
       localStorage.removeItem("is-google-logged-in")
       setGoogleSignInInProgress(false)
     }
@@ -216,7 +216,6 @@ export default function LoginPage() {
   const handleVerifyCode = async () => {
     try {
       setIsVerifying(true);
-      localStorage.setItem("is-google-logged-in","false");
       const res = await fetch("/api/auth/sign-in/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -300,11 +299,9 @@ export default function LoginPage() {
         }, 5000)
       }
       localStorage.removeItem("user-session")
-      localStorage.removeItem("is-google-logged-in")
     } catch (err) {
       console.error("Verification error:", err);
-      setVerifyTokenError("Something went wrong. Try again.");
-      localStorage.removeItem("is-google-logged-in")
+      setVerifyTokenError("Something went wrong. Try again.")
       localStorage.removeItem("user-session")
     }
   };

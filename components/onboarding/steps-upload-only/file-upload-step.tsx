@@ -10,6 +10,7 @@ import { useState } from "react"
 import { useUserContext } from "@/contexts/user-context"
 import { v4 as uuidv4 } from "uuid";
 import { useDashboard } from '@/contexts/DashboardContext';
+import { apiFetch } from "@/lib/api/client";
 
 import {
   ArrowLeft,
@@ -181,94 +182,80 @@ export function FileUploadStep() {
         hasFileUploadStarted(true)
         setUploadProgress(0)
         
-        let access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available")
-        const createKPIsRes = fetch("/api/file-upload/generate-kpis", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`, },
-          body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: uuid,
-              column_headers: columns
-            }),
-        });
+        let createKPIsRes
+        try{
+          createKPIsRes = apiFetch("/api/file-upload/generate-kpis", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({
+                user_id: localStorage.getItem("user_id"),
+                session_id: uuid,
+                column_headers: columns
+              }),
+          });
+        }catch(error){
+          setError("Failed to process file. Please try again.")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          console.error("Failed to create KPIs")
+          return;
+        }
 
-        access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available")
-        const AISuggestedQuesRes = fetch("/api/file-upload/generate-recommended-questions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`, },
-          body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: uuid,
-              column_headers: columns
-            }),
-        });
+        let AISuggestedQuesRes
+        try{
+          AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json",},
+            body: JSON.stringify({
+                user_id: localStorage.getItem("user_id"),
+                session_id: uuid,
+                column_headers: columns
+              }),
+          });
+        }catch(error){
+          setError("Failed to process file. Please try again.")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          console.error("Failed to create AI recommended question")
+          return;
+        }
 
-        access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available")
-        const resPresignedURL = await fetch("/api/file-upload/generate-presigned-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`, },
-          body: JSON.stringify({
-              fileName: file.name,
-              fileType: file.type,
-              userId: localStorage.getItem("user_id"),
-              // uuid: uuid,
-            }),
-        });
-
-        const dataPresignedURL = await resPresignedURL.json();
-        const presignedURLData= await dataPresignedURL.data
-        console.log("presignedURLData is", JSON.stringify(presignedURLData))
-        let uploadURL;
-        if(!resPresignedURL.ok){
+        let resPresignedURL
+        try{
+          resPresignedURL = await apiFetch("/api/file-upload/generate-presigned-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json",},
+            body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type,
+                userId: localStorage.getItem("user_id"),
+                // uuid: uuid,
+              }),
+          });
+        }catch(error){
           setError("Failed to process file. Please try again.")
           setIsUploading(false)
           console.error("Failed to generate presigned URL")
         }
-        // if (resPresignedURL.ok){
-        //   setUploadProgress(20)
-        //   const data = await presignedURLData;
-        //   // const data = await presignedURLData.json();
-        //   console.log("Data after generating presigned URL is ", JSON.stringify(data))
-        //   const body = JSON.parse(data.body);
-        //   const { uploadUrl, s3Key } = body;
-        //   uploadURL = uploadUrl
-        //   console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
-        //   // setSessionId(sessionId);
-        //   localStorage.setItem("s3Key", s3Key)
-        // }
-        // else{
-        //   setError("Failed to process file. Please try again.")
-        //   setTimeout(()=>{
-        //     setError(null);
-        //   }, 3000)
-        //   setIsUploading(false)
-        //   console.error("Failed to generate presigned URL")
-        //   return;
-        // }
 
-        if(resPresignedURL.ok){
-          console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
-          setIsUploaded(true);
-      }
+        // const dataPresignedURL = await resPresignedURL.json();
+        // const presignedURLData= await dataPresignedURL.data
+        const presignedURLData= await resPresignedURL.data
+        console.log("presignedURLData is", JSON.stringify(presignedURLData))
+        let uploadURL;
+        console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
+        setIsUploaded(true);
 
         setUploadProgress(20)
         const data = await presignedURLData;
-        // const data = await presignedURLData.json();
         console.log("Data after generating presigned URL is ", data)
-        // console.log("Data after generating presigned URL is ", JSON.stringify(data))
-        // const body = data.body;
-        // // const body = JSON.parse(data.body);
-        // console.log("body", body)
         const { uploadUrl, s3Key, sessionId } = data;
         uploadURL = uploadUrl
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
-        // setSessionId(sessionId);
         localStorage.setItem("s3Key", s3Key)
         localStorage.setItem("session_id", sessionId)
         const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
@@ -308,63 +295,23 @@ export function FileUploadStep() {
         };
 
         const resCreateKPIs= await createKPIsRes; 
-        const dataCreateKPIs = await resCreateKPIs.json();
-        const createKPIsData= await dataCreateKPIs.data
+        const createKPIsData= await resCreateKPIs.data
         console.log("createKPIsData is", JSON.stringify(createKPIsData))
-        if (resCreateKPIs.ok){
-          const kpisData= await createKPIsData;
-          // const kpisData= await createKPIsData.json();
-          console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
-          // Parse the string inside `body`
-          // const parsedBody = JSON.parse(kpisData.body);
-          // console.log("Parsed body:", parsedBody);
-          // console.log("KPI Questions are:", parsedBody.kpi_items);
+        const kpisData= await createKPIsData;
+        console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
+        const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
+          ...item,
+          icon: Clock, // fallback to Clock
+        }));
 
-          // Transform kpi_items to include actual icon components
-          const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
-            ...item,
-            icon: Clock, // fallback to Clock
-          }));
-
-          // Set KPIs from parsed response
-          setKpis(kpisWithIcons);
-        }
-        else{
-          setError("Failed to process file. Please try again.")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
-          setIsUploading(false)
-          console.error("Failed to create KPIs")
-          return;
-        } 
+        setKpis(kpisWithIcons);
 
         const resAISuggestedQues= await AISuggestedQuesRes;
-        const dataAISuggestedQues = await resAISuggestedQues.json();
-        const AISuggestedQuesData= await dataAISuggestedQues.data
+        const AISuggestedQuesData= await resAISuggestedQues.data
         console.log("AISuggestedQuesData is", JSON.stringify(AISuggestedQuesData))
-        if (resAISuggestedQues.ok){
-          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-          // const aIRecommendedQuestionsData=   await AISuggestedQuesData.json();
-          console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
-          // Parse the string inside `body`
-          // const parsedBodyAIRQ = JSON.parse(aIRecommendedQuestionsData.body);
-          // console.log("Parsed body:", parsedBodyAIRQ);
-          // console.log("AI Recommended Ques. are:", parsedBodyAIRQ.sample_questions);
-          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
-          // setUploadProgress(100)
-        } 
-        else{
-          setError("Failed to process file. Please try again.")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
-          setIsUploading(false)
-          console.error("Failed to create AI recommended question")
-          return;
-        }
-
-        // setProcessedFile(true);
+        const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+        console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
+        localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
 
     } catch (err) {
       setError("Failed to process file. Please try again.")

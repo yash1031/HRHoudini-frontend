@@ -71,7 +71,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         hasFile: fileUploaded,
         showWelcome: "false",
     })
-    const href= `/dashboard-uo-1?${params.toString()}`
+    const href= `/dashboard?${params.toString()}`
     setNavItems([{ label: "Dashboard", href: href }])
 
   }, [])

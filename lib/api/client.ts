@@ -11,7 +11,9 @@ export async function apiFetch(
   //   try { await refreshAccessToken(); } catch {}
     
   // }
-  if (isAccessExpiringSoon(30)) {
+  const isAccessExpiring= isAccessExpiringSoon(30)
+  console.log("isAccessExpiring", isAccessExpiring)
+  if (isAccessExpiring) {
     try { await refreshAccessToken(); } catch {}
   }
 

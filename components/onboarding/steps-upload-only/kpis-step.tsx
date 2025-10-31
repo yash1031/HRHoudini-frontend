@@ -153,31 +153,27 @@ export function KPIsStep() {
       
 
       // Store selected KPIs in localStorage
-      localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
-      localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
+        localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
+        localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
 
-      // Navigate to dashboard-upload-only with specified parameters
-      const params = new URLSearchParams({
-        hasFile: "true",
-        showWelcome: "true",
-      })
+        // Navigate to dashboard-upload-only with specified parameters
+        const params = new URLSearchParams({
+          hasFile: "true",
+          showWelcome: "true",
+        })
 
-      localStorage.setItem("from_history","false")
-      let dashboardUrl = `/dashboard?${params.toString()}`
-      router.push(dashboardUrl)
+        localStorage.setItem("from_history","false")
+        let dashboardUrl = `/dashboard?${params.toString()}`
+        router.push(dashboardUrl)
 
-      // if(JSON.stringify(kpis) !== JSON.stringify(AVAILABLE_KPIS)){
         console.log("API Dashboard call is in progress")
         console.log("Selected KPIs are", selectedKPIs)
-        
+          
         setIsLoading(true)
 
         const user_id= localStorage.getItem("user_id")
         const session_id= localStorage.getItem("session_id")
         
-        // let access_token= localStorage.getItem("id_token")
-        // if(!access_token) console.log("access_token not available")
-
         // Insights Dashboard Generation
         const resCreateDash = await apiFetch("/api/create-dashboard", {
           method: "POST",
@@ -194,55 +190,14 @@ export function KPIsStep() {
             const msg = JSON.parse(evt.data);
             console.log('[WS] message', msg);
             if(msg.event==="insight.ready"){
-
               console.log("[WS] message: Insight Dashboard is generated")
               console.log("event from websockets is", msg)
               const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
-
-              // console.log("dataCreateDashboard.success", dataCreateDashboard.success, "dataCreateDashboard.analytics", dataCreateDashboard.analytics)
-            
-              // if (dataCreateDashboard.success && dataCreateDashboard.analytics) {
               const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
               console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
-              // THIS IS THE KEY LINE - Pass the code to context
               setIsLoading(false)
-              // localStorage.setItem("dashboard_data", JSON.stringify(dataCreateDashboard.analytics))
               setErrorDash(null);
-              setDashboard_data(dataCreateDashboard.analytics);
-
-              // access_token= localStorage.getItem("id_token")
-              // if(!access_token) console.log("access_token not available")
-              // let resConsumeTokens;
-              // try{
-              //   resConsumeTokens = await apiFetch("/api/billing/consume-tokens", {
-              //     method: "POST",
-              //     headers: { "Content-Type": "application/json"
-              //     },
-              //     body: JSON.stringify({
-              //           user_id: localStorage.getItem("user_id"),
-              //           action_name: "file_upload",
-              //           tokens_to_consume: consumed_tokens,
-              //           event_metadata: {file_size:uploadedFile.metadata.size,file_name:uploadedFile.metadata.name, timestamp: new Date(Date.now())}
-              //     }),
-              //   });
-              // }catch (error) {
-              //   // If apiFetch throws, the request failed
-              //   console.error("Unable to update dashboard creation tokens for the user")
-              //   return;
-              // }
-              // const currentPlanRes = await resCurrentPlan;
-              // if(!resConsumeTokens.ok){
-              //   console.error("Unable to update dashboard creation tokens for the user")
-              //   return;
-              // }
-              // const consumeTokensData = await resConsumeTokens.json();
-              // const dataConsumeTokens= await consumeTokensData.data
-              // const dataConsumeTokens= await resConsumeTokens.data
-              // console.log("dataConsumeTokens after dashboard creation", dataConsumeTokens)
-              // access_token= localStorage.getItem("id_token")
-              // if(!access_token) console.log("access_token not available")
-              // console.log("Dashboard creation token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
-              let resStoreDash
+              setDashboard_data(dataCreateDashboard.analytics);let resStoreDash
               try{
                 resStoreDash = await apiFetch("/api/insights/store", {
                   method: "POST",
@@ -260,13 +215,6 @@ export function KPIsStep() {
                   console.error("Unable to store dashboard for this session")
                   return;
               }
-              // const currentPlanRes = await resCurrentPlan;
-              // if(!resStoreDash.ok){
-              //   console.error("Unable to store dashboard for this session")
-              //   return;
-              // }
-              // const storeDashData = await resStoreDash.json();
-              // const dataStoreDash= await storeDashData.data
               const dataStoreDash= await resStoreDash.data
               console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
             }
