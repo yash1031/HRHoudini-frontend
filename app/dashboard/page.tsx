@@ -20,15 +20,13 @@ import {
   BarChart3,
 } from "lucide-react"
 import { ChatInterface } from "@/components/chat-interface"
-// import { HeroInsightsTile } from "@/components/hero-insights-tile"
-// import { getDashboardConfig, saveDashboardConfig, getDefaultDashboardConfig } from "@/lib/dashboard-config"
 import { useDashboard } from '@/contexts/DashboardContext';
 import Generated_Dashboard from './generated_dashboard'
 import { Loader2 } from 'lucide-react';
 import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
 import sample_dashboard_data from "@/public/sample_dashboard_data"
-import { useUserContext } from "@/contexts/user-context"
+import { apiFetch } from "@/lib/api/client";
 
 declare global {
   interface Window {
@@ -126,61 +124,10 @@ interface ConfigurableDashboardProps {
     tokenMapsUrl?: string;  
   };
 }
-const FileProcessingTooltip = ({
-  children,
-  fileName,
-  recordCount,
-}: { children: React.ReactNode; fileName: string; recordCount: number }) => {
-  const [showTooltip, setShowTooltip] = useState(false)
-
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      {children}
-      {showTooltip && (
-        <div className="absolute bottom-full left-0 mb-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50">
-          <div className="flex items-center space-x-2 mb-3">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="font-semibold text-green-900">File Successfully Processed</span>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">File Size:</span>
-              <span className="text-gray-600">2.4 MB</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">Data Type:</span>
-              <span className="text-gray-600">HRIS Export</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">Records:</span>
-              <span className="text-gray-600">{recordCount.toLocaleString()} analyzed</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">Columns:</span>
-              <span className="text-gray-600">12 detected</span>
-            </div>
-          </div>
-          <Badge variant="secondary" className="bg-green-100 text-green-800 mt-2">
-            Ready for Analysis
-          </Badge>
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function DashboardUO1() {
   const searchParams = useSearchParams()
   const [dashboardConfig, setDashboardConfig] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [showWelcomeTour, setShowWelcomeTour] = useState(false)
   const [chatHeight, setChatHeight] = useState(400)
   const [employeeData, setEmployeeData] = useState<any[]>([])
@@ -191,7 +138,6 @@ export default function DashboardUO1() {
   const [file_row_count, setFile_row_count]=  useState<string|null>(null)
   const [sample_questions, setSample_questions]=  useState<string|null>(null)
   const [welcomeMessage, setWelcomeMessage]=  useState<string>('')
-  const { checkIfTokenExpired } = useUserContext()
 
 
   useEffect(() => {
@@ -209,8 +155,8 @@ export default function DashboardUO1() {
       return;
     }
     setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
-    setIsLoading(true)
     setSample_questions(localStorage.getItem("sample_questions"))
+    setIsLoading(true)
     const session_id= localStorage.getItem("session_id")
     if(session_id) fetchFileUploadHistory(session_id);
     else{
@@ -219,37 +165,41 @@ export default function DashboardUO1() {
   }, [])
 
   const fetchFileUploadHistory = async (session_id: string) =>{
-       
-        let access_token= localStorage.getItem("id_token")
-        if(!access_token) console.log("access_token not available")
-        const resFetchFileUploadHistory = await fetch("/api/insights/fetch-all-sessions", {
+    try{ 
+      console.log("fetchFileUploadHistory triggered, session_id", session_id)
+      let resFetchFileUploadHistory
+      try{
+        resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
             method: "POST",
-            headers: { "Content-Type": "application/json", 
-              "authorization": `Bearer ${access_token}`, },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                   user_id: localStorage.getItem("user_id"),
             }),
-          });
-          if(!resFetchFileUploadHistory.ok){
-            console.error("Unable to fetch all fileUpload sessions for the user")
-            return;
-          }
-          const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
-          const dataFetchFileUploadHistory= await fetchFileUploadHistoryData?.data
-        const dashboardHistoryData= await dataFetchFileUploadHistory?.data;
-        dashboardHistoryData.map((data:any, id:any)=>{
-          if(data.session_id=== session_id){ 
-            setIsLoading(false)
-            setErrorDash(null)
-            setDashboard_data(data?.analytical_json_output|| null)
-            setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
-            setFileName(data?.analytical_json_output?.metadata?.filename)
-            setFile_row_count(data?.analytical_json_output?.metadata?.totalRows)
-            
-          }
-        })
-  
+        });
+      }catch(error){
+        console.error("In fetchFileUploadHistory, unable to fetch all fileUpload sessions for the user")
+        return;
+      }
+      const dashboardHistoryData= await resFetchFileUploadHistory?.data?.data;
+      console.log("dashboardHistoryData is", dashboardHistoryData)
+      dashboardHistoryData.map((data:any, id:any)=>{
+        if(data.session_id=== session_id){ 
+          console.log("found matching session_id from history, session_id", session_id)
+          setIsLoading(false)
+          setErrorDash(null)
+          setDashboard_data(data?.analytical_json_output|| null)
+          setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
+          setFileName(data?.analytical_json_output?.metadata?.filename)
+          setFile_row_count(data?.analytical_json_output?.metadata?.totalRows)
+          
+        }
+      })
+    }catch{
+      setIsLoading(false)
+      setErrorDash("Failed to load dashboard")
+      console.error("Unable to fetch all fileUpload sessions for the user")
     }
+  }
 
   const calculateChatHeight = () => {
     if (kpiGridRef.current) {
@@ -492,7 +442,6 @@ useEffect(() => {
         
         <Generated_Dashboard {...config} />
       }
-
 
         {/* Chat Interface */}
         <div className="w-full">

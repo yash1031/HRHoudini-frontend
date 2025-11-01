@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Shield, BarChart3, Clock, Lock, CheckCircle, MessageSquare, Brain } from "lucide-react"
 import { useOnboarding } from "../onboarding-template"
+import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 
 export function WelcomeStep() {
   const { setStep } = useOnboarding()
@@ -223,7 +224,9 @@ export function WelcomeStep() {
         </div>
 
         <div className="flex justify-center">
-          <Button onClick={() => setStep(2)} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => {
+            // closeWebSocket();
+            setStep(2)}} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
             <span>File Upload</span>
             <ArrowRight className="h-4 w-4" />
           </Button>

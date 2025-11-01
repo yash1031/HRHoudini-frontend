@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Trash2, Edit2, FileText, Clock, X, Check } from 'lucide-react';
+import { FileText, Clock, X, Check } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useDashboard } from '@/contexts/DashboardContext';
 
@@ -18,17 +18,9 @@ interface FileUploadHistoryProps {
 }
 
 const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistoryProps) => {
-  // const [uploads, setUploads] = useState<FileUpload[]>([
-  //   { id: '1', name: 'Employee_Data_Q1.csv', timestamp: '2025-10-13T10:30:00', isFavorite: true },
-  //   { id: '2', name: 'Payroll_Report_Sept.xlsx', timestamp: '2025-10-12T15:45:00', isFavorite: false },
-  //   { id: '3', name: 'Performance_Metrics.csv', timestamp: '2025-10-11T09:20:00', isFavorite: true },
-  //   { id: '4', name: 'Department_Analytics.xlsx', timestamp: '2025-10-10T14:15:00', isFavorite: false },
-  //   { id: '5', name: 'Attendance_Records.csv', timestamp: '2025-10-09T11:00:00', isFavorite: false },
-  //   { id: '6', name: 'Benefits_Enrollment.xlsx', timestamp: '2025-10-08T16:30:00', isFavorite: false },
-  // ]);
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   const router = useRouter()
-  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
+  const {setIsLoading, setErrorDash } = useDashboard();
   console.log("uploads in FileUploadHistory comp is", fileUploadHistoryData)
 
   useEffect(()=>{
@@ -93,18 +85,13 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
       showWelcome: "false",
     })
     let dashboardUrl = `/dashboard?${params.toString()}`
-    // let dashboardUrl = `/dashboard-uo-1?${params.toString()}`
-    // localStorage.setItem("dashboard_data", JSON.stringify(dashboardJSON))
     localStorage.setItem("from_history","true")
     localStorage.setItem("session_id",session_id)
     localStorage.setItem("file_name",dashboardJSON?.metadata?.filename)
     localStorage.setItem("file_row_count",dashboardJSON?.metadata?.totalRows)
-    // console.log("Dashboard will now appear")
     setErrorDash(null)
     setIsLoading(true)
-    // setDashboard_data(dashboardJSON);
     router.push(dashboardUrl)
-    //Set File name and rowCount for changed session here ---------------- to do
   };
 
   return (

@@ -8,21 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
-// import { v4 as uuidv4 } from "uuid";
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useOnboarding } from "./onboarding/onboarding-template"
 import { useUserContext } from "@/contexts/user-context"
-import {
-  ArrowLeft,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Clock,
-  Target,
-  Award,
-  Calendar,
-  Briefcase,
-} from "lucide-react"
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
 import { apiFetch } from "@/lib/api/client";
@@ -87,22 +75,10 @@ export function FileUpload({
   isUploaded
   // scenarioConfig,
 }: FileUploadProps) {
-  // const [uploadProgress, setUploadProgress] = useState(0)
-  // const [isUploading, setIsUploading] = useState(false)
-  // const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [fileMetadata, setFileMetadata] = useState<FileMetadata | null>(null)
-  // const [error, setError] = useState<string | null>(null)
-  // const [uuid] = useState<string>(uuidv4());
-  // const {setKpis } = useUserContext()
-  const { setSample_questions, setDashboardCode, setIsLoading, setErrorDash } = useDashboard();
   const [fileDropped, setFileDropped]= useState(false);
-  const [futureError, setFutureError]= useState<String>('');
   const errorRef = useRef<string | null>(null);
-  // const { step, setStep} = useOnboarding()
-  const { step, setStep, uploadedFile, setUploadedFile } = useOnboarding()
-  const { checkIfTokenExpired } = useUserContext()
-
-  let resCurrentPlan: Promise<Response>;
+  const { uploadedFile, setUploadedFile } = useOnboarding()
 
   const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
   return new Promise((resolve, reject) => {

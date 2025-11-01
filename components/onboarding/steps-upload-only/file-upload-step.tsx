@@ -11,6 +11,7 @@ import { useUserContext } from "@/contexts/user-context"
 import { v4 as uuidv4 } from "uuid";
 import { useDashboard } from '@/contexts/DashboardContext';
 import { apiFetch } from "@/lib/api/client";
+import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 
 import {
   ArrowLeft,
@@ -45,7 +46,7 @@ export function FileUploadStep() {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const {checkIfTokenExpired, setKpis } = useUserContext()
+  const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   const { wb, setWb } = useDashboard();
@@ -104,13 +105,11 @@ export function FileUploadStep() {
     const params = new URLSearchParams({
         hasFile: "false",
         showWelcome: showWelcome,
-        })
+    })
 
     let dashboardUrl = `/dashboard?${params.toString()}`
     router.push(dashboardUrl)
 
-    // setStep(3)
-    // setStep(4)
   }
 
   const downloadSampleFile = () => {
@@ -171,7 +170,7 @@ export function FileUploadStep() {
   };
 
   const processFile = async (file: File, columns: string[]) => {
-
+    let handler: (msg: any) => void = () => {};
     try {
         setIsUploading(true)
         setError(null)
@@ -238,8 +237,6 @@ export function FileUploadStep() {
           console.error("Failed to generate presigned URL")
         }
 
-        // const dataPresignedURL = await resPresignedURL.json();
-        // const presignedURLData= await dataPresignedURL.data
         const presignedURLData= await resPresignedURL.data
         console.log("presignedURLData is", JSON.stringify(presignedURLData))
         let uploadURL;
@@ -254,15 +251,16 @@ export function FileUploadStep() {
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
         localStorage.setItem("s3Key", s3Key)
         localStorage.setItem("session_id", sessionId)
-        const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
-        const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id")?? 'test'}&sessionId=${sessionId}`);
-        setWb(ws)
-        // keep a reference so it doesn’t get GC’d (test-only)
-        ;(window as any).__ws = ws;
+        connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
+        // const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
+        // const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id")?? 'test'}&sessionId=${sessionId}`);
+        // setWb(ws)
+        // // keep a reference so it doesn’t get GC’d (test-only)
+        // ;(window as any).__ws = ws;
         
-        ws.onopen = () => {
-          console.log('[WS] connected', { uuid });
-        };
+        // ws.onopen = () => {
+        //   console.log('[WS] connected', { uuid });
+        // };
 
 
         // 4. Upload file with progress
@@ -270,9 +268,7 @@ export function FileUploadStep() {
 
         setUploadProgress(40)
 
-        ws.onmessage = (evt) => {
-          try {
-            const msg = JSON.parse(evt.data);
+        handler = (msg: any) => {
             console.log('[WS] message', msg);
             if(msg.event==="convert.ready"){
               console.log("[WS] message: CSV converted to parquet")
@@ -285,12 +281,28 @@ export function FileUploadStep() {
               setIsUploading(false)
               hasFileUploadStarted(false)
             }
-            // QUICK TEST: show a banner/toast
-            // e.g., set some local state to display msg.event
-          } catch (e) {
-            console.log('[WS] raw', evt.data);
-          }
         };
+        addListener(handler!);
+
+        // ws.onmessage = (evt) => {
+        //   try {
+        //     const msg = JSON.parse(evt.data);
+        //     console.log('[WS] message', msg);
+        //     if(msg.event==="convert.ready"){
+        //       console.log("[WS] message: CSV converted to parquet")
+        //       setUploadProgress(70)
+        //     }
+        //     if(msg.event==="athena.completed"){
+        //       console.log("Athena table created")
+        //       setUploadProgress(100)
+        //       setProcessedFile(true);
+        //       setIsUploading(false)
+        //       hasFileUploadStarted(false)
+        //     }
+        //   } catch (e) {
+        //     console.log('[WS] raw', evt.data);
+        //   }
+        // };
 
         const resCreateKPIs= await createKPIsRes; 
         const createKPIsData= await resCreateKPIs.data
@@ -317,6 +329,8 @@ export function FileUploadStep() {
         setError(null);
       }, 3000)
       console.error("File processing error:", err)
+      closeWebSocket();
+      removeListener(handler)
     } 
   }
 

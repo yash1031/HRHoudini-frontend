@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import {signOut } from 'aws-amplify/auth';
+import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 
 interface UserContext {
   name: string
@@ -53,8 +54,7 @@ export function OnboardingTemplate({
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
   const [displayName, setDisplayName]= useState<String>("")
-  const { getValidIdToken, checkIfTokenExpired, isUserGoogleLoggedIn, setIsUserGoogleLoggedIn } = useUserContext()
-
+  
   // Close side panel when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -74,7 +74,10 @@ export function OnboardingTemplate({
   }, [isSidePanelOpen])
 
   useEffect(()=>{
-   fetchFileUploadHistory()
+    console.log("Starting the connection")
+    // connectWebSocket("0b29e27e-6003-47c1-9916-ec2f7e9bfd72", "0b29e27e-6003-47c1-9916-ec2f7e9bfd72");
+    // closeWebSocket();
+    fetchFileUploadHistory()
     setDisplayName(localStorage.getItem("user_name")||"")
   },[])
 
@@ -100,7 +103,7 @@ export function OnboardingTemplate({
         });
       }catch (error) {
         // If apiFetch throws, the request failed
-        console.error("Unable to fetch all fileUpload sessions for the user")
+        console.error("In onboarding-template, unable to fetch all fileUpload sessions for the user")
         return;
       }
         // if(!resFetchFileUploadHistory.ok){

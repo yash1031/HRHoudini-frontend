@@ -42,7 +42,7 @@ export default function LoginPage() {
   }, [])
 
   const handleGoogleAuthComplete = async () => {
-    try {
+    // try {
       const session = await fetchAuthSession()
       const idToken= session?.tokens?.idToken
       const idTokenPayload = session?.tokens?.idToken?.payload
@@ -50,15 +50,13 @@ export default function LoginPage() {
       const exp = idTokenPayload?.exp; // Get expiration times (Unix timestamp in seconds)
       // const refreshToken = session?.tokens?.refreshToken // Add this line
       console.log("Expiry received after google sign-in", exp)
-      console.log("session", session)
-      console.log("idToken", idToken)
-      console.log("accessToken", accessToken)
+      console.log("session", JSON.stringify(session))
+      console.log("idToken", JSON.stringify(idToken))
+      console.log("accessToken", JSON.stringify(accessToken))
       // Convert to seconds remaining from now
-      const nowInSeconds = Math.floor(Date.now() / 1000);
-      const secondsUntilExpiry = exp ? exp - nowInSeconds : 0;
 
-      console.log('Expires in:', secondsUntilExpiry, 'seconds'); // e.g., 285 seconds
       
+
       if (!idTokenPayload) {
         console.log("idTokenPayload empty")
         console.log("User is not logged in yet, removing is-google-logged-in")
@@ -66,8 +64,23 @@ export default function LoginPage() {
         setGoogleSignInInProgress(false)
         return;
       }
-      
+
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      const secondsUntilExpiry = exp ? exp - nowInSeconds : 0;
+
+      console.log('Expires in:', secondsUntilExpiry, 'seconds'); // e.g., 285 seconds
+
       const email= String(idTokenPayload?.email) 
+
+      // Set access_token as secure HTTP-only cookie for middleware auth
+      await fetch("/api/auth/set-cookie", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: String(accessToken),
+          expiresIn: secondsUntilExpiry,
+        }),
+      });
       
       const res = await fetch("/api/auth/sign-in", {
         method: "POST",
@@ -93,12 +106,12 @@ export default function LoginPage() {
       }
       setGoogleSignInInProgress(false)
 
-    } catch (error) {
-      console.error('Error fetching user after Google sign-in:', error)
-      console.log('Removing is-google-logged-in')
-      localStorage.removeItem("is-google-logged-in")
-      setGoogleSignInInProgress(false)
-    }
+    // } catch (error) {
+    //   console.error('Error fetching user after Google sign-in:', error)
+    //   console.log('Removing is-google-logged-in')
+    //   localStorage.removeItem("is-google-logged-in")
+    //   setGoogleSignInInProgress(false)
+    // }
   }
 
   
@@ -232,27 +245,13 @@ export default function LoginPage() {
       if (res.ok) {
       // if (res.ok && data.success) {
         console.log("HandleVerifyCode is successful, data is:", JSON.stringify(data))
-
+        localStorage.removeItem("user-session")
         const expRaw = Number(data.expires_in); // you already store this as 'access_token_expiry'
         setTokens({
           accessToken: data.access_token,
           idToken: data.id_token,
           exp: isFinite(expRaw) ? expRaw : undefined, // supports either 'expires_in' or absolute 'exp'
         });
-
-        // await fetch("/api/auth/set-session", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   credentials: "include",
-        //   body: JSON.stringify({
-        //     refresh_token: data.refresh_token,
-        //     max_age_seconds: 30 * 24 * 60 * 60, // match your Cognito RT TTL
-        //   }),
-        // });
-
-        // localStorage.setItem("access_token", data.access_token)
-        // localStorage.setItem("id_token", data.id_token)
-        // localStorage.setItem("access_token_expiry", data.expires_in)
 
         const resSignIn = await fetch("/api/auth/sign-in", {
           method: "POST",
@@ -266,16 +265,6 @@ export default function LoginPage() {
           localStorage.setItem("user_id", dataSignIn.user_id)
           localStorage.setItem("user_name", `${dataSignIn.first_name} ${dataSignIn.last_name}`)
           localStorage.setItem("user_email", email)
-          // const user= {
-          //   name: `${dataSignIn.first_name} ${dataSignIn.last_name}`,
-          //   email: email,
-          //   company: "HealthServ",
-          //   role: "User",
-          //   persona: "",
-          //   avatar: "DU",
-          //   isLoading: true,
-          // }
-          // updateUser(user)
           window.location.href = `/onboarding-upload-only`;
           setIsVerifying(false);
           console.log("User Logged In Successfully")
@@ -292,17 +281,15 @@ export default function LoginPage() {
       } else {
         console.log("The code is incorrect. Please check your email.")
         setIsVerifying(false);
-        setVerifyTokenError("The code is incorrect. Please check your email.");
+        setVerifyTokenError(data.error);
         setTimeout(() => {
           // Check if this is a persona login that should go to onboarding
           setVerifyTokenError(null);
         }, 5000)
       }
-      localStorage.removeItem("user-session")
     } catch (err) {
       console.error("Verification error:", err);
       setVerifyTokenError("Something went wrong. Try again.")
-      localStorage.removeItem("user-session")
     }
   };
 

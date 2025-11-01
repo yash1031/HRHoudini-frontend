@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
-import { useUserContext } from "@/contexts/user-context"
 import { apiFetch } from "@/lib/api/client";
 
 interface Message {
@@ -52,7 +51,6 @@ export function ChatInterface({
   const [error, setError]= useState<any>(null)
   const [fromHistory, setFromHistory]= useState<string>("true")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { checkIfTokenExpired } = useUserContext()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -68,76 +66,57 @@ export function ChatInterface({
   }, [messages])
 
   const handleSend = async (message?: string) => {
-    console.log("Sending the message to get back the results")
-    const messageToSend = message || input.trim()
-    console.log("Message to send is", messageToSend)
-    if (!messageToSend || isLoading) return
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: messageToSend,
-      sender: "user",
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
-    
-    // let access_token= localStorage.getItem("id_token")
-    // if(!access_token) console.log("access_token not available")
-    let currentPlanRes;
     try{
-      currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json"},
-          body: JSON.stringify({
-                user_id: localStorage.getItem("user_id")
-              }),
-        });
-    }catch (error) {
-      // If apiFetch throws, the request failed
-      console.error("Received Error", error);
-      setError("Unable to check remaining tokens")
-      setTimeout(()=>{
-        setError(null);
-      }, 3000)
-      setIsLoading(false)
-      return;
-    }
-    // const currentPlanRes = await resCurrentPlan;
-    // if(!currentPlanRes.ok){
-    //   setError("Unable to check remaining tokens")
-    //   setTimeout(()=>{
-    //     setError(null);
-    //   }, 3000)
-    //   setIsLoading(false)
-    //   return;
-    // }
+      console.log("Sending the message to get back the results")
+      const messageToSend = message || input.trim()
+      console.log("Message to send is", messageToSend)
+      if (!messageToSend || isLoading) return
 
-    // const dataCurrentPlan = await currentPlanRes.json();
-    // const currentPlanData= await dataCurrentPlan.data
-    const currentPlanData= await currentPlanRes.data
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: messageToSend,
+        sender: "user",
+        timestamp: new Date(),
+      }
 
-    // const dataCurrentPlan = await resCurrentPlan;
-    // if (!dataCurrentPlan.ok) throw new Error("Failed to fetch current user plan");
-    // const currentPlanData=   await dataCurrentPlan.json();
-    console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
-    console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
-    const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
-    console.log(tokensNeeded)
-    if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
-      setError("File upload quotas are exhausted.")
-      setTimeout(()=>{
-        setError(null);
-      }, 3000)
-      setIsLoading(false)
-      return;
-    }
+      setMessages((prev) => [...prev, userMessage])
+      setInput("")
+      setIsLoading(true)
+      
+      let currentPlanRes;
+      try{
+        currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json"},
+            body: JSON.stringify({
+              user_id: localStorage.getItem("user_id")
+            }),
+          });
+      }catch (error) {
+        // If apiFetch throws, the request failed
+        console.error("Received Error", error);
+        setError("Unable to check remaining tokens")
+        setTimeout(()=>{
+          setError(null);
+        }, 3000)
+        setIsLoading(false)
+        return;
+      }
 
+      const currentPlanData= await currentPlanRes.data
+      console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
+      console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
+      const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
+      console.log(tokensNeeded)
+      if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
+        setError("File upload quotas are exhausted.")
+        setTimeout(()=>{
+          setError(null);
+        }, 3000)
+        setIsLoading(false)
+        return;
+      }
 
-      // access_token= localStorage.getItem("id_token")
-      // if(!access_token) console.log("access_token not available")
       let responseChatMessage
       try{
         responseChatMessage = await apiFetch("/api/chat", {
@@ -153,7 +132,6 @@ export function ChatInterface({
         // If apiFetch throws, the request failed
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
-          // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
           content: "Failed to request answer. Try with some other question",
           sender: "assistant",
           timestamp: new Date(),
@@ -162,80 +140,31 @@ export function ChatInterface({
         setIsLoading(false)
         return;
       }
-
-      // const dataChatMessage = await responseChatMessage.json();
-      // const chatMessageData= await dataChatMessage.data
       const chatMessageData= await responseChatMessage.data
       console.log("chatMessageData is", JSON.stringify(chatMessageData))
-      // if (!responseChatMessage.ok){
-      //   const assistantMessage: Message = {
-      //     id: (Date.now() + 1).toString(),
-      //     // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
-      //     content: "Failed to request answer. Try with some other question",
-      //     sender: "assistant",
-      //     timestamp: new Date(),
-      //   }
-      //   setMessages((prev) => [...prev, assistantMessage])
-      //   setIsLoading(false)
-      //   return;
-      // }     
-
-      // const responseQuery= await chatMessageData.body;
-      // const queryResponse= JSON.parse(responseQuery);
-
 
       console.log("queryResponse is", JSON.stringify(chatMessageData))
       console.log("queryResponse natural language response is", chatMessageData.natural_language_response)
-      // const tokens_to_consume= queryResponse.token_usage?.total_tokens|| 1800;
-      // console.log("Tokens to consume for the chat message", tokens_to_consume)
-      // setResponse(queryResponse.natural_language_response)
-
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        // content: `I understand you're asking about "${messageToSend}". Based on your ${context.persona ? `role as ${context.persona.replace("-", " ")}` : "profile"}, I can help analyze your HR data. Let me process this request and provide insights relevant to your needs.`,
-        content: chatMessageData.natural_language_response?chatMessageData.natural_language_response:"Failed to fetch answer, try with some other question",
+        content: chatMessageData.natural_language_response?chatMessageData.natural_language_response:"Failed to fetch answer. Try with some other question",
         sender: "assistant",
         timestamp: new Date(),
       }
-      console.log("Now consume-tokens API should fire at second place")
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
-      // if(!chatMessageData.natural_language_response) return
-
-      // access_token= localStorage.getItem("id_token")
-      // if(!access_token) console.log("access_token not available")
-      // let resConsumeTokens
-      // try{
-      //   resConsumeTokens = await apiFetch("/api/billing/consume-tokens", {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json"},
-      //     body: JSON.stringify({
-      //           user_id: localStorage.getItem("user_id"),
-      //           action_name: "chat_message",
-      //           tokens_to_consume: tokens_to_consume,
-      //           event_metadata: {query_length: messageToSend.length, response_length:queryResponse.natural_language_response.length, timestamp: new Date(Date.now())}
-      //         }),
-      //   });
-      // }catch (error) {
-      //   // If apiFetch throws, the request failed
-      //   console.error("Unable to update tokens for the user")
-      //   return;
-      // }
-
-      // const currentPlanRes = await resCurrentPlan;
-      // if(!resConsumeTokens.ok){
-      //   console.error("Unable to update tokens for the user")
-      //   return;
-      // }
-
-      // const consumeTokensData = await resConsumeTokens.json();
-      // const dataConsumeTokens= await consumeTokensData.data
-      // const dataConsumeTokens= await resConsumeTokens.data
-      // console.log("Token updation for user is successful for chat message", JSON.stringify(dataConsumeTokens));
-      
-        // if (!resConsumeTokens.ok) throw new Error("Failed to update user_subscription to reduce user tokens for chat message");
-
-        // const dataConsumeTokens = await resConsumeTokens.json();
+    } catch(error){
+      console.log("Error in query")
+      const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "Failed to request answer. Try with some other question",
+          sender: "assistant",
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+        setIsLoading(false)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

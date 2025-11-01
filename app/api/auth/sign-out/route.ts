@@ -17,14 +17,21 @@ export async function POST(req: Request) {
     const data = await response.json();
     const nextResponse = NextResponse.json(data, { status: response.status });
 
-    // Remove the refresh_token cookie regardless of backend response
-    // This ensures the client is logged out even if backend call fails
-    nextResponse.cookies.set("refresh_token", "", {
+    // --- Remove whichever auth cookie is present (Google or Email) ---
+    nextResponse.cookies.set("rt", "", {
       httpOnly: true,
-      sameSite: "lax",
-      expires: new Date(0), // Set to past date to delete
+      secure: true,
+      sameSite: "none",
+      expires: new Date(0),
       path: "/",
-      domain: "localhost",
+    });
+
+    nextResponse.cookies.set("access_token", "", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      expires: new Date(0),
+      path: "/",
     });
     return nextResponse;
 

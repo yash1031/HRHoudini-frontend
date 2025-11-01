@@ -22,80 +22,8 @@ import { useRouter } from "next/navigation"
 import { useUserContext } from "@/contexts/user-context"
 import { useDashboard } from '@/contexts/DashboardContext';
 import { apiFetch } from "@/lib/api/client";
+import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 
-// Available KPI panels
-// const AVAILABLE_KPIS = [
-//   {
-//     id: "turnover-rate",
-//     label: "Turnover Rate",
-//     description: "Monthly/quarterly employee turnover",
-//     icon: TrendingDown,
-//     category: "retention",
-//   },
-//   {
-//     id: "employee-productivity",
-//     label: "Employee Productivity Rate",
-//     description: "Output per employee metrics",
-//     icon: TrendingUp,
-//     category: "performance",
-//   },
-//   {
-//     id: "salary-increase",
-//     label: "Salary Increase Rate",
-//     description: "Compensation growth trends",
-//     icon: DollarSign,
-//     category: "compensation",
-//   },
-//   {
-//     id: "engagement-score",
-//     label: "Employee Engagement Score",
-//     description: "Survey-based engagement metrics",
-//     icon: Users,
-//     category: "engagement",
-//   },
-//   {
-//     id: "training-cost",
-//     label: "Training Cost Per Employee",
-//     description: "L&D investment per person",
-//     icon: Award,
-//     category: "development",
-//   },
-//   {
-//     id: "revenue-per-employee",
-//     label: "Revenue Per Employee",
-//     description: "Business impact per person",
-//     icon: DollarSign,
-//     category: "business",
-//   },
-//   {
-//     id: "cost-per-hire",
-//     label: "Cost Per Hire",
-//     description: "Total recruiting investment",
-//     icon: Briefcase,
-//     category: "recruiting",
-//   },
-//   {
-//     id: "absenteeism-rate",
-//     label: "Absenteeism Rate",
-//     description: "Unplanned absence tracking",
-//     icon: Calendar,
-//     category: "wellness",
-//   },
-//   {
-//     id: "offer-acceptance",
-//     label: "Offer Acceptance Rate",
-//     description: "Recruiting conversion success",
-//     icon: Target,
-//     category: "recruiting",
-//   },
-//   {
-//     id: "time-to-fill",
-//     label: "Time to Fill",
-//     description: "Days to fill open positions",
-//     icon: Clock,
-//     category: "recruiting",
-//   },
-// ]
 
 interface SelectedKPIInfo {
   label: string;
@@ -117,15 +45,14 @@ const ROLE_KPI_RECOMMENDATIONS = {
 
 export function KPIsStep() {
   
-  const { setStep ,userContext, uploadedFile } = useOnboarding()
-  const { setDashboard_data,setDashboardCode, setIsLoading, setErrorDash, wb } = useDashboard();
+  const { setStep ,userContext } = useOnboarding()
+  const { setDashboard_data, setIsLoading, setErrorDash, wb } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
     ROLE_KPI_RECOMMENDATIONS[userContext.role as keyof typeof ROLE_KPI_RECOMMENDATIONS] || [],
   )
   // State to hold full info (label + description)
   const [selectedKPIWithDesc, setSelectedKPIWithDesc] = useState<SelectedKPIInfo[]>([]);
-  const { checkIfTokenExpired } = useUserContext()
 
   const handleKPIToggle = (kpiId: string) => {
     setSelectedKPIs((prev) => (prev.includes(kpiId) ? prev.filter((id) => id !== kpiId) : [...prev, kpiId]))
@@ -149,10 +76,9 @@ export function KPIsStep() {
   const { kpis } = useUserContext()
 
   const handleNext = async () => {
-    try{
-      
-
-      // Store selected KPIs in localStorage
+      let handler: (msg: any) => void = () => {};
+      try{
+        // Store selected KPIs in localStorage
         localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
         localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
 
@@ -175,29 +101,33 @@ export function KPIsStep() {
         const session_id= localStorage.getItem("session_id")
         
         // Insights Dashboard Generation
-        const resCreateDash = await apiFetch("/api/create-dashboard", {
-          method: "POST",
-          headers: { "Content-Type": "application/json"},
-          body: JSON.stringify({
-              // s3_file_key: localStorage.getItem("s3Key"),
-              user_id: user_id,
-              session_id: session_id,
-              selected_kpis: selectedKPIWithDesc
-            }),
-        });
-        wb.onmessage = async (evt: any) => {
+        let resCreateDash
+        try{
+          resCreateDash = await apiFetch("/api/create-dashboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json"},
+            body: JSON.stringify({
+                user_id: user_id,
+                session_id: session_id,
+                selected_kpis: selectedKPIWithDesc
+              }),
+          });
+        }catch(error){
+          setIsLoading(false)
+          setErrorDash("Failed to created Dashboard");
+          console.log("Unable to create dashboard")
+        }
+        handler = async (msg: any) => {
           try {
-            const msg = JSON.parse(evt.data);
             console.log('[WS] message', msg);
             if(msg.event==="insight.ready"){
               console.log("[WS] message: Insight Dashboard is generated")
               console.log("event from websockets is", msg)
               const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
-              const consumed_tokens= dataCreateDashboard.tokens_used?.grand_total || 8000;
-              console.log("Tokens to consume for insights dashboard generation",consumed_tokens)
               setIsLoading(false)
               setErrorDash(null);
-              setDashboard_data(dataCreateDashboard.analytics);let resStoreDash
+              setDashboard_data(dataCreateDashboard.analytics);
+              let resStoreDash
               try{
                 resStoreDash = await apiFetch("/api/insights/store", {
                   method: "POST",
@@ -213,22 +143,78 @@ export function KPIsStep() {
               }catch (error) {
                   // If apiFetch throws, the request failed
                   console.error("Unable to store dashboard for this session")
+                  
+                  closeWebSocket();
+                  removeListener(handler)
                   return;
               }
               const dataStoreDash= await resStoreDash.data
               console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
+              closeWebSocket();
+              removeListener(handler)
             }
-            // QUICK TEST: show a banner/toast
-            // e.g., set some local state to display msg.event
           } catch (e) {
-            console.log('[WS] raw', evt.data);
+            closeWebSocket();
+            removeListener(handler)
           }
         };
-      // }
-
-    }catch(error){
-      console.log("Error is", error)
-    }
+        addListener(handler);
+        // wb.onmessage = async (evt: any) => {
+        //   try {
+        //     const msg = JSON.parse(evt.data);
+        //     console.log('[WS] message', msg);
+        //     if(msg.event==="insight.ready"){
+        //       console.log("[WS] message: Insight Dashboard is generated")
+        //       console.log("event from websockets is", msg)
+        //       const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
+        //       setIsLoading(false)
+        //       setErrorDash(null);
+        //       setDashboard_data(dataCreateDashboard.analytics);
+        //       let resStoreDash
+        //       try{
+        //         resStoreDash = await apiFetch("/api/insights/store", {
+        //           method: "POST",
+        //           headers: { "Content-Type": "application/json"
+        //           },
+        //           body: JSON.stringify({
+        //               user_id: localStorage.getItem("user_id"),
+        //               session_id: localStorage.getItem("session_id"),
+        //               s3_location: localStorage.getItem("s3Key"),
+        //               analytical_json_output: dataCreateDashboard.analytics
+        //             }),
+        //         });
+        //       }catch (error) {
+        //           // If apiFetch throws, the request failed
+        //           console.error("Unable to store dashboard for this session")
+        //           if (wb.readyState === WebSocket.OPEN){
+        //             wb.close()
+        //             wb.onclose = () => console.log('[WS] disconnected');
+        //             console.log("Web_Socket connection closed from kpi_step")
+        //           }
+        //           return;
+        //       }
+        //       const dataStoreDash= await resStoreDash.data
+        //       console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
+        //       if (wb.readyState === WebSocket.OPEN){
+        //         wb.close()
+        //         wb.onclose = () => console.log('[WS] disconnected');
+        //         console.log("Web_Socket connection closed from kpi_step")
+        //       }
+        //     }
+        //   } catch (e) {
+        //     console.log('[WS] raw', evt.data);
+        //     if (wb.readyState === WebSocket.OPEN){
+        //       wb.close()
+        //       wb.onclose = () => console.log('[WS] disconnected');
+        //       console.log("Web_Socket connection closed from kpi_step")
+        //     }
+        //   }
+        // };
+      }catch(error){
+        closeWebSocket();
+        removeListener(handler)
+        console.log("Error is", error)
+      }
   }
 
   const groupedKPIs = kpis.reduce(
