@@ -224,9 +224,7 @@ export function WelcomeStep() {
         </div>
 
         <div className="flex justify-center">
-          <Button onClick={() => {
-            // closeWebSocket();
-            setStep(2)}} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => {setStep(2)}} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700">
             <span>File Upload</span>
             <ArrowRight className="h-4 w-4" />
           </Button>

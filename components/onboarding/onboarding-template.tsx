@@ -75,8 +75,6 @@ export function OnboardingTemplate({
 
   useEffect(()=>{
     console.log("Starting the connection")
-    // connectWebSocket("0b29e27e-6003-47c1-9916-ec2f7e9bfd72", "0b29e27e-6003-47c1-9916-ec2f7e9bfd72");
-    // closeWebSocket();
     fetchFileUploadHistory()
     setDisplayName(localStorage.getItem("user_name")||"")
   },[])
@@ -106,16 +104,8 @@ export function OnboardingTemplate({
         console.error("In onboarding-template, unable to fetch all fileUpload sessions for the user")
         return;
       }
-        // if(!resFetchFileUploadHistory.ok){
-        //   console.error("Unable to fetch all fileUpload sessions for the user")
-        //   return;
-        // }
-        // const fetchFileUploadHistoryData = await resFetchFileUploadHistory.json();
-        // const dataFetchFileUploadHistory= await fetchFileUploadHistoryData.data
-        const dataFetchFileUploadHistory= await resFetchFileUploadHistory.data
-
-      // if (!resFetchFileUploadHistory.ok) throw new Error("Failed to fetch user files");
-      // const dataFetchFileUploadHistory = await resFetchFileUploadHistory.json();
+      const dataFetchFileUploadHistory= await resFetchFileUploadHistory.data
+        
       console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
       const dashboardHistoryData= await dataFetchFileUploadHistory.data;
       let fileUploadData: any =[];

@@ -524,7 +524,7 @@ export default function LoginPage() {
                       </div>
                       <CardTitle className="text-2xl font-bold text-gray-900">Magic Link Login</CardTitle>
                       <CardDescription className="text-gray-600">
-                        Enter the 6-digit verification code from your email
+                        Enter the 6-digit verification token from your email
                         {/* Enter the 10-digit verification code from your email (format: XXX-XXX-XXXX) */}
                       </CardDescription>
                     </CardHeader>
@@ -616,7 +616,7 @@ export default function LoginPage() {
                             </div>
                             <div className="ml-2">
                               <p className="text-sm text-green-700">
-                                If an account exists with this email, you will receive a login code shortly.
+                                Please check your inbox. You would have receive a sign-in token. 
                               </p>
                             </div>
                           </div>

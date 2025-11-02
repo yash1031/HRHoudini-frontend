@@ -18,20 +18,19 @@ export async function POST(req: Request) {
     const nextResponse = NextResponse.json(data, { status: response.status });
 
     // --- Remove whichever auth cookie is present (Google or Email) ---
-    nextResponse.cookies.set("rt", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      expires: new Date(0),
-      path: "/",
-    });
+    // --- Remove whichever auth cookie is present (Google or Email) ---
+    const domain = process.env.NEXT_PUBLIC_FRONTEND_DOMAIN || 'localhost'
 
-    nextResponse.cookies.set("access_token", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      expires: new Date(0),
-      path: "/",
+    const cookieNames: string[] = ["rt", "access_token"];
+    cookieNames.forEach((name) => {
+      nextResponse.cookies.set(name, "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        expires: new Date(0),
+        path: "/",
+        domain,
+      });
     });
     return nextResponse;
 
