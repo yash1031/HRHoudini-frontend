@@ -24,7 +24,7 @@ export function middleware(req: NextRequest) {
   const emailToken = req.cookies.get("rt")?.value;
 
   const isAuthPage = pathname === "/";
-  const isPublicPage = pathname === "/login/privacy-policy" || pathname === "/login/terms-of-service";
+  const isPublicPage = pathname === "/login/privacy-policy" || pathname === "/login/terms-of-service"  || pathname.startsWith("/verify");
   const isAuthenticated = !!(googleToken || emailToken);
 
   // Allow public pages without authentication
