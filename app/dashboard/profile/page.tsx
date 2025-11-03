@@ -55,12 +55,12 @@ export default function ProfilePage() {
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>Update your personal details and contact information</CardDescription>
             </div>
-            <Button
+            {/* <Button
               variant={isEditing ? "default" : "outline"}
               onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
             >
               {isEditing ? "Save Changes" : "Edit"}
-            </Button>
+            </Button> */}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
