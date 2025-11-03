@@ -260,6 +260,7 @@ export default function LoginPage() {
         });
         const dataSignIn = await resSignIn.json();
         console.log( "resSignIn.ok", resSignIn.ok)
+        console.log("full_name", dataSignIn.full_name, "user_email", email)
         if (resSignIn.ok ) {
           console.log("Login Successfuly:", JSON.stringify(dataSignIn), "res status:", resSignIn.status)
           localStorage.setItem("user_id", dataSignIn.user_id)
