@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
   res.cookies.set("access_token", token, {
     httpOnly: true,      // prevents JavaScript access
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     path: "/",
     maxAge: expiresIn || 3600, // 1 hour default

@@ -98,7 +98,7 @@ export default function LoginPage() {
           exp: secondsUntilExpiry
         });
         localStorage.setItem("user_id", data.user_id)
-        localStorage.setItem("user_name", `${data.first_name} ${data.last_name}`)
+        localStorage.setItem("user_name", `${data.full_name}`)
         localStorage.setItem("user_email", email)
         window.location.href = `/onboarding-upload-only`;
       } else {
@@ -263,7 +263,7 @@ export default function LoginPage() {
         if (resSignIn.ok ) {
           console.log("Login Successfuly:", JSON.stringify(dataSignIn), "res status:", resSignIn.status)
           localStorage.setItem("user_id", dataSignIn.user_id)
-          localStorage.setItem("user_name", `${dataSignIn.first_name} ${dataSignIn.last_name}`)
+          localStorage.setItem("user_name", `${dataSignIn.full_name}`)
           localStorage.setItem("user_email", email)
           window.location.href = `/onboarding-upload-only`;
           setIsVerifying(false);

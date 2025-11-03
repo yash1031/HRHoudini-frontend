@@ -83,39 +83,41 @@ export function ChatInterface({
       setInput("")
       setIsLoading(true)
       
-      let currentPlanRes;
-      try{
-        currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
-            method: "POST",
-            headers: { "Content-Type": "application/json"},
-            body: JSON.stringify({
-              user_id: localStorage.getItem("user_id")
-            }),
-          });
-      }catch (error) {
-        // If apiFetch throws, the request failed
-        console.error("Received Error", error);
-        setError("Unable to check remaining tokens")
-        setTimeout(()=>{
-          setError(null);
-        }, 3000)
-        setIsLoading(false)
-        return;
-      }
+      // let currentPlanRes;
+      // try{
+      //   currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
+      //       method: "POST",
+      //       headers: { "Content-Type": "application/json"},
+      //       body: JSON.stringify({
+      //         user_id: localStorage.getItem("user_id")
+      //       }),
+      //     });
+      // }catch (error) {
+      //   // If apiFetch throws, the request failed
+      //   console.error("Received Error", error);
+      //   setError("Unable to check remaining tokens")
+      //   setTimeout(()=>{
+      //     setError(null);
+      //   }, 3000)
+      //   setIsLoading(false)
+      //   return;
+      // }
 
-      const currentPlanData= await currentPlanRes.data
-      console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
-      console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
-      const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
-      console.log(tokensNeeded)
-      if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
-        setError("File upload quotas are exhausted.")
-        setTimeout(()=>{
-          setError(null);
-        }, 3000)
-        setIsLoading(false)
-        return;
-      }
+      // const currentPlanData= await currentPlanRes.data
+      // console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
+      // console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
+      // const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
+      // console.log(tokensNeeded)
+      // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
+      //   setError("File upload quotas are exhausted.")
+      //   setTimeout(()=>{
+      //     setError(null);
+      //   }, 3000)
+      //   setIsLoading(false)
+      //   return;
+      // }
+
+      const idempotency_key= localStorage.getItem("idempotency_key")
 
       let responseChatMessage
       try{
@@ -125,7 +127,8 @@ export function ChatInterface({
           body: JSON.stringify({
                 question: messageToSend,
                 user_id: localStorage.getItem("user_id"),
-                session_id: localStorage.getItem("session_id")
+                session_id: localStorage.getItem("session_id"),
+                idempotency_key: idempotency_key
               }),
         });
       }catch (error) {

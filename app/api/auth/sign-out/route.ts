@@ -2,45 +2,50 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { user_id } = await req.json();
+    const body = await req.json();
+    const is_google = body.is_google === true;
 
-    // Call backend logout endpoint
-    const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/logout`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id }),
-      }
-    );
-
-    const data = await response.json();
-    const nextResponse = NextResponse.json(data, { status: response.status });
-
-    // --- Remove whichever auth cookie is present (Google or Email) ---
-    // --- Remove whichever auth cookie is present (Google or Email) ---
-    const domain = process.env.NEXT_PUBLIC_FRONTEND_DOMAIN || 'localhost'
-
-    const cookieNames: string[] = ["rt", "access_token"];
-    cookieNames.forEach((name) => {
-      nextResponse.cookies.set(name, "", {
+    // If user is Google signed-in, delete access_token cookie directly
+    if (is_google) {
+      const res = NextResponse.json({ ok: true }, { status: 200 });
+      res.cookies.set("access_token", "", {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
         expires: new Date(0),
         path: "/",
-        domain,
       });
-    });
-    return nextResponse;
+      return res;
+    }
 
-  } catch (error) {
-    console.error("Failed to logout:", error);
-    
-    // Even if backend fails, still remove cookies for client-side logout
-    return NextResponse.json(
-      { error: "Failed to logout" },
-      { status: 500 }
+    // For non-Google users, call backend logout endpoint
+    const response = await fetch(
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/logout`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          access_token: body.access_token,
+        }),
+        credentials: "include",
+      }
     );
+
+    // Clone backend response
+    const data = await response.json();
+    const nextResponse = NextResponse.json(data, { status: response.status });
+
+    // Forward Set-Cookie header from backend (for rt deletion)
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) {
+      nextResponse.headers.set("set-cookie", setCookie);
+    }
+
+    return nextResponse;
+  } catch (error) {
+    console.error("[LOGOUT_ERROR]", error);
+    return NextResponse.json({ error: "Logout failed" }, { status: 500 });
   }
 }

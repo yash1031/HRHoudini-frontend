@@ -176,6 +176,47 @@ export function FileUploadStep() {
         setError(null)
         hasFileUploadStarted(true)
         setUploadProgress(0)
+
+        let resPresignedURL
+        try{
+          resPresignedURL = await apiFetch("/api/file-upload/generate-presigned-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json",},
+            body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type,
+                userId: localStorage.getItem("user_id"),
+                // uuid: uuid,
+              }),
+          });
+        }catch(error){
+          console.log("Error in generating pre-signed URL", error)
+          setError("Insufficient Tokens")
+          setTimeout(()=>{
+            setError(null);
+          }, 3000)
+          setIsUploading(false)
+          return
+        }
+
+        const presignedURLData= await resPresignedURL.data
+        console.log("presignedURLData is", JSON.stringify(presignedURLData))
+        let uploadURL;
+        console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
+        setIsUploaded(true);
+
+        setUploadProgress(20)
+        const data = await presignedURLData;
+        console.log("Data after generating presigned URL is ", data)
+        const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
+        uploadURL = uploadUrl
+        console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
+        localStorage.setItem("s3Key", s3Key)
+        localStorage.setItem("session_id", sessionId)
+        localStorage.setItem("idempotency_key", idempotency_key)
+        connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
+
+        
         
         let createKPIsRes
         try{
@@ -219,50 +260,6 @@ export function FileUploadStep() {
           return;
         }
 
-        let resPresignedURL
-        try{
-          resPresignedURL = await apiFetch("/api/file-upload/generate-presigned-url", {
-            method: "POST",
-            headers: { "Content-Type": "application/json",},
-            body: JSON.stringify({
-                fileName: file.name,
-                fileType: file.type,
-                userId: localStorage.getItem("user_id"),
-                // uuid: uuid,
-              }),
-          });
-        }catch(error){
-          setError("Failed to process file. Please try again.")
-          setIsUploading(false)
-          console.error("Failed to generate presigned URL")
-        }
-
-        const presignedURLData= await resPresignedURL.data
-        console.log("presignedURLData is", JSON.stringify(presignedURLData))
-        let uploadURL;
-        console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
-        setIsUploaded(true);
-
-        setUploadProgress(20)
-        const data = await presignedURLData;
-        console.log("Data after generating presigned URL is ", data)
-        const { uploadUrl, s3Key, sessionId } = data;
-        uploadURL = uploadUrl
-        console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
-        localStorage.setItem("s3Key", s3Key)
-        localStorage.setItem("session_id", sessionId)
-        connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
-        // const wsUrl = process.env.NEXT_PUBLIC_WS_URL!;
-        // const ws = new WebSocket(`${wsUrl}?userId=${localStorage.getItem("user_id")?? 'test'}&sessionId=${sessionId}`);
-        // setWb(ws)
-        // // keep a reference so it doesn’t get GC’d (test-only)
-        // ;(window as any).__ws = ws;
-        
-        // ws.onopen = () => {
-        //   console.log('[WS] connected', { uuid });
-        // };
-
-
         // 4. Upload file with progress
         await uploadFileWithProgress(uploadURL, file, file.type);
 
@@ -283,26 +280,6 @@ export function FileUploadStep() {
             }
         };
         addListener(handler!);
-
-        // ws.onmessage = (evt) => {
-        //   try {
-        //     const msg = JSON.parse(evt.data);
-        //     console.log('[WS] message', msg);
-        //     if(msg.event==="convert.ready"){
-        //       console.log("[WS] message: CSV converted to parquet")
-        //       setUploadProgress(70)
-        //     }
-        //     if(msg.event==="athena.completed"){
-        //       console.log("Athena table created")
-        //       setUploadProgress(100)
-        //       setProcessedFile(true);
-        //       setIsUploading(false)
-        //       hasFileUploadStarted(false)
-        //     }
-        //   } catch (e) {
-        //     console.log('[WS] raw', evt.data);
-        //   }
-        // };
 
         const resCreateKPIs= await createKPIsRes; 
         const createKPIsData= await resCreateKPIs.data

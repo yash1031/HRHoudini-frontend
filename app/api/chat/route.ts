@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {question , user_id, session_id } = body;
+    const {question , user_id, session_id, idempotency_key } = body;
     const authHeader = req.headers.get("authorization");
     if (!question) {
       return NextResponse.json(
@@ -26,6 +26,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!idempotency_key) {
+      return NextResponse.json(
+        { error: "idempotency_key is required" },
+        { status: 400 }
+      );
+    }
 
     const response = await fetch(
       `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/dashboard/query`,
@@ -36,7 +42,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           question: question,
           user_id: user_id,
-          session_id: session_id
+          session_id: session_id,
+          idempotency_key: idempotency_key
         }),
       }
     );

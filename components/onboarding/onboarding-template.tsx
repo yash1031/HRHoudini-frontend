@@ -144,39 +144,39 @@ export function OnboardingTemplate({
   }
 
   const handleSignOut = async () => {
-    try {
-      const user_id = localStorage.getItem('user_id');
-      const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
-
-      // Fire-and-forget request with keepalive
-      fetch('/api/auth/sign-out', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ user_id }),
-        credentials: 'include',
-        keepalive: true, // Keeps request alive even after page unload
-      }).catch(err => console.error('Sign-out request failed:', err));
-
-      // Handle Google sign-out (this is fast)
-      if (is_google_logged_in) {
-        console.log("User is getting google signed out")
-        signOut().catch(err => console.error('Google sign-out failed:', err));
+      try {
+        const user_id = localStorage.getItem('user_id');
+        const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
+  
+        // Fire-and-forget request with keepalive
+        fetch('/api/auth/sign-out', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ user_id, is_google: is_google_logged_in}),
+          credentials: 'include',
+          keepalive: true, // Keeps request alive even after page unload
+        }).catch(err => console.error('Sign-out request failed:', err));
+  
+        // Handle Google sign-out (this is fast)
+        if (is_google_logged_in) {
+          console.log("User is getting google signed out")
+          signOut().catch(err => console.error('Google sign-out failed:', err));
+        }
+  
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Redirect immediately
+        window.location.href = '/';
+        
+      } catch (error) {
+        console.error('Sign out failed:', error);
+        localStorage.clear();
+        window.location.href = '/';
       }
-
-      // Clear localStorage
-      localStorage.clear();
-      
-      // Redirect immediately
-      window.location.href = '/';
-      
-    } catch (error) {
-      console.error('Sign out failed:', error);
-      localStorage.clear();
-      window.location.href = '/';
-    }
-  };
+    };
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 relative">

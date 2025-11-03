@@ -125,7 +125,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ user_id }),
+          body: JSON.stringify({ user_id, is_google: is_google_logged_in}),
           credentials: 'include',
           keepalive: true, // Keeps request alive even after page unload
         }).catch(err => console.error('Sign-out request failed:', err));

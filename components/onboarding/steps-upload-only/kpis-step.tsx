@@ -99,6 +99,7 @@ export function KPIsStep() {
 
         const user_id= localStorage.getItem("user_id")
         const session_id= localStorage.getItem("session_id")
+        const idempotency_key= localStorage.getItem("idempotency_key")
         
         // Insights Dashboard Generation
         let resCreateDash
@@ -109,7 +110,8 @@ export function KPIsStep() {
             body: JSON.stringify({
                 user_id: user_id,
                 session_id: session_id,
-                selected_kpis: selectedKPIWithDesc
+                selected_kpis: selectedKPIWithDesc,
+                idempotency_key: idempotency_key
               }),
           });
         }catch(error){
@@ -124,6 +126,7 @@ export function KPIsStep() {
               console.log("[WS] message: Insight Dashboard is generated")
               console.log("event from websockets is", msg)
               const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
+              console.log("Tokens consumed", dataCreateDashboard.tokens_used.grand_total)
               setIsLoading(false)
               setErrorDash(null);
               setDashboard_data(dataCreateDashboard.analytics);
