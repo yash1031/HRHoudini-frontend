@@ -106,7 +106,7 @@ export function OnboardingTemplate({
       }
       const dataFetchFileUploadHistory= await resFetchFileUploadHistory.data
         
-      console.log("All user files are fetched successfully", JSON.stringify(dataFetchFileUploadHistory.data));
+      console.log("All user files are fetched successfully");
       const dashboardHistoryData= await dataFetchFileUploadHistory.data;
       let fileUploadData: any =[];
       dashboardHistoryData.map((data:any, id:any)=>{

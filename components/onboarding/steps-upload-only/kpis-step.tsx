@@ -149,39 +149,7 @@ export function KPIsStep() {
         }
         handler = async (msg: any) => {
           try {
-            console.log('[WS] message', msg);
-            if(msg.event==="insight.ready"){
-              console.log("[WS] message: Insight Dashboard is generated")
-              console.log("event from websockets is", msg)
-              const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
-              console.log("Dashoboard data is", JSON.stringify(dataCreateDashboard.analytics))
-              setIsLoading(false)
-              setErrorDash(null);
-              setDashboard_data(dataCreateDashboard.analytics);
-              let resStoreDash
-              try{
-                resStoreDash = await apiFetch("/api/insights/store", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json"
-                  },
-                  body: JSON.stringify({
-                      user_id: localStorage.getItem("user_id"),
-                      session_id: localStorage.getItem("session_id"),
-                      s3_location: localStorage.getItem("s3Key"),
-                      analytical_json_output: dataCreateDashboard.analytics
-                    }),
-                });
-              }catch (error) {
-                  // If apiFetch throws, the request failed
-                  console.error("Unable to store dashboard for this session")
-                  
-                  closeWebSocket();
-                  return;
-              }
-              const dataStoreDash= await resStoreDash.data
-              console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
-              closeWebSocket();
-            }
+            
             if(msg.event==="kpi.main.ready"){
               console.log("[WS] message: Main Charts received")
               console.log("message from websockets is", msg)
@@ -285,7 +253,7 @@ export function KPIsStep() {
             closeWebSocket();
           }
         };
-        console.log("Adding handler", handler)
+        console.log("Adding handler")
         addListener(handler, "charts-generator");
         // wb.onmessage = async (evt: any) => {
         //   try {

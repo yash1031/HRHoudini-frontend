@@ -10,12 +10,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // compiler: {
-  //   // Automatically remove console.* statements in production
-  //   removeConsole: process.env.NODE_ENV === 'production',
-  //   // OR keep only errors and warnings:
-  //   // removeConsole: { exclude: ['error', 'warn'] },
-  // },
+  reactStrictMode: false,
 }
-// Amplify.configure(amplifyConfig)
 export default nextConfig

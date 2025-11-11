@@ -27,6 +27,7 @@ import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
 import sample_dashboard_data from "@/public/sample_dashboard_data"
 import { apiFetch } from "@/lib/api/client";
+import { closeWebSocket } from '@/lib/ws'
 import type {DataItem,FilterConfig,ChartDataItem,KPICard,Insight,DrillDownData,ChartConfig,TableColumn,ConfigurableDashboardProps} from "@/types/dashboard"
 
 declare global {
@@ -163,6 +164,12 @@ export default function DashboardUO1() {
     else{
       setErrorDash("Failed to generate dashboard")
     }
+
+    return () => {
+      console.log("Unmounting dashboard component")
+      setDashboard_data(null);
+      closeWebSocket();
+    };
   }, [])
 
   const fetchFileUploadHistory = async (session_id: string) =>{

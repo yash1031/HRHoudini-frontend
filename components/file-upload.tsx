@@ -130,8 +130,6 @@ export function FileUpload({
 
         const { columns, rowCount } = await parseFile(file)
 
-        console.log("Identified headers in uploaded file", columns)
-
         const metadata: FileMetadata = {
           name: file.name,
           size: file.size,
@@ -144,9 +142,6 @@ export function FileUpload({
 
         localStorage.setItem("file_name", file.name)
         localStorage.setItem("file_row_count", JSON.stringify(rowCount))
-
-
-        console.log("Metadata is: "+ JSON.stringify(metadata));
 
         setFileMetadata(metadata)
         setUploadedFile({file, metadata})

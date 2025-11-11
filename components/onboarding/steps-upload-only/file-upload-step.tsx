@@ -201,14 +201,12 @@ export function FileUploadStep() {
         }
 
         const presignedURLData= await resPresignedURL.data
-        console.log("presignedURLData is", JSON.stringify(presignedURLData))
+        console.log("presignedURLData received")
         let uploadURL;
-        console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
         setIsUploaded(true);
 
         setUploadProgress(20)
         const data = await presignedURLData;
-        console.log("Data after generating presigned URL is ", data)
         const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
         uploadURL = uploadUrl
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
@@ -320,9 +318,9 @@ export function FileUploadStep() {
 
         const resAISuggestedQues= await AISuggestedQuesRes;
         const AISuggestedQuesData= await resAISuggestedQues.data
-        console.log("AISuggestedQuesData is", JSON.stringify(AISuggestedQuesData))
+        console.log("AISuggestedQuesData generated")
         const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-        console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
+        console.log("Successfully generated AI Recommended Ques.")
         localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
 
     } catch (err) {

@@ -54,7 +54,7 @@ export function connectWebSocket(sessionId: string, userId: string | number | un
     try {
       const msg = JSON.parse(evt.data as string);
       for (const fn of listeners.values()) fn(msg);
-      console.log('[WS] message', msg);
+      console.log('[WS] message received');
     } catch {
       console.log('[WS] raw', evt.data);
     }
