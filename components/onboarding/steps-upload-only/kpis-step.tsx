@@ -23,12 +23,18 @@ import { useUserContext } from "@/contexts/user-context"
 import { useDashboard } from '@/contexts/DashboardContext';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
+import {generateChartsFromParquet } from "@/utils/parquetLoader"
+import {attachDrilldownToParent} from "@/utils/drilldownHelpers"
+import {generateDrilldownChartsData, buildQueryFromQueryObj} from "@/utils/parquetLoader"
 
 
 interface SelectedKPIInfo {
+  kpi_id: string;      // Added: KPI identifier
   label: string;
   description: string;
+  category: string;    // Added: KPI category
 }
+
 interface KPI {
   id: string;
   label: string;
@@ -46,7 +52,7 @@ const ROLE_KPI_RECOMMENDATIONS = {
 export function KPIsStep() {
   
   const { setStep ,userContext } = useOnboarding()
-  const { setDashboard_data, setIsLoading, setErrorDash, wb } = useDashboard();
+  const { dashboard_data, setDashboard_data, setIsLoading, setErrorDash, wb } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
     ROLE_KPI_RECOMMENDATIONS[userContext.role as keyof typeof ROLE_KPI_RECOMMENDATIONS] || [],
@@ -63,11 +69,16 @@ export function KPIsStep() {
         ? selectedKPIs.filter((id) => id !== kpiId)
         : [...selectedKPIs, kpiId];
 
-    // Build detail objects from global kpis array
+    // Build detail objects from global kpis array with all four fields
     const selectedDetails = updatedSelected
       .map((id) => kpis.find((kpi) => kpi.id === id))
       .filter((kpi) => !!kpi)
-      .map(({ label, description }) => ({ label, description }));
+      .map(({ id, label, description, category }) => ({ 
+        kpi_id: id,        // Map id to kpi_id
+        label, 
+        description, 
+        category 
+      }));
 
     return selectedDetails;
   });
@@ -102,16 +113,33 @@ export function KPIsStep() {
         const idempotency_key= localStorage.getItem("idempotency_key")
         
         // Insights Dashboard Generation
+        // let resCreateDash
+        // try{
+        //   resCreateDash = await apiFetch("/api/create-dashboard", {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json"},
+        //     body: JSON.stringify({
+        //         user_id: user_id,
+        //         session_id: session_id,
+        //         selected_kpis: selectedKPIWithDesc,
+        //         idempotency_key: idempotency_key
+        //       }),
+        //   });
+        // }catch(error){
+        //   setIsLoading(false)
+        //   setErrorDash("Failed to created Dashboard");
+        //   console.log("Unable to create dashboard")
+        // }
+        // Insights Dashboard Generation by Parts
         let resCreateDash
         try{
-          resCreateDash = await apiFetch("/api/create-dashboard", {
+          resCreateDash = await apiFetch("/api/create-dashboard-by-parts", {
             method: "POST",
             headers: { "Content-Type": "application/json"},
             body: JSON.stringify({
                 user_id: user_id,
                 session_id: session_id,
-                selected_kpis: selectedKPIWithDesc,
-                idempotency_key: idempotency_key
+                selected_kpis: selectedKPIWithDesc
               }),
           });
         }catch(error){
@@ -126,7 +154,7 @@ export function KPIsStep() {
               console.log("[WS] message: Insight Dashboard is generated")
               console.log("event from websockets is", msg)
               const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
-              console.log("Tokens consumed", dataCreateDashboard.tokens_used.grand_total)
+              console.log("Dashoboard data is", JSON.stringify(dataCreateDashboard.analytics))
               setIsLoading(false)
               setErrorDash(null);
               setDashboard_data(dataCreateDashboard.analytics);
@@ -148,20 +176,117 @@ export function KPIsStep() {
                   console.error("Unable to store dashboard for this session")
                   
                   closeWebSocket();
-                  removeListener(handler)
                   return;
               }
               const dataStoreDash= await resStoreDash.data
               console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
               closeWebSocket();
-              removeListener(handler)
             }
+            if(msg.event==="kpi.main.ready"){
+              console.log("[WS] message: Main Charts received")
+              console.log("message from websockets is", msg)
+              const mainChartsQueries= msg?.payload?.charts?.text
+              console.log("Queries received for charts generation are", mainChartsQueries)
+              const parquetUrl= localStorage.getItem("presigned-parquet-url") || ""
+              generateChartsFromParquet(mainChartsQueries, parquetUrl)
+              .then((result:any) => {
+                console.log("Result for generateChartsFromParquet", JSON.stringify(result, null, 2))
+                setIsLoading(false)
+                setErrorDash(null);
+                console.log("dashboard_data?.cards in kpi-step", dashboard_data?.cards)
+                console.log("result from chart generation in kpi-step", result)
+                setTimeout(() => {
+                  setDashboard_data(prev => ({
+                    cards: [...(prev?.cards || [])],           // NOW prev.cards has the data!
+                    charts: [...(prev?.charts || []), ...result],
+                    metadata: prev?.metadata || {}
+                  }));
+                }, 100);
+              })
+              .catch(console.error);
+            }
+            // if(msg.event==="drilldown.ready"){
+            //   console.log("[WS] message: Drill down charts and filters are received")
+            //   console.log("message from websockets is", msg)
+
+            //   const drilldownPayload = msg?.payload;
+            //   const parentChartId = drilldownPayload?.parent_chart_id;
+            //   const drilldownCharts = drilldownPayload?.charts || [];
+            //   const drilldownFilters = drilldownPayload?.filters || [];
+            //   const kpiId = drilldownPayload?.kpi_id; // If it's for a KPI card
+              
+            //   // Generate data for drilldown charts
+            //   const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              
+            //   try {
+
+            //     // ✅ Transform filters BEFORE attaching
+            //     const transformedFilters = drilldownFilters.map((filter: any) => ({
+            //       field: filter.field,
+            //       label: filter.label,
+            //       type: filter.type === 'select' ? 'multiselect' : filter.type,
+            //       options: filter.options || [],
+            //       whereClause: filter.whereClause
+            //     }));
+            //     // ✅ FIX: Update queryObject to include actual Parquet URL in from.source
+            //     const drilldownQueries = {
+            //       charts: drilldownCharts.map((chart: any) => {
+            //         // Deep clone query_obj to avoid mutations
+            //         const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
+                    
+            //         // ✅ CRITICAL FIX: Set the actual Parquet URL in from.source
+            //         if (queryObjWithUrl.from) {
+            //           queryObjWithUrl.from.source = parquetUrl;
+            //         } else {
+            //           queryObjWithUrl.from = {
+            //             type: 'parquet',
+            //             source: parquetUrl
+            //           };
+            //         }
+                    
+            //         return {
+            //           ...chart,
+            //           query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
+            //           queryObject: queryObjWithUrl  // ✅ Store the updated queryObject for dynamic filtering
+            //         };
+            //       })
+            //     };
+                
+            //     // Execute queries and get data
+            //     const chartDataResults = await generateDrilldownChartsData(
+            //       drilldownQueries.charts, 
+            //       parquetUrl
+            //     );
+                
+            //     // Update dashboard_data with drilldown
+            //     setDashboard_data(prev => {
+            //       if (!prev) return prev;
+                  
+            //       // Find parent chart/card and attach drilldown
+            //       return attachDrilldownToParent(
+            //         prev,
+            //         parentChartId,
+            //         kpiId,
+            //         {
+            //           // filters: drilldownFilters,
+            //           filters: transformedFilters,
+            //           charts: chartDataResults,
+            //           insights: drilldownPayload?.insights
+            //         }
+            //       );
+            //     });
+                
+            //     console.log("✅ Drilldown data attached successfully");
+            //   } catch (error) {
+            //     console.error("❌ Failed to process drilldown:", error);
+            //   }
+            // }
           } catch (e) {
             closeWebSocket();
-            removeListener(handler)
           }
         };
-        addListener(handler);
+        console.log("Adding handler", handler)
+        addListener(handler, "charts-generator");
         // wb.onmessage = async (evt: any) => {
         //   try {
         //     const msg = JSON.parse(evt.data);
@@ -215,7 +340,6 @@ export function KPIsStep() {
         // };
       }catch(error){
         closeWebSocket();
-        removeListener(handler)
         console.log("Error is", error)
       }
   }

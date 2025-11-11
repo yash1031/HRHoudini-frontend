@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     const response = await fetch(
       `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/login`,
-      {
+      { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email}), 

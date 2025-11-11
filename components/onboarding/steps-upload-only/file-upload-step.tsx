@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useDashboard } from '@/contexts/DashboardContext';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
+import {generateCardsFromParquet} from "@/utils/parquetLoader"
 
 import {
   ArrowLeft,
@@ -49,7 +50,7 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
-  const { wb, setWb } = useDashboard();
+  const { setDashboard_data, setIsLoading, setErrorDash } = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
@@ -218,26 +219,26 @@ export function FileUploadStep() {
 
         
         
-        let createKPIsRes
-        try{
-          createKPIsRes = apiFetch("/api/file-upload/generate-kpis", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({
-                user_id: localStorage.getItem("user_id"),
-                session_id: uuid,
-                column_headers: columns
-              }),
-          });
-        }catch(error){
-          setError("Failed to process file. Please try again.")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
-          setIsUploading(false)
-          console.error("Failed to create KPIs")
-          return;
-        }
+        // let createKPIsRes
+        // try{
+        //   createKPIsRes = apiFetch("/api/file-upload/generate-kpis", {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json", },
+        //     body: JSON.stringify({
+        //         user_id: localStorage.getItem("user_id"),
+        //         session_id: sessionId,
+        //         column_headers: columns
+        //       }),
+        //   });
+        // }catch(error){
+        //   setError("Failed to process file. Please try again.")
+        //   setTimeout(()=>{
+        //     setError(null);
+        //   }, 3000)
+        //   setIsUploading(false)
+        //   console.error("Failed to create KPIs")
+        //   return;
+        // }
 
         let AISuggestedQuesRes
         try{
@@ -269,6 +270,7 @@ export function FileUploadStep() {
             console.log('[WS] message', msg);
             if(msg.event==="convert.ready"){
               console.log("[WS] message: CSV converted to parquet")
+              localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
             }
             if(msg.event==="athena.completed"){
@@ -278,20 +280,43 @@ export function FileUploadStep() {
               setIsUploading(false)
               hasFileUploadStarted(false)
             }
+            if(msg.event==="kpi.ready"){
+              console.log("KPIs are ready")
+              const items = Array.isArray(msg.payload) ? msg.payload : [];
+              const kpisWithIcons: KpiItem[] = items.map((item: any) => ({
+                ...item,
+                icon: Clock, // fallback
+              }));
+ 
+              setKpis(kpisWithIcons);   // save to context
+              setStep(3);               // go to KPIs step
+            }
+            if(msg.event==="global_queries.ready"){
+              const parquetUrl= localStorage.getItem("presigned-parquet-url") || ""
+              console.log("Global queries received for cards are", msg.payload.text)
+              generateCardsFromParquet(msg.payload.text, parquetUrl)
+              .then((result:any) => {
+                console.log("Result for generateCardsFromParquet", JSON.stringify(result, null, 2))
+                // setIsLoading(false)
+                setErrorDash(null);
+                setDashboard_data(result);
+              })
+              .catch(console.error);
+            }
         };
-        addListener(handler!);
+        addListener(handler!, "chards-generator");
 
-        const resCreateKPIs= await createKPIsRes; 
-        const createKPIsData= await resCreateKPIs.data
-        console.log("createKPIsData is", JSON.stringify(createKPIsData))
-        const kpisData= await createKPIsData;
-        console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
-        const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
-          ...item,
-          icon: Clock, // fallback to Clock
-        }));
+        // const resCreateKPIs= await createKPIsRes; 
+        // const createKPIsData= await resCreateKPIs.data
+        // console.log("createKPIsData is", JSON.stringify(createKPIsData))
+        // const kpisData= await createKPIsData;
+        // console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
+        // const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
+        //   ...item,
+        //   icon: Clock, // fallback to Clock
+        // }));
 
-        setKpis(kpisWithIcons);
+        // setKpis(kpisWithIcons);
 
         const resAISuggestedQues= await AISuggestedQuesRes;
         const AISuggestedQuesData= await resAISuggestedQues.data
@@ -307,7 +332,6 @@ export function FileUploadStep() {
       }, 3000)
       console.error("File processing error:", err)
       closeWebSocket();
-      removeListener(handler)
     } 
   }
 

@@ -532,61 +532,6 @@ const FilterControls: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // return (
-  //   <div
-  //     className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200"
-  //     onClick={(e) => e.stopPropagation()}
-  //   >
-  //     <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-  //       <div className="flex items-center space-x-2">
-  //         <div className="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center">
-  //           <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-  //           </svg>
-  //         </div>
-  //         <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
-  //         {activeFilterCount > 0 && (
-  //           <Badge className="bg-indigo-100 text-indigo-800 text-[10px]">
-  //             {activeFilterCount} active
-  //           </Badge>
-  //         )}
-  //       </div>
-  //       {activeFilterCount > 0 && (
-  //         <button
-  //           onClick={clearAllFilters}
-  //           className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[10px] font-medium rounded-md border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1"
-  //         >
-  //           <X className="w-2.5 h-2.5" />
-  //           <span>Clear All</span>
-  //         </button>
-  //       )}
-  //     </div>
-
-  //     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-  //       {filters.map(renderFilter)}
-  //     </div>
-
-  //     {/* Apply Filters Button */}
-  //     <div className="pt-1.5 flex items-center justify-between">
-  //       <span className="text-[10px] text-slate-500">
-  //         {activeFilterCount > 0 ? `${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} selected` : 'No filters applied'}
-  //       </span>
-  //       <button
-  //         onClick={(e) => {
-  //           e.stopPropagation();
-  //           applyFilters();
-  //         }}
-  //         className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded transition-all flex items-center space-x-1"
-  //       >
-  //         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-  //         </svg>
-  //         <span>Apply</span>
-  //       </button>
-  //     </div>
-  //   </div>
-  // );
-
   return (
     <div
       className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200"
@@ -660,31 +605,33 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
 
   const [card1, card2, card3, card4] = kpiCards;
 
-  const calculateKPI = (kpi: KPICard): string | number => {
-    if (kpi?.calculationType === 'custom' && kpi?.calculate) {
+  const calculateKPI = (kpi?: KPICard): string | number => {
+    if (!kpi) return 0;
+    
+    if (kpi.calculationType === 'custom' && kpi.calculate) {
       return kpi.calculate(data);
     }
 
-    switch (kpi?.calculationType) {
+    switch (kpi.calculationType) {
       case 'count':
-        if (kpi?.filterCondition) {
+        if (kpi.filterCondition) {
           return data.filter(kpi.filterCondition).length;
         }
-        return data?.length;
+        return data?.length || 0;
 
       case 'average':
-        if (kpi?.dataKey) {
+        if (kpi.dataKey) {
           const values = data.map(item => {
             const val = kpi.extractValue ? kpi.extractValue(item) : item[kpi.dataKey!];
             return parseFloat(val) || 0;
           });
-          const avg = values.reduce((a, b) => a + b, 0) / values.length;
+          const avg = values.reduce((a, b) => a + b, 0) / (values.length || 1);
           return kpi.format ? kpi.format(avg) : avg.toFixed(1);
         }
         return 0;
 
       case 'distinct':
-        if (kpi?.dataKey) {
+        if (kpi.dataKey) {
           const uniqueValues = new Set(data.map(item => item[kpi.dataKey!]));
           return uniqueValues.size;
         }
@@ -726,7 +673,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   };
 
   const handleKPIClick = (kpi: KPICard): void => {
-    if (!kpi.drillDownData) return;
+    if (!kpi?.drillDownData) return;
     setModal({
       isOpen: true,
       title: `${kpi.label} - Detailed Analysis`,
@@ -735,7 +682,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
   };
 
   const handleChartClick = (chart: ChartConfig): void => {
-    if (!chart.drillDownData) return;
+    if (!chart?.drillDownData) return;
 
     setModal({
       isOpen: true,
@@ -780,7 +727,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
 
         const textAnchor = x > cx ? 'start' : 'end';
 
-        const isLongLabel = name.length > 15;
+        const isLongLabel = name?.length > 15;
 
         if (isLongLabel) {
           return (
@@ -903,7 +850,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           {/* Critical Issues Section */}
           <div>
             <h4 className="text-md font-semibold text-slate-800 mb-4">Critical Issues:</h4>
-            {insights.critical_issues && insights.critical_issues.length > 0 ? (
+            {insights?.critical_issues && insights.critical_issues.length > 0 ? (
               <ul className="space-y-2">
                 {insights.critical_issues.map((issue, idx) => (
                   <li key={idx} className="text-sm text-slate-700 flex items-start">
@@ -920,7 +867,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           {/* Recommended Actions Section */}
           <div>
             <h4 className="text-md font-semibold text-slate-800 mb-4">Recommended Actions:</h4>
-            {insights.recommended_actions && insights.recommended_actions.length > 0 ? (
+            {insights?.recommended_actions && insights.recommended_actions.length > 0 ? (
               <ul className="space-y-2">
                 {insights.recommended_actions.map((action, idx) => (
                   <li key={idx} className="text-sm text-slate-700 flex items-start">
@@ -938,7 +885,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
     );
   };
 
-  const DrillDownModal: React.FC = () => {
+const DrillDownModal: React.FC = () => {
   const [activeFilters, setActiveFilters] = useState<FilterState>({});
   const [chartData, setChartData] = useState<Record<number, any[]>>({});
   const [loading, setLoading] = useState(false);
@@ -966,7 +913,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           activeFilters
         );
 
-        const queries = modal.drillDownData.charts.map((chart, idx) => {
+        const queries = modal.drillDownData?.charts?.map((chart, idx) => {
           if (!chart.queryObject) return '';
           // ✅ Pass numeric fields as third parameter (optional)
           return DynamicQueryBuilder.buildSQL(
@@ -974,7 +921,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
             filterValues,
             ['age', 'salary', 'years_experience'] // Add your numeric fields here
           );
-        });
+        }) || [];
 
         const validQueries = queries.filter(q => q !== '');
         
@@ -1066,7 +1013,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
             {!loading && (
               <>
                 {/* Filters Section */}
-                {modal.drillDownData.filters && modal.drillDownData.filters.length > 0 && (
+                {modal.drillDownData?.filters && modal.drillDownData.filters.length > 0 && (
                   <FilterControls 
                     filters={modal.drillDownData.filters} 
                     onFilterChange={handleFilterChange}
@@ -1090,7 +1037,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                   )}
                   
                   {/* Charts Row */}
-                  {modal.drillDownData.charts && modal.drillDownData.charts.length > 0 && (
+                  {modal.drillDownData?.charts && modal.drillDownData.charts.length > 0 && (
                     <div 
                       className={`grid gap-6 transition-all duration-300 ${isTransitioning ? 'opacity-60 scale-[0.99]' : 'opacity-100 scale-100'}`}
                       style={{ gridTemplateColumns: `repeat(${Math.min(modal.drillDownData.charts.length, 2)}, 1fr)` }}
@@ -1139,7 +1086,7 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                 </div>
 
                 {/* Insights Row */}
-                {modal.drillDownData.insights && (
+                {modal.drillDownData?.insights && (
                   <InsightsSection insights={modal.drillDownData.insights} />
                 )}
               </>
@@ -1175,7 +1122,6 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
                   <div className="flex items-center space-x-2 text-white">
                     <CheckCircle className="h-4 w-4" />
                     <span className="font-medium">{filename?.split('.')[0]}</span>
-                    {/* <span className="font-medium">{localStorage.getItem("file_name")}</span> */}
                     <span className="text-blue-200">•</span>
                     <span className="text-blue-200">{rowCount} records</span>
                   </div>
@@ -1188,8 +1134,6 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                  {/* <span className="font-medium text-white">Turnover:</span>
-                  <span className="text-blue-100">{"24.3%"} rate</span> */}
                   <span className="font-medium text-white">{card2?.label}</span>
                   <span className="text-blue-100">{calculateKPI(card2)}</span>
                 </div>
@@ -1208,30 +1152,25 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           </div>
         </div>
 
-        {kpiCards.length > 0 && (
+        {kpiCards?.length > 0 && (
           <div className="grid gap-6 mb-8" style={{ gridTemplateColumns: `repeat(${Math.min(kpiCards.length, 4)}, 1fr)` }}>
             {kpiCards.map((kpi, idx) => {
-              const Icon = getIcon(kpi.icon);
+              const Icon = getIcon(kpi?.icon);
               const value = calculateKPI(kpi);
 
               return (
                 <div
                   key={idx}
-                  onClick={() => kpi.drillDownData && handleKPIClick(kpi)}
-                  className={`bg-white rounded-lg shadow-md p-6 border-l-4 ${kpi.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''} transition-shadow`}
-                  style={{ borderLeftColor: kpi.color || '#3b82f6' }}
+                  onClick={() => kpi?.drillDownData && handleKPIClick(kpi)}
+                  className={`bg-white rounded-lg shadow-md p-6 border-l-4 ${kpi?.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''} transition-shadow`}
+                  style={{ borderLeftColor: kpi?.color || '#3b82f6' }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-slate-600 mb-1">{kpi.label}</p>
+                      <p className="text-sm text-slate-600 mb-1">{kpi?.label}</p>
                       <p className="text-3xl font-bold text-slate-800">{value}</p>
-                      {/* {kpi.description && (
-                        <p className="text-xs mt-1" style={{ color: kpi.color || '#3b82f6' }}>
-                          {kpi.description}
-                        </p>
-                      )} */}
                     </div>
-                    <Icon className="w-12 h-12 opacity-80" style={{ color: kpi.color || '#3b82f6' }} />
+                    <Icon className="w-12 h-12 opacity-80" style={{ color: kpi?.color || '#3b82f6' }} />
                   </div>
                 </div>
               );
@@ -1239,20 +1178,20 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {charts.map((chart, idx) => {
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {charts && charts.map((chart, idx) => {
             const chartData = generateChartData(chart);
-            const Icon = getIcon(chart.icon);
+            const Icon = getIcon(chart?.icon);
 
             return (
               <div
                 key={idx}
-                className={`bg-white rounded-lg shadow-md p-6 ${chart.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''} transition-shadow`}
-                onClick={() => chart.drillDownData && handleChartClick(chart)}
+                className={`bg-white rounded-lg shadow-md p-6 ${chart?.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''} transition-shadow`}
+                onClick={() => chart?.drillDownData && handleChartClick(chart)}
               >
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-                  <Icon className="w-5 h-5 mr-2" style={{ color: chart.color || '#3b82f6' }} />
-                  {chart.title}
+                  <Icon className="w-5 h-5 mr-2" style={{ color: chart?.color || '#3b82f6' }} />
+                  {chart?.title}
                 </h3>
                 <ResponsiveContainer width="100%" height={350}>
                   {renderChart(chartData, chart)}
@@ -1260,11 +1199,50 @@ const Generated_Dashboard: React.FC<ConfigurableDashboardProps> = ({
               </div>
             );
           })}
+        </div> */}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {charts && charts.map((chart, idx) => {
+              const chartData = generateChartData(chart);
+              const Icon = getIcon(chart?.icon);
+              
+              // ✅ ADD: Debug log
+              console.log(`Chart "${chart.title}" drillDownData exists:`, !!chart?.drillDownData);
+
+              return (
+                <div
+                  key={idx}
+                  className={`bg-white rounded-lg shadow-md p-6 ${
+                    chart?.drillDownData ? 'cursor-pointer hover:shadow-lg' : ''
+                  } transition-shadow`}
+                  onClick={() => {
+                    console.log('Chart clicked:', chart.title, 'Has drilldown:', !!chart?.drillDownData);
+                    if (chart?.drillDownData) {
+                      handleChartClick(chart);
+                    }
+                  }}
+                >
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                    <Icon className="w-5 h-5 mr-2" style={{ color: chart?.color || '#3b82f6' }} />
+                    {chart?.title}
+                    {/* ✅ ADD: Visual indicator */}
+                    {chart?.drillDownData && (
+                      <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
+                        Click to drill down
+                      </Badge>
+                    )}
+                  </h3>
+                  <ResponsiveContainer width="100%" height={350}>
+                    {renderChart(chartData, chart)}
+                  </ResponsiveContainer>
+                </div>
+              );
+            })}
         </div>
 
-        <div className="mt-8 text-center text-slate-600 text-sm">
+        {/* <div className="mt-8 text-center text-slate-600 text-sm">
           <p>Dashboard generated from {rowCount} total records</p>
-        </div>
+        </div> */}
 
       </div>
 

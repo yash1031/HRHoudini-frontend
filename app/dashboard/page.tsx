@@ -27,6 +27,7 @@ import * as Recharts from 'recharts'
 import * as LucideIcons from 'lucide-react'
 import sample_dashboard_data from "@/public/sample_dashboard_data"
 import { apiFetch } from "@/lib/api/client";
+import type {DataItem,FilterConfig,ChartDataItem,KPICard,Insight,DrillDownData,ChartConfig,TableColumn,ConfigurableDashboardProps} from "@/types/dashboard"
 
 declare global {
   interface Window {
@@ -36,94 +37,94 @@ declare global {
   }
 }
 
-interface DataItem {
-  [key: string]: any;
-}
+// interface DataItem {
+//   [key: string]: any;
+// }
 
-interface FilterConfig {
-  key: string;
-  label: string;
-  dataKey: string;
-  options: string[];
-}
+// interface FilterConfig {
+//   key: string;
+//   label: string;
+//   dataKey: string;
+//   options: string[];
+// }
 
-interface ChartDataItem {
-  name?: string;
-  value?: number;
-  [key: string]: any;
-}
+// interface ChartDataItem {
+//   name?: string;
+//   value?: number;
+//   [key: string]: any;
+// }
 
 
-interface KPICard {
-  label: string;
-  icon: string;
-  color: string;
-  description?: string;
-  calculationType: 'count' | 'average' | 'distinct' | 'custom';
-  dataKey?: string;
-  extractValue?: (item: DataItem) => number;
-  format?: (value: number) => string | number;
-  filterCondition?: (item: DataItem) => boolean;
-  calculate?: (data: DataItem[]) => string | number;
-  // drillDownChart?: DrillDownChart;
-  drillDownData?: DrillDownData;
-}
+// interface KPICard {
+//   label: string;
+//   icon: string;
+//   color: string;
+//   description?: string;
+//   calculationType: 'count' | 'average' | 'distinct' | 'custom';
+//   dataKey?: string;
+//   extractValue?: (item: DataItem) => number;
+//   format?: (value: number) => string | number;
+//   filterCondition?: (item: DataItem) => boolean;
+//   calculate?: (data: DataItem[]) => string | number;
+//   // drillDownChart?: DrillDownChart;
+//   drillDownData?: DrillDownData;
+// }
 
-interface Insight {
-  critical_issues: string[];
-  recommended_actions: string[];
-}
+// interface Insight {
+//   critical_issues: string[];
+//   recommended_actions: string[];
+// }
 
-interface DrillDownData {
-  cards: KPICard[];
-  charts: ChartConfig[];
-  insights?: Insight; // UPDATED: Changed from InsightItem[] to Insights
-}
+// interface DrillDownData {
+//   cards: KPICard[];
+//   charts: ChartConfig[];
+//   insights?: Insight; // UPDATED: Changed from InsightItem[] to Insights
+// }
 
-interface ChartConfig {
-  title: string;
-  icon: string;
-  type: 'bar' | 'pie' | 'line';
-  color: string;
-  dataKey?: string;
-  xDataKey?: string;
-  yDataKey?: string;
-  valueKey?: string;
-  layout?: string;
-  height?: number;
-  sort?: 'asc' | 'desc';
-  lineName?: string;
-  customDataGenerator?: (data: DataItem[]) => ChartDataItem[];
-  // drillDown?: ChartDrillDown;
-  drillDownData?: DrillDownData;
-}
+// interface ChartConfig {
+//   title: string;
+//   icon: string;
+//   type: 'bar' | 'pie' | 'line';
+//   color: string;
+//   dataKey?: string;
+//   xDataKey?: string;
+//   yDataKey?: string;
+//   valueKey?: string;
+//   layout?: string;
+//   height?: number;
+//   sort?: 'asc' | 'desc';
+//   lineName?: string;
+//   customDataGenerator?: (data: DataItem[]) => ChartDataItem[];
+//   // drillDown?: ChartDrillDown;
+//   drillDownData?: DrillDownData;
+// }
 
-interface TableColumn {
-  label: string;
-  dataKey: string;
-  className?: string;
-  render?: (value: any, row: DataItem) => React.ReactNode;
-}
+// interface TableColumn {
+//   label: string;
+//   dataKey: string;
+//   className?: string;
+//   render?: (value: any, row: DataItem) => React.ReactNode;
+// }
 
-interface ConfigurableDashboardProps {
-  title?: string;
-  subtitle?: string;
-  data?: DataItem[];
-  filters?: FilterConfig[];
-  kpiCards?: KPICard[];
-  charts?: ChartConfig[];
-  rowCount?: string;
-  filename?: string;
-  tableColumns?: TableColumn[];
-  colors?: string[];
-  parquetDataUrl?: string;
-  columns?: string[];
-  metadataFields?: {
-    numericFields: string[];
-    categoricalFields: string[];
-    tokenMapsUrl?: string;  
-  };
-}
+// interface ConfigurableDashboardProps {
+//   title?: string;
+//   subtitle?: string;
+//   data?: DataItem[];
+//   filters?: FilterConfig[];
+//   kpiCards?: KPICard[];
+//   charts?: ChartConfig[];
+//   rowCount?: string;
+//   filename?: string;
+//   tableColumns?: TableColumn[];
+//   colors?: string[];
+//   parquetDataUrl?: string;
+//   columns?: string[];
+//   metadataFields?: {
+//     numericFields: string[];
+//     categoricalFields: string[];
+//     tokenMapsUrl?: string;  
+//   };
+// }
 
 export default function DashboardUO1() {
   const searchParams = useSearchParams()
@@ -320,11 +321,12 @@ useEffect(() => {
   });
 
   // Transform charts with FILTERS and QUERY OBJECTS support
-  const chartConfigs = charts.map((chart: any) => {
+  const chartConfigs = !charts? []: charts.map((chart: any) => {
     const chartType = chart.type === 'horizontalBar' ? 'bar' : chart.type;
     const layout = chart.type === 'horizontalBar' ? 'horizontal' : chart.type === 'bar' ? 'vertical' : undefined;
 
     const baseChart = {
+      id: chart.id, 
       title: chart.title,
       icon: chart.icon,
       type: chartType,
@@ -343,53 +345,54 @@ useEffect(() => {
       })) : undefined,
     };
 
-  if (chart.drillDown) {
-    return {
-      ...baseChart,
-      drillDownData: {
-        filters: chart.drillDown.filters || [],
-        cards: chart.drillDown.cards?.map((ddCard: any) => ({
-          label: ddCard.title,
-          icon: ddCard.icon,
-          color: colorMap[ddCard.color] || '#3b82f6',
-          description: ddCard.description || '',
-          calculationType: 'custom' as const,
-          calculate: () => ddCard.value,
-        })) || [],
-        charts: chart.drillDown.charts?.map((ddChart: any) => {
-          
-          const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
-          const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
+    if (chart.drillDownData) { //Changed from chart.drillDown to chart.drillDownData
+      return {
+        ...baseChart,
+        drillDownData: {
+          filters: chart.drillDownData.filters || [],
+          cards: chart.drillDownData.cards?.map((ddCard: any) => ({
+            label: ddCard.title,
+            icon: ddCard.icon,
+            color: colorMap[ddCard.color] || '#3b82f6',
+            description: ddCard.description || '',
+            calculationType: 'custom' as const,
+            calculate: () => ddCard.value,
+          })) || [],
+          charts: chart.drillDownData.charts?.map((ddChart: any) => {
+            
+            const ddChartType = ddChart.type === 'horizontalBar' ? 'bar' : ddChart.type;
+            const ddLayout = ddChart.type === 'horizontalBar' ? 'horizontal' : ddChart.type === 'bar' ? 'vertical' : undefined;
 
-          return {
-            title: ddChart.title,
-            icon: ddChart.icon,
-            type: ddChartType as 'bar' | 'pie' | 'line',
-            color: ddChart.colors?.[0] || '#3b82f6',
-            colors: ddChart.colors,
-            dataKey: ddChart.field,
-            field: ddChart.field,
-            layout: ddLayout,
-            height: 300,
-            queryObject: ddChart.queryObject,  // ✅ KEEP for drilldown charts
-            data: ddChart.data || [],
-            customDataGenerator: ddChart.data ? () => ddChart.data.map((item: any) => ({
-              name: item.name,
-              value: item.value,
-              percentage: item.percentage
-            })) : undefined,
-          };
-        }) || [],
-        insights: chart.drillDown.insights ? {
-          critical_issues: chart.drillDown.insights.critical_issues || [],
-          recommended_actions: chart.drillDown.insights.recommended_actions || []
-        } : undefined
-      }
-    };
-  }
+            return {
+              id: ddChart.id, //Added
+              title: ddChart.title,
+              icon: ddChart.icon,
+              type: ddChartType as 'bar' | 'pie' | 'line',
+              color: ddChart.colors?.[0] || '#3b82f6',
+              colors: ddChart.colors,
+              dataKey: ddChart.field,
+              field: ddChart.field,
+              layout: ddLayout,
+              height: 300,
+              queryObject: ddChart.queryObject,  // ✅ KEEP for drilldown charts
+              data: ddChart.data || [],
+              customDataGenerator: ddChart.data ? () => ddChart.data.map((item: any) => ({
+                name: item.name,
+                value: item.value,
+                percentage: item.percentage
+              })) : undefined,
+            };
+          }) || [],
+          insights: chart.drillDownData.insights ? {
+            critical_issues: chart.drillDownData.insights.critical_issues || [],
+            recommended_actions: chart.drillDownData.insights.recommended_actions || []
+          } : undefined
+        }
+      };
+    }
 
-  return baseChart;
-});
+    return baseChart;
+  });
 
   const newConfig: ConfigurableDashboardProps = {
     title: "Analytics Dashboard",
@@ -398,10 +401,10 @@ useEffect(() => {
     filters: [],
     kpiCards,
     charts: chartConfigs,
-    filename: metadata.filename,
-    rowCount: String(metadata.totalRows),
+    filename: metadata?.filename || "",
+    rowCount: String(metadata?.totalRows) || "",
     tableColumns: [],
-    colors: charts[0]?.colors || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1'],
+    colors: (charts && charts[0]?.colors) || ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#6366f1'],
     parquetDataUrl: parquetDataUrl,
     columns: columns,
     metadataFields: { 
@@ -423,7 +426,22 @@ useEffect(() => {
       />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-6">
-        { isLoading?
+        {!errorDash && <Generated_Dashboard {...config} />}
+        { isLoading &&
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-slate-600">While we load dashboard for you, please interact with chatbot below for possible queries on data</p>
+              </div>
+            </div>}
+      
+        {errorDash &&
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <p className="text-red-600">{errorDash}</p>
+              </div>
+            </div>}
+        {/* { isLoading?
             <div className="min-h-screen flex items-center justify-center">
               <div className="text-center">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
@@ -441,7 +459,7 @@ useEffect(() => {
         // Pass the component code from API to GeneratedDashboard
         
         <Generated_Dashboard {...config} />
-      }
+      } */}
 
         {/* Chat Interface */}
         <div className="w-full">
