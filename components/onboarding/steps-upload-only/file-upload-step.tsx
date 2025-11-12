@@ -7,7 +7,7 @@ import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building
 import { FileUpload } from "@/components/file-upload"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useUserContext } from "@/contexts/user-context"
 import { v4 as uuidv4 } from "uuid";
 import { useDashboard } from '@/contexts/DashboardContext';
@@ -43,6 +43,7 @@ export function FileUploadStep() {
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
   const [uuid] = useState<string>(uuidv4());
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
+  const completionFlags = useRef({ kpi: false, athena: false });
   const [fileDropped, setFileDropped]= useState(false);
   const [proceedToUpload, setProceedToUpload]= useState(false);
   const [isUploading, setIsUploading] = useState(false)
@@ -251,13 +252,12 @@ export function FileUploadStep() {
               }),
           });
         }catch(error){
-          setError("Failed to process file. Please try again.")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
-          setIsUploading(false)
+          // setError("Failed to process file. Please try again.")
+          // setTimeout(()=>{
+          //   setError(null);
+          // }, 3000)
+          // setIsUploading(false)
           console.error("Failed to create AI recommended question")
-          return;
         }
 
         // 4. Upload file with progress
@@ -272,13 +272,6 @@ export function FileUploadStep() {
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
             }
-            if(msg.event==="athena.completed"){
-              console.log("Athena table created")
-              setUploadProgress(100)
-              setProcessedFile(true);
-              setIsUploading(false)
-              hasFileUploadStarted(false)
-            }
             if(msg.event==="kpi.ready"){
               console.log("KPIs are ready")
               const items = Array.isArray(msg.payload) ? msg.payload : [];
@@ -288,20 +281,25 @@ export function FileUploadStep() {
               }));
  
               setKpis(kpisWithIcons);   // save to context
-              setStep(3);               // go to KPIs step
+              // setStep(3);               // go to KPIs step
+              completionFlags.current.kpi = true;
+              if(completionFlags.current.athena){
+                setUploadProgress(100)
+                setProcessedFile(true);
+                setIsUploading(false)
+                hasFileUploadStarted(false)
+              }
             }
-            // if(msg.event==="global_queries.ready"){
-            //   const parquetUrl= localStorage.getItem("presigned-parquet-url") || ""
-            //   console.log("Global queries received for cards are", msg.payload.text)
-            //   generateCardsFromParquet(msg.payload.text, parquetUrl)
-            //   .then((result:any) => {
-            //     console.log("Result for generateCardsFromParquet", JSON.stringify(result, null, 2))
-            //     // setIsLoading(false)
-            //     setErrorDash(null);
-            //     setDashboard_data(result);
-            //   })
-            //   .catch(console.error);
-            // }
+            if(msg.event==="athena.completed"){
+              console.log("Athena table created")
+              completionFlags.current.athena = true;
+              if(completionFlags.current.kpi){
+                setUploadProgress(100)
+                setProcessedFile(true);
+                setIsUploading(false)
+                hasFileUploadStarted(false)
+              }
+            }
             if (msg.event === "global_queries.ready") {
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
               console.log("📊 [STEP 1] Global queries received for cards:", msg.payload.text);
