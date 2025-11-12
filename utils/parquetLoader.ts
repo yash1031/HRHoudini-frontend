@@ -112,25 +112,31 @@ export async function executeQuery(query: string): Promise<any[]> {
 /**
  * Execute multiple queries in batch (for drilldown charts)
  */
+// utils/parquetLoader.ts (already exists)
+
+/**
+ * Execute multiple queries in batch (for drilldown charts)
+ * Useful for loading multiple chart data at once
+ */
 export async function executeBatchQueries(queries: string[]): Promise<any[][]> {
+  console.log('📦 Executing batch queries, count:', queries.length);
   
   try {
     const db = await initializeDuckDB();
     const conn = await db.connect();
-
     const results: any[][] = [];
     
     for (let i = 0; i < queries.length; i++) {
       const query = queries[i];
+      console.log(`🔍 Executing query ${i + 1}/${queries.length}`);
       
       try {
         const result = await conn.query(query);
         
-        // ✅ FIX: Convert BigInt to regular numbers
+        // Convert BigInt to regular numbers
         const data = result.toArray().map((row) => {
           const obj = row.toJSON();
           
-          // Convert all BigInt values to numbers
           Object.keys(obj).forEach(key => {
             if (typeof obj[key] === 'bigint') {
               obj[key] = Number(obj[key]);
@@ -142,21 +148,65 @@ export async function executeBatchQueries(queries: string[]): Promise<any[][]> {
         
         results.push(data);
       } catch (queryError) {
-        console.error('❌ Query failed:', queryError);
-        console.error('📝 Failed query:', query);
+        console.error(`❌ Query ${i + 1} failed:`, queryError);
+        console.error('📋 Failed query:', query);
         results.push([]); // Push empty array for failed query
       }
-      console.groupEnd();
     }
 
     await conn.close();
+    console.log('✅ Batch execution complete. Result is', results);
     return results;
   } catch (error) {
     console.error('❌ Batch execution failed:', error);
-    console.groupEnd();
     throw error;
   }
 }
+// export async function executeBatchQueries(queries: string[]): Promise<any[][]> {
+  
+//   try {
+//     const db = await initializeDuckDB();
+//     const conn = await db.connect();
+
+//     const results: any[][] = [];
+    
+//     for (let i = 0; i < queries.length; i++) {
+//       const query = queries[i];
+      
+//       try {
+//         const result = await conn.query(query);
+        
+//         // ✅ FIX: Convert BigInt to regular numbers
+//         const data = result.toArray().map((row) => {
+//           const obj = row.toJSON();
+          
+//           // Convert all BigInt values to numbers
+//           Object.keys(obj).forEach(key => {
+//             if (typeof obj[key] === 'bigint') {
+//               obj[key] = Number(obj[key]);
+//             }
+//           });
+          
+//           return obj;
+//         });
+        
+//         results.push(data);
+//       } catch (queryError) {
+//         console.error('❌ Query failed:', queryError);
+//         console.error('📝 Failed query:', query);
+//         results.push([]); // Push empty array for failed query
+//       }
+//       console.groupEnd();
+//     }
+
+//     await conn.close();
+//     return results;
+//   } catch (error) {
+//     console.error('❌ Batch execution failed:', error);
+//     console.groupEnd();
+//     throw error;
+//   }
+// }
 
 /**
  * Generate cards from JSON config and Parquet URL

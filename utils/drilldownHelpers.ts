@@ -107,31 +107,3 @@ export function attachDrilldownToParent(
   
   return updated;
 }
-/**
- * Transform filter structure from API to UI format
- */
-export function transformFilters(filters: any[]): any[] {
-  return filters.map(filter => {
-    const transformed: any = {
-      field: filter.field,
-      label: filter.label,
-      type: filter.type === 'select' && filter.options ? 'multiselect' : filter.type
-    };
-    
-    // Add options for select/multiselect
-    if (filter.options) {
-      transformed.options = filter.options;
-    }
-    
-    // Add range bounds
-    if (filter.min !== undefined) transformed.min = filter.min;
-    if (filter.max !== undefined) transformed.max = filter.max;
-    
-    // Keep whereClause for query building
-    if (filter.whereClause) {
-      transformed.whereClause = filter.whereClause;
-    }
-    
-    return transformed;
-  });
-}
