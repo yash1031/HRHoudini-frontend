@@ -1,3 +1,4 @@
+//
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -289,17 +290,39 @@ export function FileUploadStep() {
               setKpis(kpisWithIcons);   // save to context
               setStep(3);               // go to KPIs step
             }
-            if(msg.event==="global_queries.ready"){
-              const parquetUrl= localStorage.getItem("presigned-parquet-url") || ""
-              console.log("Global queries received for cards are", msg.payload.text)
+            // if(msg.event==="global_queries.ready"){
+            //   const parquetUrl= localStorage.getItem("presigned-parquet-url") || ""
+            //   console.log("Global queries received for cards are", msg.payload.text)
+            //   generateCardsFromParquet(msg.payload.text, parquetUrl)
+            //   .then((result:any) => {
+            //     console.log("Result for generateCardsFromParquet", JSON.stringify(result, null, 2))
+            //     // setIsLoading(false)
+            //     setErrorDash(null);
+            //     setDashboard_data(result);
+            //   })
+            //   .catch(console.error);
+            // }
+            if (msg.event === "global_queries.ready") {
+              const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              console.log("📊 [STEP 1] Global queries received for cards:", msg.payload.text);
+              
               generateCardsFromParquet(msg.payload.text, parquetUrl)
-              .then((result:any) => {
-                console.log("Result for generateCardsFromParquet", JSON.stringify(result, null, 2))
-                // setIsLoading(false)
-                setErrorDash(null);
-                setDashboard_data(result);
-              })
-              .catch(console.error);
+                .then((result: any) => {
+                  console.log("✅ Result for generateCardsFromParquet:", JSON.stringify(result, null, 2));
+                  
+                  setErrorDash(null);
+                  
+                  // Merge with existing metadata (assuming metadata already exists)
+                  setDashboard_data(prev => ({
+                    cards: result.cards || [],
+                    charts: prev?.charts || [],
+                    metadata: prev?.metadata || {} as any
+                  }));
+                })
+                .catch((error) => {
+                  console.error("❌ Failed to generate cards:", error);
+                  setErrorDash("Failed to generate cards");
+                });
             }
         };
         addListener(handler!, "chards-generator");

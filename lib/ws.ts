@@ -39,15 +39,6 @@ export function connectWebSocket(sessionId: string, userId: string | number | un
     console.log('[WS] connected', { sessionId });
   };
 
-  // ws.onmessage = (evt) => {
-  //   try {
-  //     const msg = JSON.parse(evt.data as string);
-  //     for (const fn of listeners) fn(msg);
-  //     console.log('[WS] message', msg);
-  //   } catch {
-  //     console.log('[WS] raw', evt.data);
-  //   }
-  // };
 
   // Update onmessage to iterate Map values
   ws.onmessage = (evt) => {

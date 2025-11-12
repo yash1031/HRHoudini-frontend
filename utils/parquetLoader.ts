@@ -1,3 +1,4 @@
+//utils/parquetLoader.ts
 import * as duckdb from '@duckdb/duckdb-wasm';
 
 let db: duckdb.AsyncDuckDB | null = null;
@@ -160,6 +161,105 @@ export async function executeBatchQueries(queries: string[]): Promise<any[][]> {
 /**
  * Generate cards from JSON config and Parquet URL
  */
+// export async function generateCardsFromParquet(configJson: any, parquetUrl: string) {
+//   try {
+//     const db = await initializeDuckDB();
+//     const conn = await db.connect();
+    
+//     const colors = ["blue", "green", "purple", "orange", "red", "teal"];
+//     const iconMap: Record<string, string> = {
+//       "Users": "Users",
+//       "PieChart": "Activity", 
+//       "TrendingUp": "TrendingUp",
+//       "TrendingDown": "TrendingDown",
+//       "Globe": "Globe"
+//     };
+
+//     // Parse if string
+//     const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
+
+//     const results = await Promise.all(
+//       config.summary_cards.map(async (card: any, index: number) => {
+//         const { query_obj, id, title, icon, value_format } = card;
+
+//         const selectClause = query_obj.select.columns
+//           .map((c: any) => {
+//             let expr = c.expression
+//               .replace(/AVG\((\w+)\)/g, 'AVG(TRY_CAST($1 AS DOUBLE))')
+//               .replace(/(\w+)\s*=\s*(\d+)/g, 'TRY_CAST($1 AS INTEGER) = $2')
+//               .replace(/DATE_DIFF\('(\w+)',\s*(\w+),/g, "DATE_DIFF('$1', COALESCE(TRY_CAST($2 AS DATE), TRY_STRPTIME($2, '%m/%d/%Y'), TRY_STRPTIME($2, '%d/%m/%Y'), TRY_STRPTIME($2, '%Y-%m-%d'), TRY_STRPTIME($2, '%d-%b-%Y')),");
+//             return `${expr} AS ${c.alias}`;
+//           })
+//           .join(", ");
+
+//         const whereClause = query_obj.where && query_obj.where.length
+//           ? "WHERE " + query_obj.where
+//               .map((w: any) => {
+//                 // Handle IS NULL / IS NOT NULL
+//                 if (w.operator === "IS" && w.value === "NULL") {
+//                   return `${w.column} IS NULL`;
+//                 }
+//                 if (w.operator === "IS NOT" && w.value === "NULL") {
+//                   return `${w.column} IS NOT NULL`;
+//                 }
+//                 // Handle other operators
+//                 return `${w.column} ${w.operator} '${w.value}'`;
+//               })
+//               .join(" AND ")
+//           : "";
+
+//         const query = `
+//           SELECT ${selectClause}
+//           FROM read_parquet('${parquetUrl}')
+//           ${whereClause}
+//         `;
+
+//         console.log(`Executing card query for ${title}:`, query);
+
+//         // Execute query
+//         const result = await conn.query(query);
+//         const data = result.toArray().map((row) => {
+//           const obj = row.toJSON();
+//           // Convert BigInt to numbers
+//           Object.keys(obj).forEach(key => {
+//             if (typeof obj[key] === 'bigint') {
+//               obj[key] = Number(obj[key]);
+//             }
+//           });
+//           return obj;
+//         });
+
+//         const rawValue = data[0]?.value ?? 0;
+
+//         // Format value based on value_format
+//         let formattedValue: string;
+//         if (value_format?.includes('%')) {
+//           formattedValue = `${(rawValue * 100).toFixed(1)}%`;
+//         } else if (value_format?.includes('$')) {
+//           formattedValue = `$${Math.round(rawValue).toLocaleString()}`;
+//         } else {
+//           formattedValue = Math.round(rawValue).toLocaleString();
+//         }
+
+//         return {
+//           id,
+//           icon: iconMap[icon] || "Users",
+//           color: colors[index % colors.length],
+//           title,
+//           value: formattedValue,
+//         };
+//       })
+//     );
+
+//     await conn.close();
+//     console.log("✅ Cards generated:", results);
+//     return { cards: results };
+
+//   } catch (error) {
+//     console.error('❌ Error generating cards:', error);
+//     throw error;
+//   }
+// }
 export async function generateCardsFromParquet(configJson: any, parquetUrl: string) {
   try {
     const db = await initializeDuckDB();
@@ -171,47 +271,63 @@ export async function generateCardsFromParquet(configJson: any, parquetUrl: stri
       "PieChart": "Activity", 
       "TrendingUp": "TrendingUp",
       "TrendingDown": "TrendingDown",
-      "Globe": "Globe"
+      "BarChart": "BarChart",
+      "Briefcase": "Briefcase",
+      "Clock": "Clock",
+      "Globe": "Globe",
+      "Award": "Award"
     };
 
-    // Parse if string
     const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
 
     const results = await Promise.all(
       config.summary_cards.map(async (card: any, index: number) => {
         const { query_obj, id, title, icon, value_format } = card;
 
+        // Build SELECT clause with safety transformations
         const selectClause = query_obj.select.columns
           .map((c: any) => {
-            let expr = c.expression
-              .replace(/AVG\((\w+)\)/g, 'AVG(TRY_CAST($1 AS DOUBLE))')
-              .replace(/(\w+)\s*=\s*(\d+)/g, 'TRY_CAST($1 AS INTEGER) = $2')
-              .replace(/DATE_DIFF\('(\w+)',\s*(\w+),/g, "DATE_DIFF('$1', COALESCE(TRY_CAST($2 AS DATE), TRY_STRPTIME($2, '%m/%d/%Y'), TRY_STRPTIME($2, '%d/%m/%Y'), TRY_STRPTIME($2, '%Y-%m-%d'), TRY_STRPTIME($2, '%d-%b-%Y')),");
+            let expr = c.expression;
+            
+            // Fix date_diff without TRY_CAST
+            if (expr.includes('date_diff') && !expr.includes('TRY_CAST')) {
+              expr = expr.replace(/date_diff\('(\w+)',\s*(\w+),/g, "date_diff('$1', TRY_CAST($2 AS DATE),");
+            }
+            
+            // Ensure float division in CASE statements
+            expr = expr.replace(/THEN 1 ELSE 0/g, 'THEN 1.0 ELSE 0.0')
+                       .replace(/\/ COUNT\(\*\)/g, '/ CAST(COUNT(*) AS DOUBLE)');
+            
+            // Ensure AVG uses TRY_CAST
+            if (!expr.includes('TRY_CAST') && expr.match(/AVG\([a-z_]+\)/i)) {
+              expr = expr.replace(/AVG\(([a-z_]+)\)/gi, 'AVG(TRY_CAST($1 AS DOUBLE))');
+            }
+            
             return `${expr} AS ${c.alias}`;
           })
           .join(", ");
 
+        // Build WHERE clause
         const whereClause = query_obj.where && query_obj.where.length
           ? "WHERE " + query_obj.where
               .map((w: any) => {
-                // Handle IS NULL / IS NOT NULL
                 if (w.operator === "IS" && w.value === "NULL") {
                   return `${w.column} IS NULL`;
                 }
                 if (w.operator === "IS NOT" && w.value === "NULL") {
                   return `${w.column} IS NOT NULL`;
                 }
-                // Handle other operators
                 return `${w.column} ${w.operator} '${w.value}'`;
               })
               .join(" AND ")
           : "";
 
+        // Construct final query
         const query = `
           SELECT ${selectClause}
           FROM read_parquet('${parquetUrl}')
           ${whereClause}
-        `;
+        `.trim();
 
         console.log(`Executing card query for ${title}:`, query);
 
@@ -236,6 +352,10 @@ export async function generateCardsFromParquet(configJson: any, parquetUrl: stri
           formattedValue = `${(rawValue * 100).toFixed(1)}%`;
         } else if (value_format?.includes('$')) {
           formattedValue = `$${Math.round(rawValue).toLocaleString()}`;
+        } else if (value_format?.includes('₹')) {
+          formattedValue = `₹${Math.round(rawValue).toLocaleString()}`;
+        } else if (value_format === '0.0') {
+          formattedValue = rawValue.toFixed(1);
         } else {
           formattedValue = Math.round(rawValue).toLocaleString();
         }

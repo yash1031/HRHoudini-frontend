@@ -1,185 +1,86 @@
-// import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-// // Insight structure
-// export interface Insight {
-//   critical_issues: string[];
-//   recommended_actions: string[];
-// }
-
-// // Card structure
-// export interface KPICard {
-//   title: string;
-//   value: string;
-//   field?: string;
-//   icon: string;
-//   color: string;
-//   note?: string;
-//   drillDown?: DrillDownData;
-// }
-
-// // Chart structure
-// export interface ChartDataItem {
-//   name: string;
-//   value: number;
-//   percentage?: number;
-// }
-
-// export interface ChartConfig {
-//   title: string;
-//   type: "bar" | "pie" | "line" | "horizontalBar";
-//   field: string;
-//   icon: string;
-//   data: ChartDataItem[];
-//   colors: string[];
-//   drillDown?: DrillDownData;
-// }
-
-// // DrillDown structure (nested cards, charts, insights)
-// export interface DrillDownData {
-//   cards?: KPICard[];
-//   charts?: ChartConfig[];
-//   insights?: Insight;
-// }
-
-// // Analytics metadata
-// export interface AnalyticsMetadata {
-//   totalRows: number;
-//   filename: string;
-//   totalColumns: number;
-//   generatedAt: string;
-//   numericFields: number;
-//   categoricalFields: number;
-//   parquetDataUrl?: string;
-//   columns?: string[];
-//   numericFieldsList?: string[];
-//   categoricalFieldsList?: string[];
-//   columnTypes?: Record<string, string>;
-// }
-
-// // Full dashboard data matching API response
-// export interface DashboardData {
-//   cards: KPICard[];
-//   charts: ChartConfig[];
-//   metadata: AnalyticsMetadata;
-// }
-
-// interface DashboardContextType {
-//   sample_questions: string[] | null;
-//   setSample_questions: (questions: string[] | null) => void;
-//   dashboardCode: string | null;
-//   setDashboardCode: (code: string | null) => void;
-//   dashboard_data: DashboardData | null;
-//   setDashboard_data: (data: DashboardData | null) => void;
-//   isLoading: boolean;
-//   wb: any;
-//   setWb: any;
-//   setIsLoading: (loading: boolean) => void;
-//   errorDash: string | null;
-//   setErrorDash: (errorDash: string | null) => void;
-// }
-
-// const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
-
-// export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-//   const [dashboardCode, setDashboardCode] = useState<string | null>(null);
-//   const [dashboard_data, setDashboard_data] = useState<DashboardData | null>(null);
-//   const [sample_questions, setSample_questions] = useState<string[] | null>(null);
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [errorDash, setErrorDash] = useState<string | null>(null);
-//   const [wb, setWb] = useState<any>(null);
-
-//   return (
-//     <DashboardContext.Provider
-//       value={{
-//         dashboardCode,
-//         setDashboardCode,
-//         dashboard_data,
-//         sample_questions, 
-//         setSample_questions,
-//         setDashboard_data,
-//         isLoading,
-//         setIsLoading,
-//         wb,
-//         setWb,
-//         errorDash,
-//         setErrorDash,
-//       }}
-//     >
-//       {children}
-//     </DashboardContext.Provider>
-//   );
-// };
-
-// export const useDashboard = () => {
-//   const context = useContext(DashboardContext);
-//   if (!context) {
-//     throw new Error('useDashboard must be used within DashboardProvider');
-//   }
-//   return context;
-// };
+// contexts/DashboardContext.tsx
+// ============================================
+// DASHBOARD CONTEXT WITH CENTRALIZED TYPES
+// ============================================
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import type { 
-  DashboardData, 
-  KPICard, 
-  ChartConfig, 
-  Insight, 
-  DrillDownData,
-  AnalyticsMetadata,
-  ChartDataItem
-} from '@/types/dashboard';
+import type { DashboardData } from '@/types/dashboard';
 
-// Re-export types for convenience
-export type {
-  DashboardData,
-  KPICard,
-  ChartConfig,
-  Insight,
-  DrillDownData,
-  AnalyticsMetadata,
-  ChartDataItem
-};
+// Re-export for convenience
+export type { DashboardData };
+
+// ============================================
+// CONTEXT TYPE DEFINITION
+// ============================================
 
 interface DashboardContextType {
-  sample_questions: string[] | null;
-  setSample_questions: (questions: string[] | null) => void;
-  dashboardCode: string | null;
-  setDashboardCode: (code: string | null) => void;
+  // Dashboard data
   dashboard_data: DashboardData | null;
   setDashboard_data: (data: DashboardData | null) => void;
+  
+  // Loading & error states
   isLoading: boolean;
-  wb: any;
-  setWb: any;
   setIsLoading: (loading: boolean) => void;
   errorDash: string | null;
-  setErrorDash: (errorDash: string | null) => void;
+  setErrorDash: (error: string | null) => void;
+  
+  // Sample questions (for chat)
+  sample_questions: string[] | null;
+  setSample_questions: (questions: string[] | null) => void;
+  
+  // Dashboard code (legacy - can be removed if not used)
+  dashboardCode: string | null;
+  setDashboardCode: (code: string | null) => void;
+  
+  // WebSocket instance (legacy - can be removed if not used)
+  wb: any;
+  setWb: any;
 }
+
+// ============================================
+// CREATE CONTEXT
+// ============================================
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
+// ============================================
+// PROVIDER COMPONENT
+// ============================================
+
+/**
+ * Dashboard Context Provider
+ * Manages global state for dashboard data, loading, and errors
+ */
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [dashboardCode, setDashboardCode] = useState<string | null>(null);
+  // Dashboard data
   const [dashboard_data, setDashboard_data] = useState<DashboardData | null>(null);
-  const [sample_questions, setSample_questions] = useState<string[] | null>(null);
+  
+  // UI states
   const [isLoading, setIsLoading] = useState(false);
   const [errorDash, setErrorDash] = useState<string | null>(null);
+  
+  // Chat-related
+  const [sample_questions, setSample_questions] = useState<string[] | null>(null);
+  
+  // Legacy fields (can be removed if not used)
+  const [dashboardCode, setDashboardCode] = useState<string | null>(null);
   const [wb, setWb] = useState<any>(null);
 
   return (
     <DashboardContext.Provider
       value={{
-        dashboardCode,
-        setDashboardCode,
         dashboard_data,
-        sample_questions,
-        setSample_questions,
         setDashboard_data,
         isLoading,
         setIsLoading,
-        wb,
-        setWb,
         errorDash,
         setErrorDash,
+        sample_questions,
+        setSample_questions,
+        dashboardCode,
+        setDashboardCode,
+        wb,
+        setWb,
       }}
     >
       {children}
@@ -187,6 +88,14 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   );
 };
 
+// ============================================
+// CUSTOM HOOK
+// ============================================
+
+/**
+ * Hook to access dashboard context
+ * Must be used within DashboardProvider
+ */
 export const useDashboard = () => {
   const context = useContext(DashboardContext);
   if (!context) {

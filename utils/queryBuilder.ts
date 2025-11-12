@@ -1,3 +1,4 @@
+//utils/queryBuilder.ts
 interface QueryColumn {
   expression: string;
   alias: string;
