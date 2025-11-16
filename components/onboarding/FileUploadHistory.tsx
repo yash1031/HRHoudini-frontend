@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Clock, X, Check } from 'lucide-react';
 import { useRouter } from "next/navigation"
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useDashboard } from '@/contexts/dashboard-context';
 
 interface FileUpload {
   id: string;

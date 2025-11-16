@@ -1,62 +1,62 @@
 // Insight structure
-interface Insight {
-  critical_issues: string[];
-  recommended_actions: string[];
-}
+// interface Insight {
+//   critical_issues: string[];
+//   recommended_actions: string[];
+// }
 
-// Card structure
-interface KPICard {
-  id: string;
-  title: string;
-  value: string;
-  field?: string;
-  icon: string;
-  color: string;
-  note?: string;
-  drillDown?: DrillDownData;
-}
+// // Card structure
+// interface KPICard {
+//   id: string;
+//   title: string;
+//   value: string;
+//   field?: string;
+//   icon: string;
+//   color: string;
+//   note?: string;
+//   drillDown?: DrillDownData;
+// }
 
-// Chart structure
-interface ChartDataItem {
-  name: string;
-  value: number;
-  percentage?: number;
-}
+// // Chart structure
+// interface ChartDataItem {
+//   name: string;
+//   value: number;
+//   percentage?: number;
+// }
 
-interface ChartConfig {
-  id: string;
-  title: string;
-  type: "bar" | "pie" | "line" | "horizontalBar";
-  field: string;
-  icon: string;
-  data: ChartDataItem[];
-  colors: string[];
-  drillDown?: DrillDownData;
-}
+// interface ChartConfig {
+//   id: string;
+//   title: string;
+//   type: "bar" | "pie" | "line" | "horizontalBar";
+//   field: string;
+//   icon: string;
+//   data: ChartDataItem[];
+//   colors: string[];
+//   drillDown?: DrillDownData;
+// }
 
-// DrillDown structure (nested cards, charts, insights)
-interface DrillDownData {
-  cards?: KPICard[];
-  charts?: ChartConfig[];
-  insights?: Insight;
-}
+// // DrillDown structure (nested cards, charts, insights)
+// interface DrillDownData {
+//   cards?: KPICard[];
+//   charts?: ChartConfig[];
+//   insights?: Insight;
+// }
 
-// Analytics metadata
-interface AnalyticsMetadata {
-  totalRows: number;
-  filename: string;
-  totalColumns: number;
-  generatedAt: string;
-  numericFields: number;
-  categoricalFields: number;
-}
+// // Analytics metadata
+// interface AnalyticsMetadata {
+//   totalRows: number;
+//   filename: string;
+//   totalColumns: number;
+//   generatedAt: string;
+//   numericFields: number;
+//   categoricalFields: number;
+// }
 
-// Full dashboard data matching API response
-interface DashboardData {
-  cards: KPICard[];
-  charts: ChartConfig[];
-  metadata: AnalyticsMetadata;
-}
+// // Full dashboard data matching API response
+// interface DashboardData {
+//   cards: KPICard[];
+//   charts: ChartConfig[];
+//   metadata: AnalyticsMetadata;
+// }
 
 
 const sample_dashboard_data: DashboardData = {

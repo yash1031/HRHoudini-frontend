@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation"
 import { useState, useRef } from "react"
 import { useUserContext } from "@/contexts/user-context"
 import { v4 as uuidv4 } from "uuid";
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 import {generateCardsFromParquet} from "@/utils/parquetLoader"
@@ -52,7 +52,8 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
-  const { setDashboard_data, setIsLoading, setErrorDash } = useDashboard();
+  const [kpiError, setKpiError]= useState(false)
+  const { setDashboard_data, setIsLoading, setErrorDash, setCardsState, setChartsState, setAthenaCreated} = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
@@ -61,7 +62,17 @@ export function FileUploadStep() {
   
 
   const handleContinue = () => {
-    if(processedFile) skipToStep(3)
+    if(kpiError){
+      // Navigate to dashboard-upload-only with specified parameters
+      const params = new URLSearchParams({
+        hasFile: "true",
+        showWelcome: "true",
+      })
+      localStorage.setItem("from_history","false")
+      let dashboardUrl = `/dashboard?${params.toString()}`
+      router.push(dashboardUrl)
+    }
+    else if(processedFile) skipToStep(3)
     else {
       const {file, metadata}= uploadedFile
       processFile(file, metadata.columns)
@@ -216,29 +227,7 @@ export function FileUploadStep() {
         localStorage.setItem("session_id", sessionId)
         localStorage.setItem("idempotency_key", idempotency_key)
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
-
-        
-        
-        // let createKPIsRes
-        // try{
-        //   createKPIsRes = apiFetch("/api/file-upload/generate-kpis", {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json", },
-        //     body: JSON.stringify({
-        //         user_id: localStorage.getItem("user_id"),
-        //         session_id: sessionId,
-        //         column_headers: columns
-        //       }),
-        //   });
-        // }catch(error){
-        //   setError("Failed to process file. Please try again.")
-        //   setTimeout(()=>{
-        //     setError(null);
-        //   }, 3000)
-        //   setIsUploading(false)
-        //   console.error("Failed to create KPIs")
-        //   return;
-        // }
+        setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
         let AISuggestedQuesRes
         try{
@@ -272,6 +261,15 @@ export function FileUploadStep() {
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
             }
+            if(msg.event==="convert.failed"){
+              console.log("[WS] message: CSV to parquet conversion failed")
+              setError("Unable to process file. Please upload it again")
+              // setTimeout(()=>{
+              //   setError(null);
+              // }, 3000)
+              setIsUploading(false)
+              return
+            }
             if(msg.event==="kpi.ready"){
               console.log("KPIs are ready")
               const items = Array.isArray(msg.payload) ? msg.payload : [];
@@ -290,6 +288,23 @@ export function FileUploadStep() {
                 hasFileUploadStarted(false)
               }
             }
+            if(msg.event==="kpi.error"){
+              completionFlags.current.kpi = true;
+              if(completionFlags.current.athena){
+                setUploadProgress(100)
+                setProcessedFile(true);
+                setIsUploading(false)
+                hasFileUploadStarted(false)
+              }
+              setKpiError(true)
+              console.error("Backend error in KPI generation:", msg.payload);
+              
+              setChartsState({
+                loading: false,
+                error: "Backend error generating charts since KPIs are unavailable",
+                data: []
+              });
+            }
             if(msg.event==="athena.completed"){
               console.log("Athena table created")
               completionFlags.current.athena = true;
@@ -300,42 +315,60 @@ export function FileUploadStep() {
                 hasFileUploadStarted(false)
               }
             }
+            if(msg.event==="athena.error"){
+              console.log("Athena table creation failure")
+              completionFlags.current.athena = true;
+              if(completionFlags.current.kpi){
+                setUploadProgress(100)
+                setProcessedFile(true);
+                setIsUploading(false)
+                hasFileUploadStarted(false)
+              }
+              setAthenaCreated(false)
+            }
             if (msg.event === "global_queries.ready") {
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
-              console.log("📊 [STEP 1] Global queries received for cards:", msg.payload.text);
+              console.log("[STEP 1] Global queries received for cards:", msg.payload.text);
+              
+              // Set loading state
+              setCardsState(prev => ({ ...prev, loading: true, error: null }));
               
               generateCardsFromParquet(msg.payload.text, parquetUrl)
                 .then((result: any) => {
-                  console.log("✅ Result for generateCardsFromParquet:", JSON.stringify(result, null, 2));
+                  console.log("Updated cardsState:", JSON.stringify(result, null, 2));
                   
-                  setErrorDash(null);
-                  
-                  // Merge with existing metadata (assuming metadata already exists)
-                  setDashboard_data(prev => ({
-                    cards: result.cards || [],
-                    charts: prev?.charts || [],
-                    metadata: prev?.metadata || {} as any
-                  }));
+                  // Success - update cards data in granular state
+                  setCardsState({
+                    // loading: true,
+                    loading: false,
+                    error: null,
+                    data: result.cards || []
+                  });
                 })
                 .catch((error) => {
-                  console.error("❌ Failed to generate cards:", error);
-                  setErrorDash("Failed to generate cards");
+                  console.error("Failed to generate cards:", error);
+                  
+                  // Error - set error state
+                  setCardsState({
+                    loading: false,
+                    error: "Failed to generate KPI cards from data",
+                    data: []
+                  });
                 });
+            }
+            
+            if (msg.event === "global_queries.error") {
+              console.error("Backend error in card generation:", msg.payload);
+              
+              // Backend error
+              setCardsState({
+                loading: false,
+                error: msg.payload?.message || "Backend error generating cards",
+                data: []
+              });
             }
         };
         addListener(handler!, "chards-generator");
-
-        // const resCreateKPIs= await createKPIsRes; 
-        // const createKPIsData= await resCreateKPIs.data
-        // console.log("createKPIsData is", JSON.stringify(createKPIsData))
-        // const kpisData= await createKPIsData;
-        // console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
-        // const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
-        //   ...item,
-        //   icon: Clock, // fallback to Clock
-        // }));
-
-        // setKpis(kpisWithIcons);
 
         const resAISuggestedQues= await AISuggestedQuesRes;
         const AISuggestedQuesData= await resAISuggestedQues.data
@@ -349,6 +382,7 @@ export function FileUploadStep() {
       setTimeout(()=>{
         setError(null);
       }, 3000)
+       setIsUploading(false)
       console.error("File processing error:", err)
       closeWebSocket();
     } 

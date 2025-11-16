@@ -56,32 +56,6 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     handleFilterChange(field, []);
   };
 
-//   const applyFilters = () => {
-//     // Convert to query format
-//     const queryFilters: FilterState = {};
-    
-//     Object.entries(filterValues).forEach(([field, value]) => {
-//       const filter = filters.find(f => f.field === field);
-//       if (!filter?.whereClause) return;
-      
-//       if (filter.type === 'multiselect' || filter.type === 'select') {
-//         if (Array.isArray(value) && value.length > 0) {
-//           queryFilters[field] = {
-//             operator: filter.whereClause.operator,
-//             value: value
-//           };
-//         } else if (typeof value === 'string' && value) {
-//           queryFilters[field] = {
-//             operator: filter.whereClause.operator,
-//             value: [value]
-//           };
-//         }
-//       }
-//     });
-    
-//     onFilterChange(queryFilters);
-//   };
-
   const applyFilters = () => {
     // Convert to query format that buildSQL expects
     const queryFilters: Record<string, any> = {};

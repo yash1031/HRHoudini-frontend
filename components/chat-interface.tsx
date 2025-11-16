@@ -34,7 +34,6 @@ export function ChatInterface({
   placeholder = "Ask me anything about your HR data...",
   suggestedQueries = [],
   welcomeMessage, // Added welcomeMessage parameter
-  context = {},
 }: ChatInterfaceProps) {
   const defaultWelcomeMessage =
     "Hi! I'm here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."

@@ -164,7 +164,7 @@ export interface ChartConfig {
   valueKey?: string;
   
   // Layout
-  layout?: 'vertical' | 'horizontal';
+  layout?: string;
   height?: number;
   sort?: 'asc' | 'desc';
   lineName?: string;

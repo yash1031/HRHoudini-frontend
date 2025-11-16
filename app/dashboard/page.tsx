@@ -1,37 +1,40 @@
 // app/dashboard/page.tsx
 // ============================================
-// MAIN DASHBOARD PAGE (SIMPLIFIED)
+// MAIN DASHBOARD PAGE WITH GRANULAR STATE MANAGEMENT
 // ============================================
 
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { Loader2 } from 'lucide-react';
 import Script from 'next/script';
 import { ChatInterface } from "@/components/chat-interface";
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useDashboard } from '@/contexts/dashboard-context';
 import Generated_Dashboard from './generated_dashboard';
 import sample_dashboard_data from "@/public/sample_dashboard_data";
 import { apiFetch } from "@/lib/api/client";
 import { closeWebSocket } from '@/lib/ws';
+import { DashboardToasts, ToastStyles } from "@/components/dashboard/StatusToast";
 import type { ConfigurableDashboardProps } from "@/types/dashboard";
 
 /**
  * Main Dashboard Page Component
- * Handles data loading and WebSocket updates
+ * Handles data loading and WebSocket updates with granular state management
  */
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   
-  // Context state
+  // Context state - now using granular states
   const { 
-    dashboard_data, 
-    setDashboard_data, 
-    isLoading, 
-    setIsLoading, 
-    errorDash, 
-    setErrorDash 
+    cardsState,
+    setCardsState,
+    chartsState, 
+    setChartsState,
+    drilldownsState,
+    setDrilldownsState,
+    metadata,
+    setMetadata,
+    setDashboard_data
   } = useDashboard();
 
   // Local state
@@ -42,6 +45,7 @@ export default function DashboardPage() {
   const [sampleQuestions, setSampleQuestions] = useState<string[]>([]);
   const [chatHeight, setChatHeight] = useState(400);
   const kpiGridRef = useRef<HTMLDivElement>(null);
+  const { athenaCreated, setAthenaCreated} = useDashboard();
 
   // ============================================
   // INITIALIZATION & DATA LOADING
@@ -65,6 +69,7 @@ export default function DashboardPage() {
       console.log("🧹 Unmounting dashboard component");
       setDashboard_data(null);
       closeWebSocket();
+      setAthenaCreated(true)
     };
   }, []);
 
@@ -74,7 +79,22 @@ export default function DashboardPage() {
   const handleSampleData = () => {
     setFileName("SharpMedian.csv");
     setFileRowCount("512");
-    setDashboard_data(sample_dashboard_data);
+    
+    // Set sample data directly without loading states (instant load)
+    setCardsState({
+      loading: false,
+      error: null,
+      data: sample_dashboard_data.cards
+    });
+    
+    setChartsState({
+      loading: false,
+      error: null,
+      data: sample_dashboard_data.charts
+    });
+    
+    setMetadata(sample_dashboard_data.metadata);
+    
     setWelcomeMessage(
       `Great! I can see you've successfully uploaded SharpMedian.csv with 512 employee records. ` +
       `I'm ready to help you analyze this data and generate insights for your HR initiatives. ` +
@@ -108,61 +128,6 @@ export default function DashboardPage() {
         console.error("Failed to parse sample questions:", e);
       }
     }
-
-    // Fetch dashboard data from history
-    // if (sessionId) {
-    //   setIsLoading(true);
-    //   fetchFileUploadHistory(sessionId);
-    // } else {
-    //   setErrorDash("Session not found");
-    // }
-  };
-
-  /**
-   * Fetch dashboard data from upload history
-   */
-  const fetchFileUploadHistory = async (sessionId: string) => {
-    try {
-      console.log("📡 Fetching file upload history for session:", sessionId);
-      
-      const response = await apiFetch("/api/insights/fetch-all-sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: localStorage.getItem("user_id"),
-        }),
-      });
-
-      const dashboardHistoryData = response?.data?.data;
-      
-      if (!dashboardHistoryData) {
-        throw new Error("No history data received");
-      }
-
-      console.log("📊 Dashboard history data:", dashboardHistoryData);
-
-      // Find matching session
-      const matchingSession = dashboardHistoryData.find(
-        (data: any) => data.session_id === sessionId
-      );
-
-      if (matchingSession) {
-        console.log("✅ Found matching session:", sessionId);
-        setIsLoading(false);
-        setErrorDash(null);
-        setDashboard_data(matchingSession?.analytical_json_output || null);
-        setFileName(matchingSession?.analytical_json_output?.metadata?.filename);
-        setFileRowCount(matchingSession?.analytical_json_output?.metadata?.totalRows);
-      } else {
-        console.warn("⚠️ No matching session found for:", sessionId);
-        setIsLoading(false);
-        setErrorDash("Dashboard not found");
-      }
-    } catch (error) {
-      console.error("❌ Failed to fetch dashboard history:", error);
-      setIsLoading(false);
-      setErrorDash("Failed to load dashboard");
-    }
   };
 
   // ============================================
@@ -170,9 +135,11 @@ export default function DashboardPage() {
   // ============================================
 
   useEffect(() => {
-    if (!dashboard_data) return;
+    const hasData = cardsState.data.length > 0 || chartsState.data.length > 0;
+    if (!hasData && !metadata) return;
 
-    const { cards, charts, metadata } = dashboard_data;
+    const { data: cards } = cardsState;
+    const { data: charts } = chartsState;
 
     // Color mapping
     const colorMap: Record<string, string> = {
@@ -192,10 +159,8 @@ export default function DashboardPage() {
       icon: card.icon,
       color: colorMap[card.color] || '#3b82f6',
       description: card.field || '',
-      // calculationType: 'custom' as const,
-      // calculate: () => card.value,
       value: card.value,
-      drillDownData: card.drillDownData // Attach drilldown if exists
+      drillDownData: card.drillDownData
     }));
 
     // Transform charts
@@ -213,7 +178,7 @@ export default function DashboardPage() {
       height: 400,
       data: chart.data || [],
       customDataGenerator: chart.data ? () => chart.data : undefined,
-      drillDownData: chart.drillDownData // Attach drilldown if exists
+      drillDownData: chart.drillDownData
     }));
 
     // Create config
@@ -229,7 +194,7 @@ export default function DashboardPage() {
     };
 
     setConfig(newConfig);
-  }, [dashboard_data]);
+  }, [cardsState.data, chartsState.data, metadata]);
 
   // ============================================
   // CHAT HEIGHT CALCULATION
@@ -260,8 +225,23 @@ export default function DashboardPage() {
   }, []);
 
   // ============================================
+  // HANDLERS FOR TOAST DISMISSAL
+  // ============================================
+
+  const handleDismissCardsError = () => {
+    setCardsState(prev => ({ ...prev, error: null }));
+  };
+
+  const handleDismissChartsError = () => {
+    setChartsState(prev => ({ ...prev, error: null }));
+  };
+
+  // ============================================
   // RENDER
   // ============================================
+
+  const isAnyLoading = cardsState.loading || chartsState.loading;
+  const hasAnyError = cardsState.error || chartsState.error;
 
   return (
     <>
@@ -269,51 +249,44 @@ export default function DashboardPage() {
       <Script 
         src="https://unpkg.com/@babel/standalone/babel.min.js"
         strategy="afterInteractive"
-        onLoad={() => console.log('✅ Babel loaded')}
+        onLoad={() => console.log('Babel loaded')}
       />
+      
+      <ToastStyles />
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-6">
           
-          {/* Dashboard */}
-          { !errorDash && config && (
-            <div ref={kpiGridRef}>
-              <Generated_Dashboard {...config} />
-            </div>
-          )}
+          {/* Status Toasts - Below header, above dashboard */}
+          <DashboardToasts
+            cardsLoading={cardsState.loading}
+            cardsError={cardsState.error}
+            chartsLoading={chartsState.loading}
+            chartsError={chartsState.error}
+            onDismissCardsError={handleDismissCardsError}
+            onDismissChartsError={handleDismissChartsError}
+          />
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center">
-                <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-                <p className="text-slate-600">
-                  Loading your dashboard... Meanwhile, you can interact with the chatbot below.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {errorDash && !isLoading && (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                <p className="text-red-600 font-medium">{errorDash}</p>
-              </div>
-            </div>
-          )}
+          {/* Dashboard with granular states */}
+          <div ref={kpiGridRef}>
+            <Generated_Dashboard 
+              {...config}
+              cardsLoading={cardsState.loading}
+              cardsError={cardsState.error}
+              chartsLoading={chartsState.loading}
+              chartsError={chartsState.error}
+              drilldownsState={drilldownsState}
+            />
+          </div>
 
           {/* Chat Interface */}
-          <div className="w-full mt-8">
+          {athenaCreated && (<div className="w-full mt-8">
             <ChatInterface
-              context={{}}
-              height={chatHeight}
               placeholder="Ask about your uploaded data insights..."
               welcomeMessage={welcomeMessage}
               suggestedQueries={sampleQuestions}
-              inputProps={{ "data-chat-input": true }}
             />
-          </div>
+          </div>)}
         </div>
       </div>
     </>

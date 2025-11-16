@@ -5,47 +5,6 @@ import type { DashboardData, DrillDownData, KPICard, ChartConfig } from '@/types
 /**
  * Attach drilldown data to parent chart or card
  */
-// export function attachDrilldownToParent(
-//   dashboardData: DashboardData,
-//   parentChartId: string | null,
-//   kpiId: string | null,
-//   drilldownData: DrillDownData
-// ): DashboardData {
-//   const updated = { ...dashboardData };
-  
-//   // Case 1: Attach to KPI card
-//   if (kpiId && updated.cards) {
-//     updated.cards = updated.cards.map(card => {
-//       // Match by ID or title (depending on your structure)
-//       if (card.id === kpiId || card.title.toLowerCase().includes(kpiId.toLowerCase())) {
-//         console.log(`✅ Attaching drilldown to card: ${card.title}`);
-//         return {
-//           ...card,
-//           drillDown: drilldownData
-//         };
-//       }
-//       return card;
-//     });
-//   }
-  
-//   // Case 2: Attach to main chart
-//   if (parentChartId && updated.charts) {
-//     updated.charts = updated.charts.map(chart => {
-//       // Match by ID or semantic_id
-//       if (chart.id === parentChartId || chart.id?.includes(parentChartId)) {
-//         console.log(`✅ Attaching drilldown to chart: ${chart.title}`);
-//         return {
-//           ...chart,
-//           drillDownData: drilldownData
-//         };
-//       }
-//       return chart;
-//     });
-//     console.log("Updated dashboard data", updated)
-//   }
-  
-//   return updated;
-// }
 export function attachDrilldownToParent(
   dashboardData: DashboardData,
   parentChartId: string | null,
@@ -54,9 +13,10 @@ export function attachDrilldownToParent(
 ): DashboardData {
   const updated = { ...dashboardData };
   
-  console.log("🔍 Attempting to attach drilldown:");
+  console.log("  - Attempting to attach drilldown:");
   console.log("  - Parent Chart ID:", parentChartId);
   console.log("  - KPI ID:", kpiId);
+  console.log("  - Previous Dashboard data available:", updated);
   console.log("  - Available chart IDs:", updated.charts?.map(c => c.id));
   
   // Case 1: Attach to KPI card
@@ -67,7 +27,7 @@ export function attachDrilldownToParent(
         card.title?.toLowerCase().includes(kpiId.toLowerCase());
       
       if (matches) {
-        console.log(`✅ Attaching drilldown to card: ${card.title}`);
+        console.log(`Attaching drilldown to card: ${card.title}`);
         return {
           ...card,
           drillDownData: drilldownData  // Use drillDownData only
@@ -81,7 +41,7 @@ export function attachDrilldownToParent(
   if (parentChartId && updated.charts) {
     let found = false;
     updated.charts = updated.charts.map(chart => {
-      // ✅ IMPROVED: Try multiple matching strategies
+      // IMPROVED: Try multiple matching strategies
       const matches = 
         chart.id === parentChartId ||
         chart.id?.includes(parentChartId) ||
@@ -89,7 +49,7 @@ export function attachDrilldownToParent(
         chart.title?.toLowerCase().includes(parentChartId.toLowerCase());
       
       if (matches) {
-        console.log(`✅ Attaching drilldown to chart: ${chart.title} (ID: ${chart.id})`);
+        console.log(`Attaching drilldown to chart: ${chart.title} (ID: ${chart.id})`);
         found = true;
         return {
           ...chart,
@@ -101,7 +61,7 @@ export function attachDrilldownToParent(
     console.log("Updated dashboard_data", updated);
     
     if (!found) {
-      console.warn(`⚠️ No chart found matching parent_chart_id: ${parentChartId}`);
+      console.warn(`No chart found matching parent_chart_id: ${parentChartId}`);
     }
   }
   

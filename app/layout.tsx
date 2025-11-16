@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { UserContextProvider } from "@/contexts/user-context"
 import { Amplify, ResourcesConfig } from 'aws-amplify';
 import amplifyConfig from '../lib/amplify-config';
-import { DashboardProvider } from '@/contexts/DashboardContext';
+import { DashboardProvider } from '@/contexts/dashboard-context';
 
 const inter = Inter({ subsets: ["latin"] })
 

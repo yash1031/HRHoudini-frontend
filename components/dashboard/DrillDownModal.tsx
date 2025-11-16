@@ -18,7 +18,7 @@ import * as LucideIcons from 'lucide-react';
 import type { ModalState, ChartConfig, ChartDataItem, FilterOption, FilterState } from '@/types/dashboard';
 import { DynamicQueryBuilder } from '@/utils/queryBuilder';
 import { executeBatchQueries } from '@/utils/parquetLoader';
-import { FilterControls } from './FilterControls';
+import { FilterControls } from "./FilterControls";
 
 interface DrillDownModalProps {
   modal: ModalState;

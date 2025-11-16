@@ -1,6 +1,6 @@
 // components/dashboard/ChartGrid.tsx
 // ============================================
-// CHART GRID COMPONENT
+// CHART GRID COMPONENT WITH DRILLDOWN STATE SUPPORT
 // ============================================
 
 "use client";
@@ -18,12 +18,13 @@ import {
 } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import * as LucideIcons from 'lucide-react';
-import {Loader2, MousePointerClick} from 'lucide-react';
+import { Loader2, MousePointerClick, XCircle } from 'lucide-react';
 import type { ChartConfig, ChartDataItem } from '@/types/dashboard';
 
 interface ChartGridProps {
   charts: ChartConfig[];
   onChartClick?: (chart: ChartConfig) => void;
+  drilldownsState?: Record<string, { loading: boolean; error: boolean }>;
 }
 
 /**
@@ -209,8 +210,13 @@ const renderChart = (
 /**
  * Chart Grid Component
  * Displays a responsive grid of charts with optional click handlers
+ * Now supports drilldown state (loading/error)
  */
-export const ChartGrid: React.FC<ChartGridProps> = ({ charts, onChartClick }) => {
+export const ChartGrid: React.FC<ChartGridProps> = ({ 
+  charts, 
+  onChartClick,
+  drilldownsState = {}
+}) => {
   if (!charts || charts.length === 0) {
     return null;
   }
@@ -221,6 +227,14 @@ export const ChartGrid: React.FC<ChartGridProps> = ({ charts, onChartClick }) =>
         const Icon = getIcon(chart.icon);
         const hasInteraction = chart.drillDownData || chart.drillDown;
         const chartData = chart.data || [];
+        
+        // Get drilldown state for this chart
+        const chartId = chart.id || chart.semantic_id || `chart-${idx}`;
+        const drilldownState = drilldownsState[chartId];
+        const isDrilldownLoading = drilldownState?.loading || false;
+        const isDrilldownError = drilldownState?.error || false;
+
+
 
         return (
           <div
@@ -233,49 +247,50 @@ export const ChartGrid: React.FC<ChartGridProps> = ({ charts, onChartClick }) =>
             onClick={() => hasInteraction && onChartClick?.(chart)}
           >
             {/* Chart Header */}
-            {/* <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center">
-              <Icon 
-                className="w-5 h-5 mr-2" 
-                style={{ color: chart.color || '#3b82f6' }} 
-              />
-              {chart.title}
-              
-              {hasInteraction && (
-                <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
-                  Click to drill down
-                </Badge>
-              )}
-              {!hasInteraction && (
-                <Badge className="ml-2 bg-blue-100 text-blue-800 text-xs">
-                  Generating drill down
-                </Badge>
-              )}
-            </h3> */}
             <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center justify-between">
-                <div className="flex items-center">
-                    <Icon 
-                    className="w-5 h-5 mr-2" 
-                    style={{ color: chart.color || '#3b82f6' }} 
-                    />
-                    {chart.title}
-                </div>
+              <div className="flex items-center">
+                <Icon 
+                  className="w-5 h-5 mr-2" 
+                  style={{ color: chart.color || '#3b82f6' }} 
+                />
+                {chart.title}
+              </div>
+              
+              {/* Drilldown Status Badge - Right aligned */}
+              <div className="ml-auto">
+                {/* Has drilldown data - ready to view */}
+                {hasInteraction && !isDrilldownLoading && !isDrilldownError && (
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors text-xs flex items-center gap-1.5">
+                    <MousePointerClick className="w-3.5 h-3.5" />
+                    View drill downs
+                  </Badge>
+                )}
                 
-                {/* Interaction Badge - Right aligned */}
-                <div className="ml-auto">
-                    {hasInteraction && (
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors text-xs flex items-center gap-1.5">
-                        <MousePointerClick className="w-3.5 h-3.5" />
-                        View drill downs
-                    </Badge>
-                    )}
-                    {!hasInteraction && (
-                    <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1.5">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Preparing drill downs
-                    </Badge>
-                    )}
-                </div>
-                </h3>
+                {/* Loading drilldown */}
+                {isDrilldownLoading && (
+                  <Badge className="bg-amber-100 text-amber-700 text-xs flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Drill downs Prepared
+                  </Badge>
+                )}
+                
+                {/* Drilldown error */}
+                {isDrilldownError && (
+                  <Badge className="bg-red-100 text-red-700 text-xs flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5" />
+                    Drill downs not available
+                  </Badge>
+                )}
+                
+                {/* No drilldown expected yet */}
+                {!hasInteraction && !isDrilldownLoading && !isDrilldownError && (
+                  <Badge className="bg-slate-100 text-slate-600 text-xs flex items-center gap-1.5">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Preparing drill downs
+                  </Badge>
+                )}
+              </div>
+            </h3>
 
             {/* Chart Content */}
             <ResponsiveContainer width="100%" height={chart.height || 350}>
