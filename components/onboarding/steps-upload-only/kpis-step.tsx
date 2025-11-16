@@ -293,7 +293,7 @@ export function KPIsStep() {
                     };
                     
                     console.log("Drilldown attached to chart:", parentChartId);
-                    console.log("Updated chartsState", chartsState.data)
+                    console.log("Updated chartsState", currentCharts)
                     
                     return {
                       ...prev,

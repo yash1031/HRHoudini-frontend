@@ -124,7 +124,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
               </div>
 
               {/* Quick Insights Summary - Only show if cards loaded */}
-              {hasCards && (
+              {/* {hasCards && (
                 <div className="bg-white/10 rounded-xl p-4">
                   <h2 className="text-xl font-semibold text-white mb-3">
                     Key Metrics Overview
@@ -159,7 +159,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
 

@@ -22,7 +22,7 @@ export interface QueryFrom {
 export interface QueryWhere {
   field?: string;
   column?: string;
-  operator: string;
+  operator?: string;
   type?: 'static' | 'dynamic';
   value?: any;
   condition?: string;
@@ -152,7 +152,7 @@ export interface ChartConfig {
   title: string;
   icon: string;
   type: 'bar' | 'pie' | 'line' | 'horizontalBar';
-  color: string;
+  color?: string;
   colors?: string[];
   description?: string;
   
@@ -186,10 +186,10 @@ export interface ChartConfig {
 export interface AnalyticsMetadata {
   totalRows: number;
   filename: string;
-  totalColumns: number;
-  generatedAt: string;
-  numericFields: number;
-  categoricalFields: number;
+  totalColumns?: number;
+  generatedAt?: string;
+  numericFields?: number;
+  categoricalFields?: number;
   parquetDataUrl?: string;
   columns?: string[];
   numericFieldsList?: string[];

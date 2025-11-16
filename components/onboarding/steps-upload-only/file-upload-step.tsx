@@ -53,7 +53,7 @@ export function FileUploadStep() {
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   const [kpiError, setKpiError]= useState(false)
-  const { setDashboard_data, setIsLoading, setErrorDash, setCardsState, setChartsState, setAthenaCreated} = useDashboard();
+  const { setCardsState, setChartsState, setAthenaCreated} = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)

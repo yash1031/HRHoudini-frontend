@@ -84,13 +84,13 @@ export default function DashboardPage() {
     setCardsState({
       loading: false,
       error: null,
-      data: sample_dashboard_data.cards
+      data: sample_dashboard_data.cards || []
     });
     
     setChartsState({
       loading: false,
       error: null,
-      data: sample_dashboard_data.charts
+      data: sample_dashboard_data.charts || []
     });
     
     setMetadata(sample_dashboard_data.metadata);

@@ -79,6 +79,7 @@ export function FileUpload({
   const [fileDropped, setFileDropped]= useState(false);
   const errorRef = useRef<string | null>(null);
   const { uploadedFile, setUploadedFile } = useOnboarding()
+  const { setMetadata} = useDashboard();
 
   const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
   return new Promise((resolve, reject) => {
@@ -145,6 +146,7 @@ export function FileUpload({
 
         setFileMetadata(metadata)
         setUploadedFile({file, metadata})
+        setMetadata({filename: file.name, totalRows: rowCount})
 
         if(rowCount == 0){
           setError("File is empty. Please upload file with some data.")
