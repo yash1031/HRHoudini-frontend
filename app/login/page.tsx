@@ -53,9 +53,7 @@ export default function LoginPage() {
       console.log("session", JSON.stringify(session))
       console.log("idToken", JSON.stringify(idToken))
       console.log("accessToken", JSON.stringify(accessToken))
-      // Convert to seconds remaining from now
-
-      
+      // Convert to seconds remaining from now      
 
       if (!idTokenPayload) {
         console.log("idTokenPayload empty")

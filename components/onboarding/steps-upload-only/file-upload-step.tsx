@@ -52,7 +52,7 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
-  const [kpiError, setKpiError]= useState(false)
+  // const [kpiError, setKpiError]= useState(false)
   const { setCardsState, setChartsState, setAthenaCreated} = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
@@ -62,17 +62,17 @@ export function FileUploadStep() {
   
 
   const handleContinue = () => {
-    if(kpiError){
-      // Navigate to dashboard-upload-only with specified parameters
-      const params = new URLSearchParams({
-        hasFile: "true",
-        showWelcome: "true",
-      })
-      localStorage.setItem("from_history","false")
-      let dashboardUrl = `/dashboard?${params.toString()}`
-      router.push(dashboardUrl)
-    }
-    else if(processedFile) skipToStep(3)
+    // if(kpiError){
+    //   // Navigate to dashboard-upload-only with specified parameters
+    //   const params = new URLSearchParams({
+    //     hasFile: "true",
+    //     showWelcome: "true",
+    //   })
+    //   localStorage.setItem("from_history","false")
+    //   let dashboardUrl = `/dashboard?${params.toString()}`
+    //   router.push(dashboardUrl)
+    // }
+    if(processedFile) skipToStep(3)
     else {
       const {file, metadata}= uploadedFile
       processFile(file, metadata.columns)
@@ -174,11 +174,18 @@ export function FileUploadStep() {
           resolve(xhr.response);
         } else {
           console.log(`Upload failed with status ${xhr.status}`)
+          setError("Unable to process file. Please upload it again")
+          setIsUploading(false)
           reject(new Error(`Upload failed with status ${xhr.status}`));
         }
       };
 
-      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.onerror = () => {
+        console.log(`XHR Error, upload failed with status ${xhr.status}`)
+        reject(new Error("Network error during upload"));
+        setError("Unable to process file. Please upload it again")
+        setIsUploading(false)
+      }
       xhr.send(file);
     });
   };
@@ -203,12 +210,10 @@ export function FileUploadStep() {
                 // uuid: uuid,
               }),
           });
+          
         }catch(error){
           console.log("Error in generating pre-signed URL", error)
           setError("Insufficient Tokens")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
           setIsUploading(false)
           return
         }
@@ -240,6 +245,13 @@ export function FileUploadStep() {
                 column_headers: columns
               }),
           });
+          
+          const resAISuggestedQues= await AISuggestedQuesRes;
+          const AISuggestedQuesData= await resAISuggestedQues.data
+          console.log("AISuggestedQuesData generated")
+          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+          console.log("Successfully generated AI Recommended Ques.")
+          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
         }catch(error){
           // setError("Failed to process file. Please try again.")
           // setTimeout(()=>{
@@ -289,21 +301,28 @@ export function FileUploadStep() {
               }
             }
             if(msg.event==="kpi.error"){
-              completionFlags.current.kpi = true;
-              if(completionFlags.current.athena){
-                setUploadProgress(100)
-                setProcessedFile(true);
-                setIsUploading(false)
-                hasFileUploadStarted(false)
-              }
-              setKpiError(true)
-              console.error("Backend error in KPI generation:", msg.payload);
+              // completionFlags.current.kpi = true;
+              // if(completionFlags.current.athena){
+              //   setUploadProgress(100)
+              //   setProcessedFile(true);
+              //   setIsUploading(false)
+              //   hasFileUploadStarted(false)
+              // }
+              // setKpiError(true)
+              // console.error("Backend error in KPI generation:", msg.payload);
               
-              setChartsState({
-                loading: false,
-                error: "Backend error generating charts since KPIs are unavailable",
-                data: []
-              });
+              // setChartsState({
+              //   loading: false,
+              //   error: "Backend error generating charts since KPIs are unavailable",
+              //   data: []
+              // });
+              console.log("[WS] message: Creating KPIs failed")
+              setError("Unable to process file. Please upload it again")
+              // setTimeout(()=>{
+              //   setError(null);
+              // }, 3000)
+              setIsUploading(false)
+              return
             }
             if(msg.event==="athena.completed"){
               console.log("Athena table created")
@@ -369,13 +388,6 @@ export function FileUploadStep() {
             }
         };
         addListener(handler!, "chards-generator");
-
-        const resAISuggestedQues= await AISuggestedQuesRes;
-        const AISuggestedQuesData= await resAISuggestedQues.data
-        console.log("AISuggestedQuesData generated")
-        const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-        console.log("Successfully generated AI Recommended Ques.")
-        localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
 
     } catch (err) {
       setError("Failed to process file. Please try again.")

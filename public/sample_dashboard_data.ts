@@ -1311,8 +1311,8 @@ const sample_dashboard_data: DashboardData = {
                     }
                 ],
                 "metadata": {
-                    "filename": "SouthernPropertiesGroup.csv",
-                    "totalRows": 418,
+                    "filename": "SharpMedian.csv",
+                    "totalRows": 512,
                 }
 }
 
