@@ -120,14 +120,14 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
   
         // Fire-and-forget request with keepalive
-        fetch('/api/auth/sign-out', {
+        await fetch('/api/auth/sign-out', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ user_id, is_google: is_google_logged_in}),
           credentials: 'include',
-          keepalive: true, // Keeps request alive even after page unload
+          // keepalive: true, // Keeps request alive even after page unload
         }).catch(err => console.error('Sign-out request failed:', err));
   
         // Handle Google sign-out (this is fast)
