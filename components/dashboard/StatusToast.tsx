@@ -119,6 +119,10 @@ export const DashboardToasts: React.FC<ToastContainerProps> = ({
 }) => {
   const [showCardsSuccess, setShowCardsSuccess] = useState(false);
   const [showChartsSuccess, setShowChartsSuccess] = useState(false);
+  const [showCardsError, setShowCardsError] = useState(true);
+  const [showChartsError, setShowChartsError] = useState(true);
+  const [showCardsChartsError, setShowCardsChartsError] = useState(true);
+  const [showAthenaError, setShowAthenaError] = useState(true);
   const { athenaCreated} = useDashboard();
 
   // Show success toast when loading completes
@@ -144,11 +148,11 @@ export const DashboardToasts: React.FC<ToastContainerProps> = ({
           persistent={true}
         />
       )}
-      {cardsError && !chartsError && (
+      {cardsError && !chartsError && showCardsError && (
         <StatusToast
           type="error"
           message={`Cards Error: ${cardsError}`}
-          onDismiss={onDismissCardsError}
+          onDismiss={()=> setShowCardsError(false)}
         />
       )}
       {!cardsLoading && !cardsError && showCardsSuccess && (
@@ -168,11 +172,11 @@ export const DashboardToasts: React.FC<ToastContainerProps> = ({
           persistent={true}
         />
       )}
-      {chartsError && !cardsError && (
+      {chartsError && !cardsError && showChartsError && (
         <StatusToast
           type="error"
           message={`Charts Error: ${chartsError}.`}
-          onDismiss={onDismissChartsError}
+          onDismiss={()=> setShowChartsError(false)}
         />
       )}
       {!chartsLoading && !chartsError && showChartsSuccess && (
@@ -183,18 +187,18 @@ export const DashboardToasts: React.FC<ToastContainerProps> = ({
           onDismiss={() => setShowChartsSuccess(false)}
         />
       )}
-      {chartsError && cardsError && (
+      {chartsError && cardsError && showCardsChartsError && (
         <StatusToast
           type="error"
           message={`Error generating the dashboard ${athenaCreated? "but you can still interact with chatbot below or ": ', '} try uploading the file again`}
-          onDismiss={onDismissCardsError}
+          onDismiss={()=> setShowCardsChartsError(false)}
         />
       )}
-      {!athenaCreated && (
+      {!athenaCreated && showAthenaError && (
         <StatusToast
           type="error"
           message={`Error displaying the chat bot`}
-          onDismiss={onDismissCardsError}
+          onDismiss={()=> setShowAthenaError(false)}
         />
       )}
     </div>

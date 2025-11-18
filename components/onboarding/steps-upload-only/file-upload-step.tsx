@@ -50,6 +50,7 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
+  let aiSuggestQuestionsGenerated= true
   // const [kpiError, setKpiError]= useState(false)
   const { setCardsState, setChartsState, setAthenaCreated} = useDashboard();
   
@@ -236,35 +237,22 @@ export function FileUploadStep() {
 
         setUploadProgress(40)
 
-        let AISuggestedQuesRes
-        try{
-          AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json",},
-            body: JSON.stringify({
-                user_id: localStorage.getItem("user_id"),
-                session_id: sessionId,
-                column_headers: columns
-              }),
+        let AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json",},
+          body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: sessionId,
+              column_headers: columns
+            }),
+        }).catch((error) => {
+            localStorage.removeItem("sample_questions")
+            aiSuggestQuestionsGenerated = false
+            console.error("Failed to create AI recommended question", error)
           });
-          
-          const resAISuggestedQues= await AISuggestedQuesRes;
-          const AISuggestedQuesData= await resAISuggestedQues.data
-          console.log("AISuggestedQuesData generated")
-          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-          console.log("Successfully generated AI Recommended Ques.")
-          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
-        }catch(error){
-          // setError("Failed to process file. Please try again.")
-          // setTimeout(()=>{
-          //   setError(null);
-          // }, 3000)
-          // setIsUploading(false)
-          console.error("Failed to create AI recommended question")
-        }
 
         handler = (msg: any) => {
-            console.log('[WS] message', msg);
+            console.log('[WS] message received', msg);
             if(msg.event==="convert.ready"){
               console.log("[WS] message: CSV converted to parquet")
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
@@ -298,26 +286,8 @@ export function FileUploadStep() {
               }
             }
             if(msg.event==="kpi.error"){
-              // completionFlags.current.kpi = true;
-              // if(completionFlags.current.athena){
-              //   setUploadProgress(100)
-              //   setProcessedFile(true);
-              //   setIsUploading(false)
-              //   hasFileUploadStarted(false)
-              // }
-              // setKpiError(true)
-              // console.error("Backend error in KPI generation:", msg.payload);
-              
-              // setChartsState({
-              //   loading: false,
-              //   error: "Backend error generating charts since KPIs are unavailable",
-              //   data: []
-              // });
               console.log("[WS] message: Creating KPIs failed")
               setError("Unable to process file. Please upload it again")
-              // setTimeout(()=>{
-              //   setError(null);
-              // }, 3000)
               setIsUploading(false)
               return
             }
@@ -385,7 +355,14 @@ export function FileUploadStep() {
             }
         };
         addListener(handler!, "chards-generator");
-
+        const resAISuggestedQues= await AISuggestedQuesRes;
+        if(resAISuggestedQues){
+          const AISuggestedQuesData= await resAISuggestedQues.data
+          console.log("AISuggestedQuesData generated")
+          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+          console.log("Successfully generated AI Recommended Ques.")
+          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
+        }
     } catch (err) {
       setError("Failed to process file. Please try again.")
       setTimeout(()=>{
