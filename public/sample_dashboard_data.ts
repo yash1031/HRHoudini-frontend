@@ -296,7 +296,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -346,7 +346,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -478,7 +478,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -528,7 +528,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -664,7 +664,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -714,7 +714,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -843,7 +843,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -893,7 +893,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1019,7 +1019,7 @@ const sample_dashboard_data: DashboardData =
                 },
                 "from": {
                     "type": "parquet",
-                    "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                    "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                 },
                 "where": [
                     {
@@ -1117,7 +1117,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1208,7 +1208,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1352,7 +1352,7 @@ const sample_dashboard_data: DashboardData =
                 },
                 "from": {
                     "type": "parquet",
-                    "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                    "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                 },
                 "where": [
                     {
@@ -1450,7 +1450,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1531,7 +1531,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1632,7 +1632,7 @@ const sample_dashboard_data: DashboardData =
                 },
                 "from": {
                     "type": "parquet",
-                    "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                    "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                 },
                 "where": [
                     {
@@ -1730,7 +1730,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1791,7 +1791,7 @@ const sample_dashboard_data: DashboardData =
                             },
                             "from": {
                                 "type": "parquet",
-                                "source": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet"
+                                "source": process.env.NEXT_PUBLIC_PARQUET_DATA_URL
                             },
                             "where": [
                                 {
@@ -1876,7 +1876,7 @@ const sample_dashboard_data: DashboardData =
         "generatedAt": "2025-11-13T13:32:52.270198",
         "numericFields": 0,
         "categoricalFields": 21,
-        "parquetDataUrl": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/data_masked.parquet",
+        "parquetDataUrl": process.env.NEXT_PUBLIC_PARQUET_DATA_URL,
         "columns": [
             "employee_id",
             "employee_status",
@@ -1994,7 +1994,7 @@ const sample_dashboard_data: DashboardData =
             "date_of_birth",
             "email_address"
         ],
-        "tokenMapsUrl": "https://hrhoudini-cdn.s3.us-east-1.amazonaws.com/sample_file_data/masked-rdata/token_maps.json"
+        "tokenMapsUrl": process.env.NEXT_PUBLIC_TOKENS_MAP_URL
     }
 }
 
