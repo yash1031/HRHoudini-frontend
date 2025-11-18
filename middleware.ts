@@ -50,5 +50,12 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/:path*"],
+    matcher: [
+      /*
+      * Match all paths except static files
+      */
+      '/((?!_next/static|_next/image|favicon.ico).*)',
+      '/onboarding-upload-only', // Explicitly add this
+      '/dashboard'
+    ],
 };
