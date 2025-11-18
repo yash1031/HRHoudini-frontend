@@ -130,6 +130,7 @@ export function KPIsStep() {
               setIsLoading(false)
               setErrorDash(null);
               setDashboard_data(dataCreateDashboard.analytics);
+              console.log("Insights are ready, Dashboard Data is", dataCreateDashboard.analytics)
               let resStoreDash
               try{
                 resStoreDash = await apiFetch("/api/insights/store", {
