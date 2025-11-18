@@ -12,7 +12,7 @@ const nextConfig = {
   },
   compiler: {
     // Automatically remove console.* statements in production
-    removeConsole: process.env.NEXT_PUBLIC_ENV === 'production',
+    removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
     // OR keep only errors and warnings:
     removeConsole: { exclude: ['error', 'warn'] },
   },
