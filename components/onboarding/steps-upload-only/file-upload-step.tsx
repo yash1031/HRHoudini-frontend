@@ -9,7 +9,6 @@ import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
 import { useState, useRef } from "react"
 import { useUserContext } from "@/contexts/user-context"
-import { v4 as uuidv4 } from "uuid";
 import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
@@ -41,7 +40,6 @@ export function FileUploadStep() {
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
-  const [uuid] = useState<string>(uuidv4());
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
   const completionFlags = useRef({ kpi: false, athena: false });
   const [fileDropped, setFileDropped]= useState(false);
@@ -207,7 +205,6 @@ export function FileUploadStep() {
                 fileName: file.name,
                 fileType: file.type,
                 userId: localStorage.getItem("user_id"),
-                // uuid: uuid,
               }),
           });
           
@@ -234,6 +231,11 @@ export function FileUploadStep() {
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
         setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
+        // 4. Upload file with progress
+        await uploadFileWithProgress(uploadURL, file, file.type);
+
+        setUploadProgress(40)
+
         let AISuggestedQuesRes
         try{
           AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
@@ -241,7 +243,7 @@ export function FileUploadStep() {
             headers: { "Content-Type": "application/json",},
             body: JSON.stringify({
                 user_id: localStorage.getItem("user_id"),
-                session_id: uuid,
+                session_id: sessionId,
                 column_headers: columns
               }),
           });
@@ -260,11 +262,6 @@ export function FileUploadStep() {
           // setIsUploading(false)
           console.error("Failed to create AI recommended question")
         }
-
-        // 4. Upload file with progress
-        await uploadFileWithProgress(uploadURL, file, file.type);
-
-        setUploadProgress(40)
 
         handler = (msg: any) => {
             console.log('[WS] message', msg);

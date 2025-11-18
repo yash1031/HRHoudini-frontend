@@ -32,8 +32,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  console.log("isAuthPage", isAuthPage, "isAuthenticated", isAuthenticated)
+
   // If not authenticated and trying to access a protected page → redirect
   if (!isAuthenticated && !isAuthPage) {
+    console.log("User is not authenticated")
     return NextResponse.redirect(new URL("/", req.url));
   }
 
