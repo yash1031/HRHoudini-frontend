@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone', // added for ECR , App Runner deployment
+  // output: 'standalone', // added for ECR , App Runner deployment
   eslint: {
     ignoreDuringBuilds: true,
   },

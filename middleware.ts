@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  console.log("MIDDLEWARE HIT:", pathname);
 
   // Allow internal Next.js and static/public assets to load freely
   if (
@@ -55,7 +56,7 @@ export const config = {
       * Match all paths except static files
       */
       '/((?!_next/static|_next/image|favicon.ico).*)',
-      '/onboarding-upload-only', // Explicitly add this
-      '/dashboard'
+      // '/onboarding-upload-only', // Explicitly add this
+      // '/dashboard'
     ],
 };
