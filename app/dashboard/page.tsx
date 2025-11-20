@@ -17,6 +17,8 @@ import { closeWebSocket } from '@/lib/ws';
 import { DashboardToasts, ToastStyles } from "@/components/dashboard/StatusToast";
 import type { ConfigurableDashboardProps } from "@/types/dashboard";
 
+
+
 /**
  * Main Dashboard Page Component
  * Handles data loading and WebSocket updates with granular state management
@@ -46,6 +48,8 @@ export default function DashboardPage() {
   const [chatHeight, setChatHeight] = useState(400);
   const kpiGridRef = useRef<HTMLDivElement>(null);
   const { athenaCreated, setAthenaCreated} = useDashboard();
+
+  
 
   // ============================================
   // INITIALIZATION & DATA LOADING

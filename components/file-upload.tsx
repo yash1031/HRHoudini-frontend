@@ -58,7 +58,7 @@ interface KpiItem {
 export function FileUpload({
   // onFileUpload,
   acceptedTypes = [".csv", ".xlsx", ".xls"],
-  maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE || "1", 10) * 1024 * 1024, // 10MB
+  maxSize = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE || "50", 10) * 1024 * 1024, // 10MB
   title = "Upload HR Data File",
   description = "Drag and drop your HR data file here, or click to browse",
   onBrowseFiles,
@@ -160,41 +160,6 @@ export function FileUpload({
         }
         
         console.log("no futureError")
-
-        // checkFileUpoadQuotas()
-
-        // console.log("CheckFileUploadQuotas Triggered")
-        // let currentPlanRes
-        // try{
-        //   currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
-        //     method: "POST",
-        //     headers: { 
-        //       "Content-Type": "application/json", 
-        //     },
-        //     body: JSON.stringify({
-        //           user_id: localStorage.getItem("user_id")
-        //         }),
-        //   });
-        // }catch(error){
-        //   setError("Unable to check remaining tokens")
-        //   return;
-        // }
-
-        // // const dataCurrentPlan = await currentPlanRes.json();
-        // // const currentPlanData= await dataCurrentPlan.data
-        // const currentPlanData= await currentPlanRes.data
-        
-        // console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
-        // console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
-        // console.log("File Size is", file.size);
-
-        // const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
-        // console.log("Tokens needed", tokensNeeded)
-        // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
-        //   setError("File upload quotas are exhausted.")
-        //   return;
-        // }
-
         console.log("File is dropped successfully")
         console.log("fileDropped useState", fileDropped)
         setFileDropped(true)

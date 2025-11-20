@@ -13,6 +13,7 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 import {generateCardsFromParquet} from "@/utils/parquetLoader"
+import { startTime } from "./kpis-step"
 
 import {
   ArrowLeft,
@@ -33,6 +34,8 @@ interface KpiItem {
   icon: React.ElementType; // since you're storing component references like TrendingDown
   category: string;
 }
+
+let kpiCardsDataGenerationTime: any
 
 export function FileUploadStep() {
   // const { step, setStep, userContext } = useOnboarding()
@@ -257,6 +260,7 @@ export function FileUploadStep() {
               console.log("[WS] message: CSV converted to parquet")
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
+              
             }
             if(msg.event==="convert.failed"){
               console.log("[WS] message: CSV to parquet conversion failed")
@@ -322,7 +326,10 @@ export function FileUploadStep() {
               generateCardsFromParquet(msg.payload.text, parquetUrl)
                 .then((result: any) => {
                   console.log("Updated cardsState:", JSON.stringify(result, null, 2));
-                  
+                  kpiCardsDataGenerationTime= Date.now()
+                  const diff = kpiCardsDataGenerationTime - startTime
+                  console.log("Calculating Time current : ", new Date(kpiCardsDataGenerationTime).toLocaleString())
+                  console.log("Calculating Time taken in cards generation : ", diff, " ms")
                   // Success - update cards data in granular state
                   setCardsState({
                     // loading: true,
@@ -577,3 +584,5 @@ export function FileUploadStep() {
     </Card>
   )
 }
+
+export {kpiCardsDataGenerationTime}

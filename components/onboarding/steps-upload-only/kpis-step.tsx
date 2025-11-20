@@ -26,7 +26,11 @@ import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@
 import {generateChartsFromParquet } from "@/utils/parquetLoader"
 import {attachDrilldownToParent} from "@/utils/drilldownHelpers"
 import {generateDrilldownChartsData, buildQueryFromQueryObj} from "@/utils/parquetLoader"
+// import { startTime } from "./file-upload-step"
+export let startTime: number = 0
+import { kpiCardsDataGenerationTime } from "./file-upload-step"
 
+let chartGenerationTime: any
 
 interface SelectedKPIInfo {
   kpi_id: string;      // Added: KPI identifier
@@ -66,6 +70,10 @@ export function KPIsStep() {
   // State to hold full info (label + description)
   const [selectedKPIWithDesc, setSelectedKPIWithDesc] = useState<SelectedKPIInfo[]>([]);
 
+  if(startTime===0){
+    startTime = Date.now()  // start timer
+    console.log("Calculating Time StartTime is", new Date(startTime).toLocaleString())
+  }
   const handleKPIToggle = (kpiId: string) => {
     setSelectedKPIs((prev) => (prev.includes(kpiId) ? prev.filter((id) => id !== kpiId) : [...prev, kpiId]))
     setSelectedKPIWithDesc((prev) => {
@@ -93,6 +101,9 @@ export function KPIsStep() {
   const { kpis } = useUserContext()
 
   const handleNext = async () => {
+
+      const handleNextTime= Date.now()
+
       let handler: (msg: any) => void = () => {};
       try{
         // Store selected KPIs in localStorage
@@ -172,7 +183,12 @@ export function KPIsStep() {
               generateChartsFromParquet(mainChartsQueries, parquetUrl)
                 .then((result: any) => {
                   console.log("Result for generateChartsFromParquet:", JSON.stringify(result, null, 2));
-                  
+                  chartGenerationTime= Date.now()
+                  const diffFromKPISelePage = chartGenerationTime - startTime
+                  const diffFromDashboardLandingPage= chartGenerationTime - handleNextTime
+                  console.log("Calculating Time current : ", new Date(chartGenerationTime).toLocaleString())
+                  console.log("Calculating Time taken in charts generation from landing on kpi sele page : ", diffFromKPISelePage, " ms")
+                  console.log("Calculating Time taken in charts generation from lading on dashbaord page : ", diffFromDashboardLandingPage, " ms")
                   // Success - update charts data in granular state
                   setChartsState(prev => ({
                     loading: false,
@@ -207,7 +223,12 @@ export function KPIsStep() {
 
             if (msg.event === "drilldown.ready") {
               console.log("[STEP 3] Drill down received");
-
+              const drillDownGenTime= Date.now()
+              const diffFromKPISelePage = drillDownGenTime - startTime
+              const difFromChartsGen= drillDownGenTime- chartGenerationTime
+              console.log("Calculating Time current: ", new Date(drillDownGenTime).toLocaleString())
+              console.log("Calculating Time taken in drilldown generation from KPI Selec Page: ", diffFromKPISelePage, " ms")
+              console.log("Calculating Time taken in drilldown generation from charts gen.: ", difFromChartsGen, " ms")
               const drilldownPayload = msg?.payload;
               const parentChartId = drilldownPayload?.parent_chart_id;
               const drilldownCharts = drilldownPayload?.charts || [];
