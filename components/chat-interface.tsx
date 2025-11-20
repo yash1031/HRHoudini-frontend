@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,7 +38,7 @@ export function ChatInterface({
   context = {},
 }: ChatInterfaceProps) {
   const defaultWelcomeMessage =
-    "Hi! I'm here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."
+    "Hi! I am here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -51,15 +52,33 @@ export function ChatInterface({
   const [error, setError]= useState<any>(null)
   const [fromHistory, setFromHistory]= useState<string>("true")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const searchParams = useSearchParams()
+  const fileUploaded = searchParams.get("hasFile")
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  useEffect(() => {
+    if (welcomeMessage) {
+      setMessages([{
+        id: "welcome",
+        content: welcomeMessage,
+        sender: "assistant",
+        timestamp: new Date(),
+      }])
+    }
+  }, [welcomeMessage])
+
   useEffect(()=>{
     const from_history= localStorage.getItem("from_history")
-    setFromHistory(from_history||"true")
+    setFromHistory(from_history||"false")
   },[])
+
+  // useEffect(()=>{
+  //   console.log("suggestedQueriesState set to", suggestedQueries)
+  //   setSuggestedQueriesState(suggestedQueries)
+  // },[suggestedQueries])
 
   useEffect(() => {
     scrollToBottom()
@@ -82,40 +101,6 @@ export function ChatInterface({
       setMessages((prev) => [...prev, userMessage])
       setInput("")
       setIsLoading(true)
-      
-      // let currentPlanRes;
-      // try{
-      //   currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
-      //       method: "POST",
-      //       headers: { "Content-Type": "application/json"},
-      //       body: JSON.stringify({
-      //         user_id: localStorage.getItem("user_id")
-      //       }),
-      //     });
-      // }catch (error) {
-      //   // If apiFetch throws, the request failed
-      //   console.error("Received Error", error);
-      //   setError("Unable to check remaining tokens")
-      //   setTimeout(()=>{
-      //     setError(null);
-      //   }, 3000)
-      //   setIsLoading(false)
-      //   return;
-      // }
-
-      // const currentPlanData= await currentPlanRes.data
-      // console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
-      // console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
-      // const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_CHAT_MESSAGE || "0", 10);
-      // console.log(tokensNeeded)
-      // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
-      //   setError("File upload quotas are exhausted.")
-      //   setTimeout(()=>{
-      //     setError(null);
-      //   }, 3000)
-      //   setIsLoading(false)
-      //   return;
-      // }
 
       let responseChatMessage
       try{
@@ -124,8 +109,8 @@ export function ChatInterface({
           headers: { "Content-Type": "application/json"},
           body: JSON.stringify({
                 question: messageToSend,
-                user_id: localStorage.getItem("user_id"),
-                session_id: localStorage.getItem("session_id")
+                user_id: fileUploaded=="false" ? process.env.NEXT_PUBLIC_SAMPLE_USER_ID: localStorage.getItem("user_id"),
+                session_id: fileUploaded=="false" ? process.env.NEXT_PUBLIC_SAMPLE_FILE_SESSION_ID: localStorage.getItem("session_id")
               }),
         });
       }catch (error) {
@@ -255,12 +240,12 @@ export function ChatInterface({
         </ScrollArea>
 
         {/* Suggested Queries */}
-        {/* {suggestedQueries.length > 0 && messages.length <= 1 && ( */}
-        {fromHistory==="false" && suggestedQueries.length > 0  && (
+        {fromHistory==="false" && suggestedQueries &&  suggestedQueries.length > 0  && (
           <div className="space-y-2">
             <p className="text-xs text-gray-600 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">
-              {suggestedQueries.slice(0, 3).map((query, index) => (
+              {suggestedQueries.slice(0, 3).map((query, index) => {
+                return (
                 <Button
                   key={index}
                   variant="outline"
@@ -271,7 +256,7 @@ export function ChatInterface({
                 >
                   {query}
                 </Button>
-              ))}
+              )})}
             </div>
           </div>
         )}

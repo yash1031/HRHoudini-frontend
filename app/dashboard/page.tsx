@@ -138,23 +138,26 @@ export default function DashboardUO1() {
   const [file_row_count, setFile_row_count]=  useState<string|null>(null)
   const [sample_questions, setSample_questions]=  useState<string|null>(null)
   const [welcomeMessage, setWelcomeMessage]=  useState<string>('')
-
+  // let suggestedQueries
 
   useEffect(() => {
     const showWelcome = searchParams.get("showWelcome")
     if (showWelcome === "true") {
       setShowWelcomeTour(true)
     }
-    // const sample_questions= localStorage.getItem("sample_questions")
     const fileUploaded = searchParams.get("hasFile")
+    console.log("fileUploaded", fileUploaded)
     if(fileUploaded=="false"){
+      console.log("Inside if block for fileUploaded equals false")
       setFileName("SharpMedian.csv")
       setFile_row_count("512")
       setDashboard_data(sample_dashboard_data);
-      setWelcomeMessage(`Great! I can see you've successfully uploaded SharpMedian.csv with 512 employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
-      localStorage.setItem("session_id", process.env.NEXT_PUBLIC_SAMPLE_FILE_SESSION_ID || "")
-      // const sample_questions= ["What is the average annual salary by department?", "What are the differences in hourly rates for different job titles?","How many remote vs. on-site employees are there by region?"]
-      // localStorage.setItem("sample_questions", JSON.stringify(sample_questions))
+      setWelcomeMessage(`Great! I can find sample file SharpMedian.csv with 512 employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
+      setSample_questions(JSON.stringify([
+        "What is the average annual salary by department?", 
+        "What are the differences in hourly rates for different job titles?",
+        "How many remote vs. on-site employees are there by region?"
+      ]))
       return;
     }
     setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
@@ -230,12 +233,6 @@ export default function DashboardUO1() {
   }, [])
 
   const recordCount = employeeData.length || 1247
-
-  const suggestedQueries= sample_questions? JSON.parse(sample_questions): [
-    "What is the average annual salary by department?", 
-    "What are the differences in hourly rates for different job titles?",
-    "How many remote vs. on-site employees are there by region?"
-  ]
   
 useEffect(() => {
   if (!dashboard_data) return;
@@ -450,7 +447,7 @@ useEffect(() => {
             height={chatHeight}
             placeholder="Ask about your uploaded data insights..."
             welcomeMessage={welcomeMessage}
-            suggestedQueries={suggestedQueries}
+            suggestedQueries={JSON.parse(sample_questions||"[]")}
             inputProps={{ "data-chat-input": true }}
           />
         </div>
