@@ -152,6 +152,9 @@ export default function DashboardUO1() {
       setFile_row_count("512")
       setDashboard_data(sample_dashboard_data);
       setWelcomeMessage(`Great! I can see you've successfully uploaded SharpMedian.csv with 512 employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
+      localStorage.setItem("session_id", process.env.NEXT_PUBLIC_SAMPLE_FILE_SESSION_ID || "")
+      // const sample_questions= ["What is the average annual salary by department?", "What are the differences in hourly rates for different job titles?","How many remote vs. on-site employees are there by region?"]
+      // localStorage.setItem("sample_questions", JSON.stringify(sample_questions))
       return;
     }
     setWelcomeMessage(`Great! I can see you've successfully uploaded ${localStorage.getItem("file_name")} with ${localStorage.getItem("file_row_count")} employee records. I'm ready to help you analyze this data and generate insights for your HR initiatives. What would you like to explore first?`)
@@ -229,12 +232,9 @@ export default function DashboardUO1() {
   const recordCount = employeeData.length || 1247
 
   const suggestedQueries= sample_questions? JSON.parse(sample_questions): [
-    "Show me a breakdown of our 1,247 employees by department",
-    "What's our current turnover rate and which departments are most affected?",
-    "Analyze salary distribution across different roles and levels",
-    "Who are our highest-risk employees for attrition?",
-    "Compare our headcount growth over the past quarters",
-    "What insights can you provide for our next leadership meeting?",
+    "What is the average annual salary by department?", 
+    "What are the differences in hourly rates for different job titles?",
+    "How many remote vs. on-site employees are there by region?"
   ]
   
 useEffect(() => {
