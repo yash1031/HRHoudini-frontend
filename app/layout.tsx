@@ -8,6 +8,7 @@ import { UserContextProvider } from "@/contexts/user-context"
 import { Amplify, ResourcesConfig } from 'aws-amplify';
 import amplifyConfig from '../lib/amplify-config';
 import { DashboardProvider } from '@/contexts/DashboardContext';
+import { BfcacheHandler } from '@/components/BfcacheHandler';
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -28,7 +29,13 @@ export default function RootLayout({
   Amplify.configure(amplifyConfig as ResourcesConfig)
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
+      </head>
       <body className={inter.className}>
+          <BfcacheHandler />
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <UserContextProvider>
               <DashboardProvider>{children}</DashboardProvider></UserContextProvider>

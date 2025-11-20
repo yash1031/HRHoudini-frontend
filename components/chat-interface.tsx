@@ -117,8 +117,6 @@ export function ChatInterface({
       //   return;
       // }
 
-      const idempotency_key= localStorage.getItem("idempotency_key")
-
       let responseChatMessage
       try{
         responseChatMessage = await apiFetch("/api/chat", {
@@ -127,8 +125,7 @@ export function ChatInterface({
           body: JSON.stringify({
                 question: messageToSend,
                 user_id: localStorage.getItem("user_id"),
-                session_id: localStorage.getItem("session_id"),
-                idempotency_key: idempotency_key
+                session_id: localStorage.getItem("session_id")
               }),
         });
       }catch (error) {
