@@ -164,7 +164,7 @@ export function KPIsStep() {
               console.log("[STEP 2] Main Charts received");
               console.log("Message from websockets:", msg);
               
-              const mainChartsQueries = msg?.payload?.charts?.text;
+              const mainChartsQueries = JSON.parse(msg?.payload?.charts?.text).charts;
               console.log("Queries received for charts generation:", mainChartsQueries);
               
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";

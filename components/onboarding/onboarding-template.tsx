@@ -93,32 +93,47 @@ export function OnboardingTemplate({
         resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            // headers: { "Content-Type": "application/json", 
-            //     "authorization": `Bearer ${access_token}` },
             body: JSON.stringify({
                   user_id: localStorage.getItem("user_id"),
             }),
         });
+        const dataFileUploadHistory= await resFetchFileUploadHistory.data.sessions
+        
+        console.log("All user files are fetched successfully");
+
+        console.log("FileUploadHistoryData", dataFileUploadHistory)
+
+        let fileUploadData: any =[];
+        dataFileUploadHistory.map((data:any, id:any)=>{
+          // // Step 1: Extract the filename (after the last '/')
+          // const fileNameWithExt = data.s3_location.split("/").pop() || ""; // → "SharpMedian_V1.csv"
+
+          // // Step 2: Remove the extension (everything after the last '.')
+          // const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
+          fileUploadData.push({id: id, session_id: data.session_id, name: data.file_name + " " + data.created_at, timestamp: data.created_at, isFavorite: false, cardsQueries: data.cards, chartsQueries: data.charts, parquetUrl: data.presigned_url})
+        })
+        console.log("fileUploadData is", fileUploadData)
+        setFileUploadHistoryData(fileUploadData)
       }catch (error) {
         // If apiFetch throws, the request failed
         console.error("In onboarding-template, unable to fetch all fileUpload sessions for the user")
         return;
       }
-      const dataFetchFileUploadHistory= await resFetchFileUploadHistory.data
+      // const dataFetchFileUploadHistory= await resFetchFileUploadHistory.data
         
-      console.log("All user files are fetched successfully");
-      const dashboardHistoryData= await dataFetchFileUploadHistory.data;
-      let fileUploadData: any =[];
-      dashboardHistoryData.map((data:any, id:any)=>{
-        // Step 1: Extract the filename (after the last '/')
-        const fileNameWithExt = data.s3_location.split("/").pop() || ""; // → "SharpMedian_V1.csv"
+      // console.log("All user files are fetched successfully");
+      // const dashboardHistoryData= await dataFetchFileUploadHistory.data;
+      // let fileUploadData: any =[];
+      // dashboardHistoryData.map((data:any, id:any)=>{
+      //   // Step 1: Extract the filename (after the last '/')
+      //   const fileNameWithExt = data.s3_location.split("/").pop() || ""; // → "SharpMedian_V1.csv"
 
-        // Step 2: Remove the extension (everything after the last '.')
-        const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
-        fileUploadData.push({id: id, session_id: data.session_id, name: fileNameWithoutExt + " " + data.created_at, timestamp: data.created_at, isFavorite: false, dashboardJSON: data.analytical_json_output})
-      })
-      console.log("fileUploadData is", fileUploadData)
-      setFileUploadHistoryData(fileUploadData)
+      //   // Step 2: Remove the extension (everything after the last '.')
+      //   const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
+      //   fileUploadData.push({id: id, session_id: data.session_id, name: fileNameWithoutExt + " " + data.created_at, timestamp: data.created_at, isFavorite: false, dashboardJSON: data.analytical_json_output})
+      // })
+      // console.log("fileUploadData is", fileUploadData)
+      // setFileUploadHistoryData(fileUploadData)
     }catch (error) {
       // If apiFetch throws, the request failed
       console.error("Received Error", error);
