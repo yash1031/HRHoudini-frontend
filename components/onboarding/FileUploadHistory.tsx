@@ -172,161 +172,180 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     console.log("Parquet URL Received on clicking side panel", parquetUrl)
 
     //Setting Cards State
-    setCardsState(prev => ({ ...prev, loading: true, error: null }));                  
-    generateCardsFromParquet(cardsQueries, parquetUrl)
-      .then((result: any) => {
-        console.log("Updated cardsState:", JSON.stringify(result, null, 2));
-        
-        // Success - update cards data in granular state
-        setCardsState({
-          // loading: true,
-          loading: false,
-          error: null,
-          data: result.cards || []
+    if(cardsQueries && cardsQueries.length>0){
+      console.log("Starting to convert queries for KPI Cards, cardsQueries received", cardsQueries)
+      setCardsState(prev => ({ ...prev, loading: true, error: null }));                  
+      generateCardsFromParquet(cardsQueries, parquetUrl)
+        .then((result: any) => {
+          console.log("Updated cardsState:", JSON.stringify(result, null, 2));
+          
+          // Success - update cards data in granular state
+          setCardsState({
+            // loading: true,
+            loading: false,
+            error: null,
+            data: result.cards || []
+          });
+        })
+        .catch((error) => {
+          console.error("Failed to generate cards:", error);
+          
+          // Error - set error state
+          setCardsState({
+            loading: false,
+            error: "Failed to generate KPI cards from data",
+            data: []
+          });
         });
-      })
-      .catch((error) => {
-        console.error("Failed to generate cards:", error);
-        
-        // Error - set error state
-        setCardsState({
-          loading: false,
-          error: "Failed to generate KPI cards from data",
-          data: []
-        });
+    }
+    else{
+      console.log("KPI Cards not available, cardsQueries received", cardsQueries)
+      setCardsState({
+        loading: false,
+        error: "KPI Cards not available",
+        data: []
       });
-
+    }
     // Setting Charts State
-    setChartsState(prev => ({ ...prev, loading: true, error: null }));
-    generateChartsFromParquet(chartsQueries, parquetUrl)
-      .then((result: any) => {
-        console.log("Result for generateChartsFromParquet:", JSON.stringify(result, null, 2));
-        
-        // Success - update charts data in granular state
-        setChartsState(prev => ({
-          loading: false,
-          error: null,
-          data: [...prev.data, ...result]  // ← Append new charts to existing
-        }));
-      })
-      .catch((error) => {
-        console.error("Failed to generate charts:", error);
-        
-        // Error - set error state
-        setChartsState({
-          loading: false,
-          error: "Failed to generate analytical charts",
-          data: []
-        });
-      });
-
-    chartsQueries.map((chartQuery: any)=>{
-
-      console.log("chartQuery Received on clicking side", chartQuery)
-
-      const {semantic_id, drilldowns} = chartQuery
-
-      const parentChartId = semantic_id;
-      const drilldownCharts = drilldowns?.charts || [];
-      const drilldownFilters = drilldowns?.filters || [];
-      // const kpiId = drilldownPayload?.kpi_id;
-      
-      if (parentChartId) {
-        setDrilldownsState(prev => ({
-          ...prev,
-          [parentChartId]: { loading: true, error: false }
-        }));
-      }
-      
-      (async () => {
-        try {
-          // Transform filters
-          const transformedFilters = drilldownFilters.map((filter: any) => ({
-            field: filter.field,
-            label: filter.label,
-            type: filter.type === 'select' ? 'multiselect' : filter.type,
-            options: filter.options || [],
-            whereClause: filter.whereClause
+    if(chartsQueries && chartsQueries.length>0){
+      setChartsState(prev => ({ ...prev, loading: true, error: null }));
+      generateChartsFromParquet(chartsQueries, parquetUrl)
+        .then((result: any) => {
+          console.log("Result for generateChartsFromParquet:", JSON.stringify(result, null, 2));
+          
+          // Success - update charts data in granular state
+          setChartsState(prev => ({
+            loading: false,
+            error: null,
+            data: [...prev.data, ...result]  // ← Append new charts to existing
           }));
+        })
+        .catch((error) => {
+          console.error("Failed to generate charts:", error);
           
-          // Prepare queries
-          const drilldownQueries = {
-            charts: drilldownCharts.map((chart: any) => {
-              const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
-              
-              if (queryObjWithUrl.from) {
-                queryObjWithUrl.from.source = parquetUrl;
-              } else {
-                queryObjWithUrl.from = { type: 'parquet', source: parquetUrl };
-              }
-              
-              return {
-                ...chart,
-                query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
-                queryObject: queryObjWithUrl
-              };
-            })
-          };
-          
-          const chartDataResults = await generateDrilldownChartsData(
-            drilldownQueries.charts, 
-            parquetUrl
-          );
-          
-          console.log("Drilldown charts generated:", chartDataResults);
-          
-          // Update drilldown state
-          if (parentChartId) {
-            setDrilldownsState(prev => ({
-              ...prev,
-              [parentChartId]: { loading: false, error: false }
+          // Error - set error state
+          setChartsState({
+            loading: false,
+            error: "Failed to generate analytical charts",
+            data: []
+          });
+        });
+
+      chartsQueries.map((chartQuery: any)=>{
+
+        console.log("chartQuery Received on clicking side", chartQuery)
+
+        const {semantic_id, drilldowns} = chartQuery
+
+        const parentChartId = semantic_id;
+        const drilldownCharts = drilldowns?.charts || [];
+        const drilldownFilters = drilldowns?.filters || [];
+        // const kpiId = drilldownPayload?.kpi_id;
+        
+        if (parentChartId) {
+          setDrilldownsState(prev => ({
+            ...prev,
+            [parentChartId]: { loading: true, error: false }
+          }));
+        }
+        
+        (async () => {
+          try {
+            // Transform filters
+            const transformedFilters = drilldownFilters.map((filter: any) => ({
+              field: filter.field,
+              label: filter.label,
+              type: filter.type === 'select' ? 'multiselect' : filter.type,
+              options: filter.options || [],
+              whereClause: filter.whereClause
             }));
-          }
-          
-          // DIRECTLY update chartsState - find and modify the chart
-          setChartsState(prev => {
-            const currentCharts = [...prev.data];
             
-            // Find the parent chart by ID
-            const chartIndex = currentCharts.findIndex(
-              chart => (chart.id || chart.semantic_id) === parentChartId
+            // Prepare queries
+            const drilldownQueries = {
+              charts: drilldownCharts.map((chart: any) => {
+                const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
+                
+                if (queryObjWithUrl.from) {
+                  queryObjWithUrl.from.source = parquetUrl;
+                } else {
+                  queryObjWithUrl.from = { type: 'parquet', source: parquetUrl };
+                }
+                
+                return {
+                  ...chart,
+                  query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
+                  queryObject: queryObjWithUrl
+                };
+              })
+            };
+            
+            const chartDataResults = await generateDrilldownChartsData(
+              drilldownQueries.charts, 
+              parquetUrl
             );
             
-            if (chartIndex === -1) {
-              console.warn("Parent chart not found:", parentChartId);
-              return prev;
+            console.log("Drilldown charts generated:", chartDataResults);
+            
+            // Update drilldown state
+            if (parentChartId) {
+              setDrilldownsState(prev => ({
+                ...prev,
+                [parentChartId]: { loading: false, error: false }
+              }));
             }
             
-            // Attach drilldown to the chart
-            currentCharts[chartIndex] = {
-              ...currentCharts[chartIndex],
-              drillDownData: {
-                filters: transformedFilters,
-                charts: chartDataResults,
+            // DIRECTLY update chartsState - find and modify the chart
+            setChartsState(prev => {
+              const currentCharts = [...prev.data];
+              
+              // Find the parent chart by ID
+              const chartIndex = currentCharts.findIndex(
+                chart => (chart.id || chart.semantic_id) === parentChartId
+              );
+              
+              if (chartIndex === -1) {
+                console.warn("Parent chart not found:", parentChartId);
+                return prev;
               }
-            };
+              
+              // Attach drilldown to the chart
+              currentCharts[chartIndex] = {
+                ...currentCharts[chartIndex],
+                drillDownData: {
+                  filters: transformedFilters,
+                  charts: chartDataResults,
+                }
+              };
+              
+              console.log("Drilldown attached to chart:", parentChartId);
+              console.log("Updated chartsState", currentCharts)
+              
+              return {
+                ...prev,
+                data: currentCharts
+              };
+            });
             
-            console.log("Drilldown attached to chart:", parentChartId);
-            console.log("Updated chartsState", currentCharts)
+          } catch (error) {
+            console.error("Failed to process drilldown:", error);
             
-            return {
-              ...prev,
-              data: currentCharts
-            };
-          });
-          
-        } catch (error) {
-          console.error("Failed to process drilldown:", error);
-          
-          if (parentChartId) {
-            setDrilldownsState(prev => ({
-              ...prev,
-              [parentChartId]: { loading: false, error: true }
-            }));
+            if (parentChartId) {
+              setDrilldownsState(prev => ({
+                ...prev,
+                [parentChartId]: { loading: false, error: true }
+              }));
+            }
           }
-        }
-      })();
-    })
+        })();
+      })
+    }
+    else{
+      setChartsState({
+        loading: false,
+        error: "Charts not available",
+        data: []
+      });
+    }
     router.push(dashboardUrl)
   };
 
