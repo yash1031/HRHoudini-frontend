@@ -41,7 +41,7 @@ export function FileUploadStep() {
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
-  const completionFlags = useRef({ kpi: false, athena: false });
+  // const completionFlags = useRef({ kpi: false, athena: false });
   const [fileDropped, setFileDropped]= useState(false);
   const [proceedToUpload, setProceedToUpload]= useState(false);
   const [isUploading, setIsUploading] = useState(false)
@@ -277,13 +277,15 @@ export function FileUploadStep() {
  
               setKpis(kpisWithIcons);   // save to context
               // setStep(3);               // go to KPIs step
-              completionFlags.current.kpi = true;
-              if(completionFlags.current.athena){
-                setUploadProgress(100)
+              // completionFlags.current.kpi = true;
+              // if(completionFlags.current.athena){
+              setUploadProgress(100)
+              setTimeout(()=>{
                 setProcessedFile(true);
                 setIsUploading(false)
                 hasFileUploadStarted(false)
-              }
+              },1000)
+              // }
             }
             if(msg.event==="kpi.error"){
               console.log("[WS] message: Creating KPIs failed")
@@ -291,27 +293,27 @@ export function FileUploadStep() {
               setIsUploading(false)
               return
             }
-            if(msg.event==="athena.completed"){
-              console.log("Athena table created")
-              completionFlags.current.athena = true;
-              if(completionFlags.current.kpi){
-                setUploadProgress(100)
-                setProcessedFile(true);
-                setIsUploading(false)
-                hasFileUploadStarted(false)
-              }
-            }
-            if(msg.event==="athena.error"){
-              console.log("Athena table creation failure")
-              completionFlags.current.athena = true;
-              if(completionFlags.current.kpi){
-                setUploadProgress(100)
-                setProcessedFile(true);
-                setIsUploading(false)
-                hasFileUploadStarted(false)
-              }
-              setAthenaCreated(false)
-            }
+            // if(msg.event==="athena.completed"){
+            //   console.log("Athena table created")
+            //   completionFlags.current.athena = true;
+            //   if(completionFlags.current.kpi){
+            //     setUploadProgress(100)
+            //     setProcessedFile(true);
+            //     setIsUploading(false)
+            //     hasFileUploadStarted(false)
+            //   }
+            // }
+            // if(msg.event==="athena.error"){
+            //   console.log("Athena table creation failure")
+            //   completionFlags.current.athena = true;
+            //   if(completionFlags.current.kpi){
+            //     setUploadProgress(100)
+            //     setProcessedFile(true);
+            //     setIsUploading(false)
+            //     hasFileUploadStarted(false)
+            //   }
+            //   setAthenaCreated(false)
+            // }
             if (msg.event === "global_queries.ready") {
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
               console.log("[STEP 1] Global queries received for cards:", msg.payload.text);
