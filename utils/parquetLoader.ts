@@ -166,7 +166,7 @@ export async function executeBatchQueries(queries: string[]): Promise<any[][]> {
 /**
  * Generate cards from JSON config and Parquet URL
  */
-export async function generateCardsFromParquet(configJson: any, parquetUrl: string) {
+export async function generateCardsFromParquet(cardsQueries: any, parquetUrl: string) {
   try {
     const db = await initializeDuckDB();
     const conn = await db.connect();
@@ -184,10 +184,10 @@ export async function generateCardsFromParquet(configJson: any, parquetUrl: stri
       "Award": "Award"
     };
 
-    const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
+    // const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
 
     const results = await Promise.all(
-      config.summary_cards.map(async (card: any, index: number) => {
+      cardsQueries.map(async (card: any, index: number) => {
         const { query_obj, id, title, icon, value_format } = card;
 
         // Build SELECT clause with safety transformations
@@ -289,15 +289,15 @@ export async function generateCardsFromParquet(configJson: any, parquetUrl: stri
 /**
  * Generate charts from JSON config and Parquet URL
  */
-export async function generateChartsFromParquet(configJson: any, parquetUrl: string) {
+export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: string) {
   try {
     const db = await initializeDuckDB();
     const conn = await db.connect();
 
-    const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
+    // const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
 
     const results = await Promise.all(
-      config.charts.map(async (chart: any) => {
+      chartsQueries.map(async (chart: any) => {
         const { query_obj, id, title, icon, type, field } = chart;
 
         const selectClause = query_obj.select.columns

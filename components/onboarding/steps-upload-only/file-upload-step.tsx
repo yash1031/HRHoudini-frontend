@@ -316,12 +316,13 @@ export function FileUploadStep() {
             // }
             if (msg.event === "global_queries.ready") {
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
-              console.log("[STEP 1] Global queries received for cards:", msg.payload.text);
+              console.log("Global queries received for cards:", msg.payload.text);
               
               // Set loading state
               setCardsState(prev => ({ ...prev, loading: true, error: null }));
+              const cardsQueries= JSON.parse(msg.payload.text).summary_cards
               
-              generateCardsFromParquet(msg.payload.text, parquetUrl)
+              generateCardsFromParquet(cardsQueries, parquetUrl)
                 .then((result: any) => {
                   console.log("Updated cardsState:", JSON.stringify(result, null, 2));
                   
