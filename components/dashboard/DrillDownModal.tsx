@@ -219,7 +219,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
       setLoading(false);
       
     } catch (error) {
-      console.error('❌ Failed to apply filters:', error);
+      console.error('Failed to apply filters:', error);
       setLoadError('Failed to apply filters');
       setLoading(false);
     }
@@ -314,6 +314,54 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Insights */}
+            {!loading && drillDownData.insights && (drillDownData.insights.critical_issues?.length > 0 || drillDownData.insights.recommended_actions?.length > 0) && (
+              <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl shadow-md p-6 border border-slate-200">
+                <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                  <LucideIcons.Lightbulb className="w-6 h-6 mr-2 text-amber-500" />
+                  Key Insights & Recommendations
+                </h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Critical Issues */}
+                  {drillDownData.insights.critical_issues && drillDownData.insights.critical_issues.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-slate-700 mb-3 flex items-center">
+                        <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                        Critical Issues:
+                      </h4>
+                      <ul className="space-y-2">
+                        {drillDownData.insights.critical_issues.map((issue, idx) => (
+                          <li key={idx} className="flex items-start text-sm text-slate-700">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mt-2 mr-3 flex-shrink-0"></span>
+                            <span>{issue}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {/* Recommended Actions */}
+                  {drillDownData.insights.recommended_actions && drillDownData.insights.recommended_actions.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-slate-700 mb-3 flex items-center">
+                        <LucideIcons.CheckCircle2 className="w-5 h-5 mr-2 text-green-500" />
+                        Recommended Actions:
+                      </h4>
+                      <ul className="space-y-2">
+                        {drillDownData.insights.recommended_actions.map((action, idx) => (
+                          <li key={idx} className="flex items-start text-sm text-slate-700">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-2 mr-3 flex-shrink-0"></span>
+                            <span>{action}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

@@ -205,7 +205,10 @@ export function KPIsStep() {
               });
             }
 
-            if (msg.event === "drilldown.ready") {
+            // ============================================
+            // DRILLDOWN ERROR HANDLER
+            // ============================================
+            if (msg.event === "drilldown_charts.ready") {
               console.log("[STEP 3] Drill down received");
 
               const drilldownPayload = msg?.payload;
@@ -213,13 +216,15 @@ export function KPIsStep() {
               const drilldownCharts = drilldownPayload?.charts || [];
               const drilldownFilters = drilldownPayload?.filters || [];
               const kpiId = drilldownPayload?.kpi_id;
+
               
-              if (parentChartId) {
-                setDrilldownsState(prev => ({
-                  ...prev,
-                  [parentChartId]: { loading: true, error: false }
-                }));
-              }
+              
+              // if (parentChartId) {
+              //   setDrilldownsState(prev => ({
+              //     ...prev,
+              //     [parentChartId]: { loading: true, error: false }
+              //   }));
+              // }
               
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
               
@@ -268,9 +273,11 @@ export function KPIsStep() {
                     }));
                   }
                   
-                  // DIRECTLY update chartsState - find and modify the chart
+                  // UPDATED: Merge with existing insights if present
                   setChartsState(prev => {
                     const currentCharts = [...prev.data];
+
+                    console.log("[DRILLDOWN] received chartsState", currentCharts);
                     
                     // Find the parent chart by ID
                     const chartIndex = currentCharts.findIndex(
@@ -281,19 +288,27 @@ export function KPIsStep() {
                       console.warn("Parent chart not found:", parentChartId);
                       return prev;
                     }
+
+                    const targetChart = currentCharts[chartIndex];
                     
-                    // Attach drilldown to the chart
+                    // Preserve existing drillDownData if it exists (especially insights)
+                    const existingDrillDownData = targetChart.drillDownData;
+                    
+                    // Merge: keep existing insights if present, add new filters and charts
                     currentCharts[chartIndex] = {
-                      ...currentCharts[chartIndex],
+                      ...targetChart,
                       drillDownData: {
                         filters: transformedFilters,
                         charts: chartDataResults,
-                        insights: drilldownPayload?.insights
+                        ...(existingDrillDownData?.insights && { insights: existingDrillDownData.insights })
                       }
                     };
                     
-                    console.log("Drilldown attached to chart:", parentChartId);
-                    console.log("Updated chartsState", currentCharts)
+                    console.log("[DRILLDOWN] Attached to chart:", parentChartId);
+                    if (existingDrillDownData?.insights) {
+                      console.log("[DRILLDOWN] Preserved existing insights:", existingDrillDownData.insights);
+                    }
+                    console.log("[DRILLDOWN] Updated chartsState", currentCharts);
                     
                     return {
                       ...prev,
@@ -313,11 +328,11 @@ export function KPIsStep() {
                 }
               })();
             }
-            
+
             // ============================================
             // DRILLDOWN ERROR HANDLER
             // ============================================
-            if (msg.event === "drilldown.error") {
+            if (msg.event === "drilldown_charts.error") {
               console.error("Backend error in drilldown generation:", msg.payload);
               
               const parentChartId = msg.payload?.parent_chart_id;
@@ -328,6 +343,213 @@ export function KPIsStep() {
                 }));
               }
             }
+
+            // Add this handler in your WebSocket message processing, alongside drilldown.ready
+
+            // ============================================
+            // INSIGHTS HANDLER
+            // ============================================
+            if (msg.event === "drilldown_insights.ready") {
+              console.log("[INSIGHTS] Insights received");
+
+              const insightsPayload = msg?.payload;
+              const parentChartId = insightsPayload?.parent_chart_id;
+              const insights = insightsPayload?.insights;
+
+              if (!parentChartId || !insights) {
+                console.warn("[INSIGHTS] Missing parent_chart_id or insights data");
+                return;
+              }
+
+              // Update chartsState - find chart and attach/merge insights
+              setChartsState(prev => {
+                const currentCharts = [...prev.data];
+
+                
+
+                // Find the parent chart by ID
+                const chartIndex = currentCharts.findIndex(
+                  chart => (chart.id || chart.semantic_id) === parentChartId
+                );
+
+                console.log("[INSIGHTS] received chart:", currentCharts[chartIndex]);
+
+                if (chartIndex === -1) {
+                  console.warn("[INSIGHTS] Parent chart not found:", parentChartId);
+                  return prev;
+                }
+
+                const targetChart = currentCharts[chartIndex];
+
+                // Case A: drillDownData already exists - merge insights
+                if (targetChart.drillDownData) {
+                  currentCharts[chartIndex] = {
+                    ...targetChart,
+                    drillDownData: {
+                      ...targetChart.drillDownData,
+                      insights: insights
+                    }
+                  };
+                  console.log("[INSIGHTS] Merged with existing drillDownData for:", parentChartId);
+                } 
+                // Case B: drillDownData doesn't exist yet - create new structure with insights only
+                else {
+                  currentCharts[chartIndex] = {
+                    ...targetChart,
+                    drillDownData: {
+                      filters: [],
+                      charts: [],
+                      insights: insights
+                    }
+                  };
+                  console.log("[INSIGHTS] Created new drillDownData with insights for:", parentChartId);
+                }
+
+                console.log("[INSIGHTS] Updated chart:", currentCharts[chartIndex]);
+
+                return {
+                  ...prev,
+                  data: currentCharts
+                };
+              });
+            }
+
+            // // // ============================================
+            // // // INSIGHTS ERROR HANDLER
+            // // // ============================================
+            if (msg.event === "drilldown_insights.error") {
+              console.error("[INSIGHTS] Backend error in insights generation:", msg.payload);
+              
+              const parentChartId = msg.payload?.parent_chart_id;
+              if (parentChartId) {
+                // Optional: Track insight errors if needed
+                console.error(`[INSIGHTS] Failed for chart: ${parentChartId}`);
+              }
+            }
+
+            // if (msg.event === "drilldown.ready") {
+            //   console.log("[STEP 3] Drill down received");
+
+            //   const drilldownPayload = msg?.payload;
+            //   const parentChartId = drilldownPayload?.parent_chart_id;
+            //   const drilldownCharts = drilldownPayload?.charts || [];
+            //   const drilldownFilters = drilldownPayload?.filters || [];
+            //   const kpiId = drilldownPayload?.kpi_id;
+              
+            //   if (parentChartId) {
+            //     setDrilldownsState(prev => ({
+            //       ...prev,
+            //       [parentChartId]: { loading: true, error: false }
+            //     }));
+            //   }
+              
+            //   const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              
+            //   (async () => {
+            //     try {
+            //       // Transform filters
+            //       const transformedFilters = drilldownFilters.map((filter: any) => ({
+            //         field: filter.field,
+            //         label: filter.label,
+            //         type: filter.type === 'select' ? 'multiselect' : filter.type,
+            //         options: filter.options || [],
+            //         whereClause: filter.whereClause
+            //       }));
+                  
+            //       // Prepare queries
+            //       const drilldownQueries = {
+            //         charts: drilldownCharts.map((chart: any) => {
+            //           const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
+                      
+            //           if (queryObjWithUrl.from) {
+            //             queryObjWithUrl.from.source = parquetUrl;
+            //           } else {
+            //             queryObjWithUrl.from = { type: 'parquet', source: parquetUrl };
+            //           }
+                      
+            //           return {
+            //             ...chart,
+            //             query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
+            //             queryObject: queryObjWithUrl
+            //           };
+            //         })
+            //       };
+                  
+            //       const chartDataResults = await generateDrilldownChartsData(
+            //         drilldownQueries.charts, 
+            //         parquetUrl
+            //       );
+                  
+            //       console.log("Drilldown charts generated:", chartDataResults);
+                  
+            //       // Update drilldown state
+            //       if (parentChartId) {
+            //         setDrilldownsState(prev => ({
+            //           ...prev,
+            //           [parentChartId]: { loading: false, error: false }
+            //         }));
+            //       }
+                  
+            //       // DIRECTLY update chartsState - find and modify the chart
+            //       setChartsState(prev => {
+            //         const currentCharts = [...prev.data];
+                    
+            //         // Find the parent chart by ID
+            //         const chartIndex = currentCharts.findIndex(
+            //           chart => (chart.id || chart.semantic_id) === parentChartId
+            //         );
+                    
+            //         if (chartIndex === -1) {
+            //           console.warn("Parent chart not found:", parentChartId);
+            //           return prev;
+            //         }
+                    
+            //         // Attach drilldown to the chart
+            //         currentCharts[chartIndex] = {
+            //           ...currentCharts[chartIndex],
+            //           drillDownData: {
+            //             filters: transformedFilters,
+            //             charts: chartDataResults,
+            //             insights: drilldownPayload?.insights
+            //           }
+            //         };
+                    
+            //         console.log("Drilldown attached to chart:", parentChartId);
+            //         console.log("Updated chartsState", currentCharts)
+                    
+            //         return {
+            //           ...prev,
+            //           data: currentCharts
+            //         };
+            //       });
+                  
+            //     } catch (error) {
+            //       console.error("Failed to process drilldown:", error);
+                  
+            //       if (parentChartId) {
+            //         setDrilldownsState(prev => ({
+            //           ...prev,
+            //           [parentChartId]: { loading: false, error: true }
+            //         }));
+            //       }
+            //     }
+            //   })();
+            // }
+            
+            // // ============================================
+            // // DRILLDOWN ERROR HANDLER
+            // // ============================================
+            // if (msg.event === "drilldown.error") {
+            //   console.error("Backend error in drilldown generation:", msg.payload);
+              
+            //   const parentChartId = msg.payload?.parent_chart_id;
+            //   if (parentChartId) {
+            //     setDrilldownsState(prev => ({
+            //       ...prev,
+            //       [parentChartId]: { loading: false, error: true }
+            //     }));
+            //   }
+            // }
 
           } catch (e) {
             console.error("WebSocket handler error:", e);
