@@ -78,8 +78,9 @@ export default function DashboardPage() {
    * Handle sample/demo data
    */
   const handleSampleData = () => {
-    setFileName("SharpMedian.csv");
-    setFileRowCount("512");
+    // setFileName("SharpMedian.csv");
+    // setFileRowCount("512");
+    localStorage.setItem("from_history", "false")
     
     // Set sample data directly without loading states (instant load)
     setCardsState({
@@ -101,6 +102,12 @@ export default function DashboardPage() {
       `I'm ready to help you analyze this data and generate insights for your HR initiatives. ` +
       `What would you like to explore first?`
     );
+
+    setSampleQuestions([
+        "What is the average annual salary by department?", 
+        "What are the differences in hourly rates for different job titles?",
+        "How many remote vs. on-site employees are there by region?"
+      ])
   };
 
   /**

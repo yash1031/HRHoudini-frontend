@@ -110,7 +110,18 @@ export function OnboardingTemplate({
 
           // // Step 2: Remove the extension (everything after the last '.')
           // const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
-          fileUploadData.push({id: id, session_id: data.session_id, name: data.file_name + " " + data.created_at, timestamp: data.created_at, isFavorite: false, cardsQueries: data.cards, chartsQueries: data.charts, parquetUrl: data.presigned_url})
+          console.log("In onboarding-template, ai_suggested_questions received is", data.ai_suggested_questions)
+          fileUploadData.push({id: id, 
+              session_id: data.session_id, 
+              name: data.file_name, 
+              timestamp: data.created_at, 
+              isFavorite: false, 
+              cardsQueries: data.cards, 
+              chartsQueries: data.charts, 
+              parquetUrl: data.presigned_url, 
+              aiSuggestedQuestions: data.ai_suggested_questions,
+              rowCount: data.row_count
+          })
         })
         console.log("fileUploadData is", fileUploadData)
         setFileUploadHistoryData(fileUploadData)
