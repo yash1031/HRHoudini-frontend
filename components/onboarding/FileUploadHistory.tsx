@@ -240,6 +240,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
         const parentChartId = semantic_id;
         const drilldownCharts = drilldowns?.charts || [];
         const drilldownFilters = drilldowns?.filters || [];
+        const drilldownInsights = drilldowns?.insights || [];
         // const kpiId = drilldownPayload?.kpi_id;
         
         if (parentChartId) {
@@ -314,6 +315,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
                 drillDownData: {
                   filters: transformedFilters,
                   charts: chartDataResults,
+                  insights: drilldownInsights
                 }
               };
               
