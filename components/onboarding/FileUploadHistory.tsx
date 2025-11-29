@@ -13,6 +13,8 @@ interface FileUpload {
   cardsQueries: any;   
   chartsQueries: any;
   parquetUrl: string;
+  aiSuggestedQuestions: string[];
+  rowCount: number;
 }
 
 interface FileUploadHistoryProps {
@@ -23,7 +25,7 @@ interface FileUploadHistoryProps {
 const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistoryProps) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   const router = useRouter()
-  const { setCardsState, setChartsState, setDrilldownsState} = useDashboard();
+  const { setCardsState, setChartsState, setDrilldownsState, setMetadata} = useDashboard();
   // Add state for delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -156,7 +158,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     setEditValue('');
   };
 
-  const handleTileClick = (id: string, name: string, session_id: string, cardsQueries: any, chartsQueries: any, parquetUrl: string) => {
+  const handleTileClick = (id: string, name: string, session_id: string, cardsQueries: any, chartsQueries: any, parquetUrl: string, aiSuggestedQuestions: string[], rowCount: number) => {
     if (editingId) return;
     // Navigate to dashboard-upload-only with specified parameters
     const params = new URLSearchParams({
@@ -167,9 +169,11 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     localStorage.setItem("from_history","true")
     localStorage.setItem("session_id",session_id)
     localStorage.setItem("file_name", name)
+    localStorage.setItem("sample_questions", JSON.stringify(aiSuggestedQuestions))
     console.log("Cards Queries Received on clicking side panel", cardsQueries)
     console.log("Charts Queries Received on clicking side panel", chartsQueries)
     console.log("Parquet URL Received on clicking side panel", parquetUrl)
+    console.log("Sample_questions Received on clicking side panel", aiSuggestedQuestions)
 
     //Setting Cards State
     if(cardsQueries && cardsQueries.length>0){
@@ -348,6 +352,9 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
         data: []
       });
     }
+
+    setMetadata({"filename": name,"totalRows": rowCount.toString()})
+
     router.push(dashboardUrl)
   };
 
@@ -389,7 +396,14 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
               >
                 <div 
                   className="p-4 cursor-pointer"
-                  onClick={() => handleTileClick(upload.id, upload.name, upload.session_id, upload.cardsQueries, upload.chartsQueries, upload.parquetUrl)}
+                  onClick={() => handleTileClick(upload.id, 
+                    upload.name, 
+                    upload.session_id, 
+                    upload.cardsQueries, 
+                    upload.chartsQueries, 
+                    upload.parquetUrl, 
+                    upload.aiSuggestedQuestions, 
+                    upload.rowCount)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
