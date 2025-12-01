@@ -74,7 +74,7 @@ export function FileUploadStep() {
     if(processedFile) skipToStep(3)
     else {
       const {file, metadata}= uploadedFile
-      processFile(file, metadata.columns)
+      processFile(file, metadata.columns, metadata.rowCount)
     }
   }
 
@@ -189,7 +189,7 @@ export function FileUploadStep() {
     });
   };
 
-  const processFile = async (file: File, columns: string[]) => {
+  const processFile = async (file: File, columns: string[], rowCount: number) => {
     let handler: (msg: any) => void = () => {};
     try {
         setIsUploading(true)
@@ -206,6 +206,7 @@ export function FileUploadStep() {
                 fileName: file.name,
                 fileType: file.type,
                 userId: localStorage.getItem("user_id"),
+                rowCount: rowCount.toString()
               }),
           });
           
@@ -237,26 +238,46 @@ export function FileUploadStep() {
 
         setUploadProgress(40)
 
-        let AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json",},
-          body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: sessionId,
-              column_headers: columns
-            }),
-        }).catch((error) => {
-            localStorage.removeItem("sample_questions")
-            aiSuggestQuestionsGenerated = false
-            console.error("Failed to create AI recommended question", error)
-          });
+        // let AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json",},
+        //   body: JSON.stringify({
+        //       user_id: localStorage.getItem("user_id"),
+        //       session_id: sessionId,
+        //       column_headers: columns
+        //     }),
+        // }).catch((error) => {
+        //     localStorage.removeItem("sample_questions")
+        //     aiSuggestQuestionsGenerated = false
+        //     console.error("Failed to create AI recommended question", error)
+        //   });
 
-        handler = (msg: any) => {
+        handler = async (msg: any) => {
             console.log('[WS] message received', msg);
             if(msg.event==="convert.ready"){
               console.log("[WS] message: CSV converted to parquet")
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
+              let resAISuggestedQues = await apiFetch("/api/file-upload/generate-recommended-questions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json",},
+                body: JSON.stringify({
+                    user_id: localStorage.getItem("user_id"),
+                    session_id: sessionId,
+                    column_headers: columns
+                  }),
+              }).catch((error) => {
+                  localStorage.removeItem("sample_questions")
+                  aiSuggestQuestionsGenerated = false
+                  console.error("Failed to create AI recommended question", error)
+                });
+
+              // const resAISuggestedQues= await AISuggestedQuesRes;
+              if(resAISuggestedQues){
+                const AISuggestedQuesData= await resAISuggestedQues.data
+                console.log("Successfully generated AI Recommended Ques.", AISuggestedQuesData)
+                localStorage.setItem("sample_questions", JSON.stringify(AISuggestedQuesData.sample_questions))
+              }
             }
             if(msg.event==="convert.failed"){
               console.log("[WS] message: CSV to parquet conversion failed")
@@ -293,27 +314,7 @@ export function FileUploadStep() {
               setIsUploading(false)
               return
             }
-            // if(msg.event==="athena.completed"){
-            //   console.log("Athena table created")
-            //   completionFlags.current.athena = true;
-            //   if(completionFlags.current.kpi){
-            //     setUploadProgress(100)
-            //     setProcessedFile(true);
-            //     setIsUploading(false)
-            //     hasFileUploadStarted(false)
-            //   }
-            // }
-            // if(msg.event==="athena.error"){
-            //   console.log("Athena table creation failure")
-            //   completionFlags.current.athena = true;
-            //   if(completionFlags.current.kpi){
-            //     setUploadProgress(100)
-            //     setProcessedFile(true);
-            //     setIsUploading(false)
-            //     hasFileUploadStarted(false)
-            //   }
-            //   setAthenaCreated(false)
-            // }
+
             if (msg.event === "global_queries.ready") {
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
               console.log("Global queries received for cards:", msg.payload.text);
@@ -358,14 +359,14 @@ export function FileUploadStep() {
             }
         };
         addListener(handler!, "chards-generator");
-        const resAISuggestedQues= await AISuggestedQuesRes;
-        if(resAISuggestedQues){
-          const AISuggestedQuesData= await resAISuggestedQues.data
-          console.log("AISuggestedQuesData generated")
-          const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-          console.log("Successfully generated AI Recommended Ques.")
-          localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
-        }
+        // const resAISuggestedQues= await AISuggestedQuesRes;
+        // if(resAISuggestedQues){
+        //   const AISuggestedQuesData= await resAISuggestedQues.data
+        //   console.log("AISuggestedQuesData generated")
+        //   const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+        //   console.log("Successfully generated AI Recommended Ques.")
+        //   localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
+        // }
     } catch (err) {
       setError("Failed to process file. Please try again.")
       setTimeout(()=>{

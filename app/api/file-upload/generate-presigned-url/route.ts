@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {fileName, fileType, userId} = body;
+    const {fileName, fileType, userId, rowCount} = body;
     const authHeader = req.headers.get("authorization");
     if (!fileName) {
       return NextResponse.json(
@@ -26,6 +26,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!rowCount) {
+      return NextResponse.json(
+        { error: "rowCount is required" },
+        { status: 400 }
+      );
+    }
 
     const response = await fetch(
         `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/uploads/session`,
@@ -38,6 +44,7 @@ export async function POST(req: NextRequest) {
             fileName: fileName,
             fileType: fileType,
             userId: userId,
+            rowCount: rowCount
           }),
         }
       );
