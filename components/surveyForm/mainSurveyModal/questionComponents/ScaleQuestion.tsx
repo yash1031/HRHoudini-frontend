@@ -11,24 +11,38 @@ interface ScaleQuestionProps {
 
 export default function ScaleQuestion({ question, index, answer, onChange }: ScaleQuestionProps) {
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-900">
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-gray-900">
         {index + 1}. {question.question_text}
         {question.is_required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div className="flex flex-wrap gap-2">
+      
+      <div className="space-y-1">
         {question.options?.map((option: QuestionOption) => (
-          <button
+          <label 
             key={option.id}
-            onClick={() => onChange(option.value)}
-            className={`px-4 py-2 rounded-lg border transition-all ${
+            className={`flex items-center px-2.5 py-1.5 rounded-md cursor-pointer transition-all border ${
               answer?.value === option.value
-                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                ? 'bg-blue-50 border-blue-300'
+                : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
             }`}
           >
-            {option.label}
-          </button>
+            <input
+              type="radio"
+              name={`question-${question.id}`}
+              value={option.value}
+              checked={answer?.value === option.value}
+              onChange={() => onChange(option.value)}
+              className="w-3.5 h-3.5 text-blue-600 border-gray-300 focus:outline-none"
+            />
+            <span className={`ml-2 text-xs ${
+              answer?.value === option.value 
+                ? 'text-blue-700 font-medium' 
+                : 'text-gray-700'
+            }`}>
+              {option.label}
+            </span>
+          </label>
         ))}
       </div>
     </div>
