@@ -210,9 +210,10 @@ export function FileUploadStep() {
               }),
           });
           
-        }catch(error){
-          console.log("Error in generating pre-signed URL", error)
-          setError("Insufficient Tokens")
+        }catch(error: any){
+          const parsed = JSON.parse(error.message);
+          console.log("Error in generating pre-signed URL: ", parsed.error)
+          setError(parsed.error)
           setIsUploading(false)
           return
         }
@@ -237,20 +238,6 @@ export function FileUploadStep() {
         await uploadFileWithProgress(uploadURL, file, file.type);
 
         setUploadProgress(40)
-
-        // let AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json",},
-        //   body: JSON.stringify({
-        //       user_id: localStorage.getItem("user_id"),
-        //       session_id: sessionId,
-        //       column_headers: columns
-        //     }),
-        // }).catch((error) => {
-        //     localStorage.removeItem("sample_questions")
-        //     aiSuggestQuestionsGenerated = false
-        //     console.error("Failed to create AI recommended question", error)
-        //   });
 
         handler = async (msg: any) => {
             console.log('[WS] message received', msg);
