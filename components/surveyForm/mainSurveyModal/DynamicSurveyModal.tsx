@@ -149,9 +149,10 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
   };
 
   const handleSubmit = async () => {
-    if (!validateAnswers()) {
-      return;
-    }
+    //Check if compulsory questions are answered
+    // if (!validateAnswers()) {
+    //   return;
+    // }
 
     try {
       setIsSubmitting(true);

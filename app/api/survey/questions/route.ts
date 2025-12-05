@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('Response Status:', response.status);
+    console.log('Response Headers:', Object.fromEntries(response.headers));
+
     if (!response.ok) {
       const errorData = await response.json();
       return NextResponse.json(
@@ -21,6 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('Success Response Data:', JSON.stringify(data, null, 2));
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in questions API:', error);
