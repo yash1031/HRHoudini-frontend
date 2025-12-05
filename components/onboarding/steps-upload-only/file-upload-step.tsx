@@ -7,7 +7,7 @@ import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building
 import { FileUpload } from "@/components/file-upload"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
-import { useState, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useUserContext } from "@/contexts/user-context"
 import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
@@ -51,26 +51,14 @@ export function FileUploadStep() {
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   let aiSuggestQuestionsGenerated= true
-  // const [kpiError, setKpiError]= useState(false)
-  const { setCardsState, setChartsState, setAthenaCreated} = useDashboard();
+  const { setCardsState} = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
     setFileDropped(args)
   }
   
-
   const handleContinue = () => {
-    // if(kpiError){
-    //   // Navigate to dashboard-upload-only with specified parameters
-    //   const params = new URLSearchParams({
-    //     hasFile: "true",
-    //     showWelcome: "true",
-    //   })
-    //   localStorage.setItem("from_history","false")
-    //   let dashboardUrl = `/dashboard?${params.toString()}`
-    //   router.push(dashboardUrl)
-    // }
     if(processedFile) skipToStep(3)
     else {
       const {file, metadata}= uploadedFile

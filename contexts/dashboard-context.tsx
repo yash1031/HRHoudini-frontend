@@ -3,7 +3,7 @@
 // ENHANCED DASHBOARD CONTEXT WITH GRANULAR STATES
 // ============================================
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { useEffect, createContext, useContext, useState, ReactNode } from 'react';
 import type { DashboardData, KPICard, ChartConfig } from '@/types/dashboard';
 
 // Re-export for convenience
@@ -46,8 +46,8 @@ interface DashboardContextType {
   setMetadata: (metadata: any) => void;
   
   // Legacy compatibility - combines cards + charts
-  dashboard_data: DashboardData | null;
-  setDashboard_data: (data: DashboardData | null | ((prev: DashboardData | null) => DashboardData | null)) => void;
+  // dashboard_data: DashboardData | null;
+  // setDashboard_data: (data: DashboardData | null | ((prev: DashboardData | null) => DashboardData | null)) => void;
   
   // Legacy loading & error (kept for backward compatibility)
   isLoading: boolean;
@@ -82,22 +82,60 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 // ============================================
 
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Granular section states
-  const [cardsState, setCardsState] = useState<SectionState<KPICard[]>>({
-    loading: false,
-    error: null,
-    data: []
+  const [cardsState, setCardsState] = useState(() => {
+    // Initialize from sessionStorage
+    try {
+      console.log("cardsState fetched From session Storage")
+      const saved = sessionStorage.getItem('cardsState');
+      return saved ? JSON.parse(saved) : { data: [], loading: false, error: null };
+    } catch {
+      console.log("Error loading cardsState from dashboard-context")
+      return { data: [], loading: false, error: null };
+    }
   });
-  
-  const [chartsState, setChartsState] = useState<SectionState<ChartConfig[]>>({
-    loading: false,
-    error: null,
-    data: []
+
+  const [chartsState, setChartsState] = useState(() => {
+    // Initialize from sessionStorage
+    try {
+      console.log("chartsState fetched From session Storage")
+      const saved = sessionStorage.getItem('chartsState');
+      return saved ? JSON.parse(saved) : { data: [], loading: false, error: null };
+    } catch {
+      console.log("Error loading chartsState from dashboard-context")
+      return { data: [], loading: false, error: null };
+    }
   });
+
+  // Save cardsState to sessionStorage whenever it changes
+  useEffect(() => {
+    console.log("Saving cardsState to sessionStorage");
+    sessionStorage.setItem("cardsState", JSON.stringify(cardsState));
+  }, [cardsState]);
+
+  // Save chartsState to sessionStorage whenever it changes
+  useEffect(() => {
+    console.log("Saving chartsState to sessionStorage");
+    sessionStorage.setItem("chartsState", JSON.stringify(chartsState));
+  }, [chartsState]);
   
   const [drilldownsState, setDrilldownsState] = useState<DrilldownState>({});
   
-  const [metadata, setMetadata] = useState<any>(null);
+  const [metadata, setMetadata] = useState<any>(()=>{
+    try {
+      console.log("metadata fetched From session Storage")
+      const saved = sessionStorage.getItem('metadata');
+      return saved ? JSON.parse(saved) : { "filename":"", "totalRows":""};
+    } catch {
+      console.log("Error loading metadata from dashboard-context")
+      return { "filename":"", "totalRows":""};
+    }
+  });
+
+  // Save cardsState to sessionStorage whenever it changes
+  useEffect(() => {
+    console.log("Saving metadata to sessionStorage");
+    sessionStorage.setItem("metadata", JSON.stringify(metadata));
+  }, [metadata]);
   
   const [athenaCreated, setAthenaCreated] = useState<boolean>(true);
   
@@ -117,45 +155,45 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       : null;
 
   // Enhanced setDashboard_data that updates granular states
-  const setDashboard_data = (
-    data: DashboardData | null | ((prev: DashboardData | null) => DashboardData | null)
-  ) => {
-    if (typeof data === 'function') {
-      // Handle functional update
-      // Build current data from granular states
-      const currentData: DashboardData | null = 
-        (cardsState.data.length > 0 || chartsState.data.length > 0 || metadata)
-          ? {
-              cards: cardsState.data,
-              charts: chartsState.data,
-              metadata: metadata || {}
-            }
-          : null;
+  // const setDashboard_data = (
+  //   data: DashboardData | null | ((prev: DashboardData | null) => DashboardData | null)
+  // ) => {
+  //   if (typeof data === 'function') {
+  //     // Handle functional update
+  //     // Build current data from granular states
+  //     const currentData: DashboardData | null = 
+  //       (cardsState.data.length > 0 || chartsState.data.length > 0 || metadata)
+  //         ? {
+  //             cards: cardsState.data,
+  //             charts: chartsState.data,
+  //             metadata: metadata || {}
+  //           }
+  //         : null;
       
-      const newData = data(currentData);
+  //     const newData = data(currentData);
       
-      if (newData) {
-        setCardsState(prev => ({ ...prev, data: newData.cards || [] }));
-        setChartsState(prev => ({ ...prev, data: newData.charts || [] }));
-        setMetadata(newData.metadata || null);
-      } else {
-        setCardsState(prev => ({ ...prev, data: [] }));
-        setChartsState(prev => ({ ...prev, data: [] }));
-        setMetadata(null);
-      }
-    } else {
-      // Handle direct update
-      if (data) {
-        setCardsState(prev => ({ ...prev, data: data.cards || [] }));
-        setChartsState(prev => ({ ...prev, data: data.charts || [] }));
-        setMetadata(data.metadata || null);
-      } else {
-        setCardsState(prev => ({ ...prev, data: [] }));
-        setChartsState(prev => ({ ...prev, data: [] }));
-        setMetadata(null);
-      }
-    }
-  };
+  //     if (newData) {
+  //       setCardsState(prev => ({ ...prev, data: newData.cards || [] }));
+  //       setChartsState(prev => ({ ...prev, data: newData.charts || [] }));
+  //       setMetadata(newData.metadata || null);
+  //     } else {
+  //       setCardsState(prev => ({ ...prev, data: [] }));
+  //       setChartsState(prev => ({ ...prev, data: [] }));
+  //       setMetadata(null);
+  //     }
+  //   } else {
+  //     // Handle direct update
+  //     if (data) {
+  //       setCardsState(prev => ({ ...prev, data: data.cards || [] }));
+  //       setChartsState(prev => ({ ...prev, data: data.charts || [] }));
+  //       setMetadata(data.metadata || null);
+  //     } else {
+  //       setCardsState(prev => ({ ...prev, data: [] }));
+  //       setChartsState(prev => ({ ...prev, data: [] }));
+  //       setMetadata(null);
+  //     }
+  //   }
+  // };
 
   return (
     <DashboardContext.Provider
@@ -168,8 +206,8 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setDrilldownsState,
         metadata,
         setMetadata,
-        dashboard_data,
-        setDashboard_data,
+        // dashboard_data,
+        // setDashboard_data,
         isLoading,
         setIsLoading,
         errorDash,

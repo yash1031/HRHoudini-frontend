@@ -57,7 +57,7 @@ export function KPIsStep() {
     chartsState,
     setChartsState, 
     setDrilldownsState, 
-    setDashboard_data 
+    // setDashboard_data 
   } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(

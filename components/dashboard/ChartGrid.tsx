@@ -55,17 +55,12 @@ const generatePieColors = (count: number): string[] => {
   return colors;
 };
 
-/**
- * Render individual chart based on type
- */
-const renderChart = (
-  chartData: ChartDataItem[], 
-  chartConfig: ChartConfig
-): React.ReactNode => {
-  
-  // PIE CHART
-  if (chartConfig.type === 'pie') {
-    const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
+// Create a separate component for pie charts
+const PieChartRenderer: React.FC<{ chartData: ChartDataItem[]; chartConfig: ChartConfig }> = ({ 
+  chartData, 
+  chartConfig 
+}) => {
+  const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
     
     // Process data to show top 10 + Others
     const processedChartData = React.useMemo(() => {
@@ -187,7 +182,7 @@ const renderChart = (
     };
 
     return (
-      <PieChart margin={{ top: 30, right: 20, bottom: 25, left: 20 }}> 
+      <PieChart width={400} height={350} margin={{ top: 60, bottom: 5, left: 70 }}> 
         <Pie
           data={processedChartData}
           cx="50%"
@@ -221,6 +216,20 @@ const renderChart = (
         />
       </PieChart>
     );
+
+}
+
+/**
+ * Render individual chart based on type
+ */
+const renderChart = (
+  chartData: ChartDataItem[], 
+  chartConfig: ChartConfig
+): React.ReactNode => {
+  
+  // PIE CHART
+  if (chartConfig.type === 'pie') {
+    return <PieChartRenderer chartData={chartData} chartConfig={chartConfig} />;
   }
 
   // LINE CHART
