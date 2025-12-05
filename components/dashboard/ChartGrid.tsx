@@ -65,106 +65,248 @@ const renderChart = (
   
   // PIE CHART
   if (chartConfig.type === 'pie') {
-    const pieColors = generatePieColors(chartData.length);
+    const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
+    
+    // Process data to show top 10 + Others
+    const processedChartData = React.useMemo(() => {
+      const TOP_N = 5;
+      
+      // Sort by value descending
+      const sortedData = [...chartData].sort((a, b) => 
+        (b[chartConfig.valueKey || 'value'] || 0) - (a[chartConfig.valueKey || 'value'] || 0)
+      );
+      
+      if (sortedData.length <= TOP_N) {
+        return sortedData;
+      }
+      
+      // Take top 10
+      const topData = sortedData.slice(0, TOP_N);
+      
+      // Combine remaining into "Others"
+      const othersData = sortedData.slice(TOP_N);
+      const othersValue = othersData.reduce((sum, item) => 
+        sum + (item[chartConfig.valueKey || 'value'] || 0), 0
+      );
+      
+      // Calculate percentage for Others
+      const totalValue = sortedData.reduce((sum, item) => 
+        sum + (item[chartConfig.valueKey || 'value'] || 0), 0
+      );
+      const othersPercentage = (othersValue / totalValue) * 100;
+      
+      // Add Others slice
+      topData.push({
+        [chartConfig.nameKey || 'name']: `Others (${othersData.length} items)`,
+        [chartConfig.valueKey || 'value']: othersValue,
+        percentage: othersPercentage,
+        isOthers: true,
+        othersCount: othersData.length,
+        othersItems: othersData
+      });
+      
+      return topData;
+    }, [chartData, chartConfig.valueKey, chartConfig.nameKey]);
 
-    const renderLabel = ({ cx, cy, midAngle, outerRadius, percent, name, value }: any) => {
-      const RADIAN = Math.PI / 180;
-      const radius = outerRadius + 50;
-      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-      const textAnchor = x > cx ? 'start' : 'end';
-      const isLongLabel = name?.length > 15;
+    const pieColors = generatePieColors(processedChartData.length);
+    const totalValue = processedChartData.reduce((sum, d) => sum + (d[chartConfig.valueKey || 'value'] || 0), 0);
 
-      if (isLongLabel) {
+    // Custom legend
+    const CustomLegend = ({ payload }: any) => {
+      return (
+        <div className="grid grid-cols-2 gap-2 mt-4 px-4">
+          {payload.map((entry: any, index: number) => (
+            <div 
+              key={`legend-${index}`}
+              className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 p-1 rounded"
+              onMouseEnter={() => setActiveIndex(index)}
+              onMouseLeave={() => setActiveIndex(null)}
+            >
+              <div 
+                className="w-3 h-3 rounded-sm flex-shrink-0" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-gray-700 truncate flex-1" title={entry.value}>
+                {entry.value}
+              </span>
+              <span className="text-gray-500 text-[10px]">
+                {((entry.payload.value / totalValue) * 100).toFixed(0)}%
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    // Custom tooltip for "Others" slice
+    const CustomTooltip = ({ active, payload }: any) => {
+      if (!active || !payload || !payload.length) return null;
+      
+      const data = payload[0].payload;
+      const name = data[chartConfig.nameKey || 'name'];
+      const value = data[chartConfig.valueKey || 'value'];
+      const percentage = ((value / totalValue) * 100).toFixed(1);
+      
+      if (data.isOthers) {
         return (
-          <g>
-            <text
-              x={x} y={y - 8}
-              fill="#64748b"
-              textAnchor={textAnchor}
-              dominantBaseline="central"
-              fontSize="12px"
-              fontWeight="500"
-            >
-              {name}
-            </text>
-            <text
-              x={x} y={y + 8}
-              fill="#64748b"
-              textAnchor={textAnchor}
-              dominantBaseline="central"
-              fontSize="11px"
-            >
-              {`${value} (${(percent * 100).toFixed(0)}%)`}
-            </text>
-          </g>
+          <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs">
+            <p className="font-semibold text-gray-900 mb-2">
+              Others ({data.othersCount} items)
+            </p>
+            <p className="text-sm text-gray-600 mb-1">
+              Total: {value.toFixed(2)} ({percentage}%)
+            </p>
+            <div className="border-t border-gray-200 mt-2 pt-2 max-h-40 overflow-y-auto">
+              <p className="text-xs text-gray-500 mb-1">Included items:</p>
+              {data.othersItems?.slice(0, 10).map((item: any, idx: number) => (
+                <div key={idx} className="text-xs text-gray-600 flex justify-between gap-2">
+                  <span className="truncate">{item[chartConfig.nameKey || 'name']}</span>
+                  <span className="text-gray-500">
+                    {item[chartConfig.valueKey || 'value']?.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+              {data.othersItems && data.othersItems.length > 10 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  + {data.othersItems.length - 10} more...
+                </p>
+              )}
+            </div>
+          </div>
         );
       }
       
       return (
-        <text
-          x={x} y={y}
-          fill="#64748b"
-          textAnchor={textAnchor}
-          dominantBaseline="central"
-          fontSize="12px"
-        >
-          {`${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-        </text>
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2">
+          <p className="font-semibold text-gray-900">{name}</p>
+          <p className="text-sm text-gray-600">
+            {value.toFixed(2)} ({percentage}%)
+          </p>
+        </div>
       );
     };
 
     return (
-      <PieChart>
+      <PieChart margin={{ top: 30, right: 20, bottom: 25, left: 20 }}> 
         <Pie
-          data={chartData}
+          data={processedChartData}
           cx="50%"
-          cy="50%"
-          labelLine={false}
-          label={renderLabel}
-          outerRadius={110}
+          cy="45%" 
+          innerRadius={80}
+          outerRadius={130}
           fill="#8884d8"
           dataKey={chartConfig.valueKey || 'value'}
+          label={false}
+          activeIndex={activeIndex !== null ? activeIndex : undefined}
+          activeShape={{
+            outerRadius: 140,
+            strokeWidth: 2,
+            stroke: '#fff'
+          }}
+          onMouseEnter={(_, index) => setActiveIndex(index)}
+          onMouseLeave={() => setActiveIndex(null)}
         >
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={pieColors[index]} />
+          {processedChartData.map((entry, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={entry.isOthers ? '#94a3b8' : pieColors[index]}
+            />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip content={<CustomTooltip />} />
+        <Legend 
+          content={<CustomLegend />}
+          verticalAlign="bottom"
+          height={80} 
+        />
       </PieChart>
     );
   }
 
   // LINE CHART
+
   if (chartConfig.type === 'line') {
+    const dataPointCount = chartData.length;
+    const shouldShowDots = dataPointCount <= 10;
+    const shouldSkipLabels = dataPointCount > 50; // Skip labels if more than 50 points
+    
     return (
-      <LineChart data={chartData}>
+      <LineChart 
+        data={chartData}
+        margin={{ top: 20, right: 30, bottom: 20, left: 10 }}
+      >
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+
+        {/* X-Axis with arrow indicator */}
         <XAxis 
           dataKey={chartConfig.xDataKey || 'name'} 
-          tick={{ fill: '#64748b', fontSize: 12 }} 
+          tick={{ fill: '#64748b', fontSize: 12 }}
+          tickLine={{ stroke: '#cbd5e1' }}
+          axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+          ticks={shouldSkipLabels ? chartData
+            .map((_, idx) => idx)
+            .filter((_, idx) => idx === 0 || idx % Math.ceil(dataPointCount / 10) === 0 || idx === dataPointCount - 1)
+            .map(idx => chartData[idx][chartConfig.xDataKey || 'name'])
+            : undefined}
+          label={{ 
+            value: `${chartConfig.xLabel || ''}${chartConfig.xUnit ? ` (${chartConfig.xUnit})` : ''}`,
+            position: 'insideBottom',
+            offset: -10,
+            style: { fill: '#475569', fontSize: 13, fontWeight: 600 }
+          }}
         />
-        <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+
+        {/* Y-Axis with arrow indicator */}
+        <YAxis 
+          tick={{ fill: '#64748b', fontSize: 12 }}
+          tickLine={{ stroke: '#cbd5e1' }}
+          axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+          label={{ 
+            value: `${chartConfig.yLabel || ''}${chartConfig.yUnit ? ` (${chartConfig.yUnit})` : ''}`,
+            angle: -90, 
+            position: 'insideLeft',
+            offset: 5,
+            style: { fill: '#475569', fontSize: 13, fontWeight: 600, textAnchor: 'middle' }
+          }}
+        />
+
         <Tooltip 
           contentStyle={{ 
             backgroundColor: '#fff', 
             border: '1px solid #e2e8f0', 
-            borderRadius: '8px' 
-          }} 
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}
+          formatter={(value: any) => {
+            if (chartConfig.yUnit) {
+              return [value + ' ' + chartConfig.yUnit, chartConfig.yLabel || 'Value'];
+            }
+            return [value, chartConfig.yLabel || 'Value'];
+          }}
         />
-        <Legend />
+
         <Line
           type="monotone"
           dataKey={chartConfig.yDataKey || 'value'}
           stroke={chartConfig.color || '#f59e0b'}
-          strokeWidth={3}
-          dot={{ r: 6, fill: chartConfig.color || '#f59e0b' }}
-          name={chartConfig.lineName || 'Value'}
+          strokeWidth={shouldShowDots ? 2 : 2.5}
+          dot={shouldShowDots ? { 
+            r: 5, 
+            fill: chartConfig.color || '#f59e0b',
+            strokeWidth: 2,
+            stroke: '#fff'
+          } : false}
+          activeDot={!shouldShowDots ? { 
+            r: 6, 
+            fill: chartConfig.color || '#f59e0b',
+            stroke: '#fff',
+            strokeWidth: 2
+          } : { r: 7 }}
+          name={chartConfig.lineName || chartConfig.yLabel || 'Value'}
         />
       </LineChart>
     );
   }
-
   // BAR CHART (default)
   const isHorizontal = chartConfig.layout === 'horizontal' || 
                        chartConfig.type === 'horizontalBar';

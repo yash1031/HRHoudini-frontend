@@ -162,6 +162,10 @@ export interface ChartConfig {
   xDataKey?: string;
   yDataKey?: string;
   valueKey?: string;
+  xLabel?: string;
+  yLabel?: string;
+  xUnit?: string;
+  yUnit?: string;
   
   // Layout
   layout?: string;
