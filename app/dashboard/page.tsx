@@ -34,13 +34,11 @@ export default function DashboardPage() {
     setDrilldownsState,
     metadata,
     setMetadata,
-    setDashboard_data
+    // setDashboard_data
   } = useDashboard();
 
   // Local state
   const [config, setConfig] = useState<ConfigurableDashboardProps | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileRowCount, setFileRowCount] = useState<string | null>(null);
   const [welcomeMessage, setWelcomeMessage] = useState<string>('');
   const [sampleQuestions, setSampleQuestions] = useState<string[]>([]);
   const [chatHeight, setChatHeight] = useState(400);
@@ -56,7 +54,7 @@ export default function DashboardPage() {
     const fileUploaded = searchParams.get("hasFile");
     
     if (fileUploaded === "false") {
-      localStorage.setItem("presigned-parquet-url", "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet")
+      // localStorage.setItem("presigned-parquet-url", "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet")
       // Use sample data
       handleSampleData();
       return;
@@ -68,9 +66,14 @@ export default function DashboardPage() {
     // Cleanup on unmount
     return () => {
       console.log("Unmounting dashboard component");
-      setDashboard_data(null);
-      closeWebSocket();
-      setAthenaCreated(true)
+      // setDashboard_data(null);
+      // Only cleanup if navigating away, not refreshing
+      // const navigationType = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+      // if (navigationType?.type !== "reload") {
+        console.log("Closing webSocketConnection")
+        closeWebSocket();
+        setAthenaCreated(true);
+      // }
     };
   }, []);
 
