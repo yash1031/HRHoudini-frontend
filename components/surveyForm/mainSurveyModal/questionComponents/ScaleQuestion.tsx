@@ -14,7 +14,7 @@ export default function ScaleQuestion({ question, index, answer, onChange }: Sca
     <div className="space-y-1.5">
       <label className="block text-xs font-medium text-gray-900">
         {index + 1}. {question.question_text}
-        {question.is_required && <span className="text-red-500 ml-1">*</span>}
+        {/* {question.is_required && <span className="text-red-500 ml-1">*</span>} */}
       </label>
       
       <div className="space-y-1">
