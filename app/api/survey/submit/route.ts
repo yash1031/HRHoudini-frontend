@@ -4,6 +4,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { user_id, answers, never_show_again } = body;
+    const authHeader = request.headers.get("authorization");
 
     if (!user_id) {
       return NextResponse.json(
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+            ...(authHeader ? { authorization: authHeader } : {}) 
       },
       body: JSON.stringify({
         user_id: user_id,

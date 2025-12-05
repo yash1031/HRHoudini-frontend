@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { apiFetch } from "@/lib/api/client";
 
 interface UseSurveyModalReturn {
   showSurvey: boolean;
@@ -57,7 +58,7 @@ export function useSurveyModal(): UseSurveyModalReturn {
       // For testing api failure
     //   throw new Error('Error connecting to api for submit survey');
 
-      const response = await fetch('/api/survey/should-show', {
+      const response = await apiFetch('/api/survey/should-show', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,20 +67,21 @@ export function useSurveyModal(): UseSurveyModalReturn {
         body: JSON.stringify({
           user_id: userId,
         }),
+      }).catch((error) => {
+        const parsedError = JSON.parse(error.message);
+        console.error('Failed to check survey preference', parsedError);
+        return;
       });
 
-      if (!response.ok) {
-        console.error('Failed to check survey preference');
-        return;
-      }
+      if(response){
+        console.log("Response from should-show-survey", response)
 
-      const data = await response.json();
-
-      if (data.shouldShow) {
-        setTimeout(() => {
-          setShowSurvey(true);
-          setHasShownSurvey(true);
-        }, 300);
+        if (response.shouldShow) {
+          setTimeout(() => {
+            setShowSurvey(true);
+            setHasShownSurvey(true);
+          }, 300);
+        }
       }
     } catch (error) {
       console.error('Error checking survey preference:', error);

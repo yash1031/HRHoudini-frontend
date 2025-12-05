@@ -7,6 +7,7 @@ export async function DELETE(
 ) {
   try {
     const session_id = params.session_id;
+    const authHeader = request.headers.get("authorization");
     
     // Get user_id from query params or auth context
     const searchParams = request.nextUrl.searchParams;
@@ -26,6 +27,7 @@ export async function DELETE(
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+            ...(authHeader ? { authorization: authHeader } : {}) 
         },
       }
     );
