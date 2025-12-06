@@ -20,15 +20,21 @@ import {
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
 import { useUserContext } from "@/contexts/user-context"
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
+import {generateChartsFromParquet } from "@/utils/parquetLoader"
+import {attachDrilldownToParent} from "@/utils/drilldownHelpers"
+import {generateDrilldownChartsData, buildQueryFromQueryObj} from "@/utils/parquetLoader"
 
 
 interface SelectedKPIInfo {
+  kpi_id: string;      // Added: KPI identifier
   label: string;
   description: string;
+  category: string;    // Added: KPI category
 }
+
 interface KPI {
   id: string;
   label: string;
@@ -46,7 +52,13 @@ const ROLE_KPI_RECOMMENDATIONS = {
 export function KPIsStep() {
   
   const { setStep ,userContext } = useOnboarding()
-  const { setDashboard_data, setIsLoading, setErrorDash, wb } = useDashboard();
+  // const { dashboard_data, setDashboard_data, setIsLoading, setErrorDash, wb } = useDashboard();
+  const { 
+    chartsState,
+    setChartsState, 
+    setDrilldownsState, 
+    setDashboard_data 
+  } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
     ROLE_KPI_RECOMMENDATIONS[userContext.role as keyof typeof ROLE_KPI_RECOMMENDATIONS] || [],
@@ -63,11 +75,16 @@ export function KPIsStep() {
         ? selectedKPIs.filter((id) => id !== kpiId)
         : [...selectedKPIs, kpiId];
 
-    // Build detail objects from global kpis array
+    // Build detail objects from global kpis array with all four fields
     const selectedDetails = updatedSelected
       .map((id) => kpis.find((kpi) => kpi.id === id))
       .filter((kpi) => !!kpi)
-      .map(({ label, description }) => ({ label, description }));
+      .map(({ id, label, description, category }) => ({ 
+        kpi_id: id,        // Map id to kpi_id
+        label, 
+        description, 
+        category 
+      }));
 
     return selectedDetails;
   });
@@ -95,128 +112,330 @@ export function KPIsStep() {
         console.log("API Dashboard call is in progress")
         console.log("Selected KPIs are", selectedKPIs)
           
-        setIsLoading(true)
+        // setIsLoading(true)
 
         const user_id= localStorage.getItem("user_id")
         const session_id= localStorage.getItem("session_id")
         const idempotency_key= localStorage.getItem("idempotency_key")
         
         // Insights Dashboard Generation
+        // let resCreateDash
+        // try{
+        //   resCreateDash = await apiFetch("/api/create-dashboard", {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json"},
+        //     body: JSON.stringify({
+        //         user_id: user_id,
+        //         session_id: session_id,
+        //         selected_kpis: selectedKPIWithDesc,
+        //         idempotency_key: idempotency_key
+        //       }),
+        //   });
+        // }catch(error){
+        //   setIsLoading(false)
+        //   setErrorDash("Failed to created Dashboard");
+        //   console.log("Unable to create dashboard")
+        // }
+        // Insights Dashboard Generation by Parts
+        setChartsState(prev => ({ ...prev, loading: true, error: null }));
         let resCreateDash
         try{
-          resCreateDash = await apiFetch("/api/create-dashboard", {
+          resCreateDash = await apiFetch("/api/create-dashboard-by-parts", {
             method: "POST",
             headers: { "Content-Type": "application/json"},
             body: JSON.stringify({
                 user_id: user_id,
                 session_id: session_id,
-                selected_kpis: selectedKPIWithDesc,
-                idempotency_key: idempotency_key
+                selected_kpis: selectedKPIWithDesc
               }),
           });
         }catch(error){
-          setIsLoading(false)
-          setErrorDash("Failed to created Dashboard");
+          // setIsLoading(false)
+          // setErrorDash("Failed to created Dashboard");
           console.log("Unable to create dashboard")
         }
         handler = async (msg: any) => {
-          try {
-            console.log('[WS] message', msg);
-            if(msg.event==="insight.ready"){
-              console.log("[WS] message: Insight Dashboard is generated")
-              console.log("event from websockets is", msg)
-              const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
-              console.log("Tokens consumed", dataCreateDashboard.tokens_used.grand_total)
-              setIsLoading(false)
-              setErrorDash(null);
-              setDashboard_data(dataCreateDashboard.analytics);
-              console.log("Insights are ready, Dashboard Data is", dataCreateDashboard.analytics)
-              let resStoreDash
-              try{
-                resStoreDash = await apiFetch("/api/insights/store", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json"
-                  },
-                  body: JSON.stringify({
-                      user_id: localStorage.getItem("user_id"),
-                      session_id: localStorage.getItem("session_id"),
-                      s3_location: localStorage.getItem("s3Key"),
-                      analytical_json_output: dataCreateDashboard.analytics
-                    }),
-                });
-              }catch (error) {
-                  // If apiFetch throws, the request failed
-                  console.error("Unable to store dashboard for this session")
+           try {
+          
+            // ============================================
+            // MAIN CHARTS HANDLER
+            // ============================================
+            if (msg.event === "kpi.main.ready") {
+              console.log("[STEP 2] Main Charts received");
+              console.log("Message from websockets:", msg);
+              
+              const mainChartsQueries = JSON.parse(msg?.payload?.charts?.text).charts;
+              console.log("Queries received for charts generation:", mainChartsQueries);
+              
+              const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              
+              generateChartsFromParquet(mainChartsQueries, parquetUrl)
+                .then((result: any) => {
+                  console.log("Result for generateChartsFromParquet:", JSON.stringify(result, null, 2));
                   
-                  closeWebSocket();
-                  removeListener(handler)
-                  return;
-              }
-              const dataStoreDash= await resStoreDash.data
-              console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
-              closeWebSocket();
-              removeListener(handler)
+                  // Success - update charts data in granular state
+                  setChartsState(prev => ({
+                    loading: false,
+                    error: null,
+                    data: [...prev.data, ...result]  // ← Append new charts to existing
+                  }));
+                })
+                .catch((error) => {
+                  console.error("Failed to generate charts:", error);
+                  
+                  // Error - set error state
+                  setChartsState({
+                    loading: false,
+                    error: "Failed to generate analytical charts",
+                    data: []
+                  });
+                });
             }
+            
+            // ============================================
+            // CHARTS ERROR HANDLER
+            // ============================================
+            if (msg.event === "kpi.main.error") {
+              console.error("Backend error in chart generation:", msg.payload);
+              
+              setChartsState({
+                loading: false,
+                error: msg.payload?.message || "Backend error generating charts",
+                data: []
+              });
+            }
+
+            // ============================================
+            // DRILLDOWN ERROR HANDLER
+            // ============================================
+            if (msg.event === "drilldown_charts.ready") {
+              console.log("[STEP 3] Drill down received");
+
+              const drilldownPayload = msg?.payload;
+              const parentChartId = drilldownPayload?.parent_chart_id;
+              const drilldownCharts = drilldownPayload?.charts || [];
+              const drilldownFilters = drilldownPayload?.filters || [];
+              const kpiId = drilldownPayload?.kpi_id;
+
+              
+              
+              // if (parentChartId) {
+              //   setDrilldownsState(prev => ({
+              //     ...prev,
+              //     [parentChartId]: { loading: true, error: false }
+              //   }));
+              // }
+              
+              const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              
+              (async () => {
+                try {
+                  // Transform filters
+                  const transformedFilters = drilldownFilters.map((filter: any) => ({
+                    field: filter.field,
+                    label: filter.label,
+                    type: filter.type === 'select' ? 'multiselect' : filter.type,
+                    options: filter.options || [],
+                    whereClause: filter.whereClause
+                  }));
+                  
+                  // Prepare queries
+                  const drilldownQueries = {
+                    charts: drilldownCharts.map((chart: any) => {
+                      const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
+                      
+                      if (queryObjWithUrl.from) {
+                        queryObjWithUrl.from.source = parquetUrl;
+                      } else {
+                        queryObjWithUrl.from = { type: 'parquet', source: parquetUrl };
+                      }
+                      
+                      return {
+                        ...chart,
+                        query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
+                        queryObject: queryObjWithUrl
+                      };
+                    })
+                  };
+                  
+                  const chartDataResults = await generateDrilldownChartsData(
+                    drilldownQueries.charts, 
+                    parquetUrl
+                  );
+                  
+                  console.log("Drilldown charts generated:", chartDataResults);
+                  
+                  // Update drilldown state
+                  if (parentChartId) {
+                    setDrilldownsState(prev => ({
+                      ...prev,
+                      [parentChartId]: { loading: false, error: false }
+                    }));
+                  }
+                  
+                  // UPDATED: Merge with existing insights if present
+                  setChartsState(prev => {
+                    const currentCharts = [...prev.data];
+
+                    console.log("[DRILLDOWN] received chartsState", currentCharts);
+                    
+                    // Find the parent chart by ID
+                    const chartIndex = currentCharts.findIndex(
+                      chart => (chart.id || chart.semantic_id) === parentChartId
+                    );
+                    
+                    if (chartIndex === -1) {
+                      console.warn("Parent chart not found:", parentChartId);
+                      return prev;
+                    }
+
+                    const targetChart = currentCharts[chartIndex];
+                    
+                    // Preserve existing drillDownData if it exists (especially insights)
+                    const existingDrillDownData = targetChart.drillDownData;
+                    
+                    // Merge: keep existing insights if present, add new filters and charts
+                    currentCharts[chartIndex] = {
+                      ...targetChart,
+                      drillDownData: {
+                        filters: transformedFilters,
+                        charts: chartDataResults,
+                        ...(existingDrillDownData?.insights && { insights: existingDrillDownData.insights })
+                      }
+                    };
+                    
+                    console.log("[DRILLDOWN] Attached to chart:", parentChartId);
+                    if (existingDrillDownData?.insights) {
+                      console.log("[DRILLDOWN] Preserved existing insights:", existingDrillDownData.insights);
+                    }
+                    console.log("[DRILLDOWN] Updated chartsState", currentCharts);
+                    
+                    return {
+                      ...prev,
+                      data: currentCharts
+                    };
+                  });
+                  
+                } catch (error) {
+                  console.error("Failed to process drilldown:", error);
+                  
+                  if (parentChartId) {
+                    setDrilldownsState(prev => ({
+                      ...prev,
+                      [parentChartId]: { loading: false, error: true }
+                    }));
+                  }
+                }
+              })();
+            }
+
+            // ============================================
+            // DRILLDOWN ERROR HANDLER
+            // ============================================
+            if (msg.event === "drilldown_charts.error") {
+              console.error("Backend error in drilldown generation:", msg.payload);
+              
+              const parentChartId = msg.payload?.parent_chart_id;
+              if (parentChartId) {
+                setDrilldownsState(prev => ({
+                  ...prev,
+                  [parentChartId]: { loading: false, error: true }
+                }));
+              }
+            }
+
+            // Add this handler in your WebSocket message processing, alongside drilldown.ready
+
+            // ============================================
+            // INSIGHTS HANDLER
+            // ============================================
+            if (msg.event === "drilldown_insights.ready") {
+              console.log("[INSIGHTS] Insights received");
+
+              const insightsPayload = msg?.payload;
+              const parentChartId = insightsPayload?.parent_chart_id;
+              const insights = insightsPayload?.insights;
+
+              if (!parentChartId || !insights) {
+                console.warn("[INSIGHTS] Missing parent_chart_id or insights data");
+                return;
+              }
+
+              // Update chartsState - find chart and attach/merge insights
+              setChartsState(prev => {
+                const currentCharts = [...prev.data];
+
+                
+
+                // Find the parent chart by ID
+                const chartIndex = currentCharts.findIndex(
+                  chart => (chart.id || chart.semantic_id) === parentChartId
+                );
+
+                console.log("[INSIGHTS] received chart:", currentCharts[chartIndex]);
+
+                if (chartIndex === -1) {
+                  console.warn("[INSIGHTS] Parent chart not found:", parentChartId);
+                  return prev;
+                }
+
+                const targetChart = currentCharts[chartIndex];
+
+                // Case A: drillDownData already exists - merge insights
+                if (targetChart.drillDownData) {
+                  currentCharts[chartIndex] = {
+                    ...targetChart,
+                    drillDownData: {
+                      ...targetChart.drillDownData,
+                      insights: insights
+                    }
+                  };
+                  console.log("[INSIGHTS] Merged with existing drillDownData for:", parentChartId);
+                } 
+                // Case B: drillDownData doesn't exist yet - create new structure with insights only
+                else {
+                  currentCharts[chartIndex] = {
+                    ...targetChart,
+                    drillDownData: {
+                      filters: [],
+                      charts: [],
+                      insights: insights
+                    }
+                  };
+                  console.log("[INSIGHTS] Created new drillDownData with insights for:", parentChartId);
+                }
+
+                console.log("[INSIGHTS] Updated chart:", currentCharts[chartIndex]);
+
+                return {
+                  ...prev,
+                  data: currentCharts
+                };
+              });
+            }
+
+            // // // ============================================
+            // // // INSIGHTS ERROR HANDLER
+            // // // ============================================
+            if (msg.event === "drilldown_insights.error") {
+              console.error("[INSIGHTS] Backend error in insights generation:", msg.payload);
+              
+              const parentChartId = msg.payload?.parent_chart_id;
+              if (parentChartId) {
+                // Optional: Track insight errors if needed
+                console.error(`[INSIGHTS] Failed for chart: ${parentChartId}`);
+              }
+            }
+
           } catch (e) {
+            console.error("WebSocket handler error:", e);
             closeWebSocket();
-            removeListener(handler)
           }
         };
-        addListener(handler);
-        // wb.onmessage = async (evt: any) => {
-        //   try {
-        //     const msg = JSON.parse(evt.data);
-        //     console.log('[WS] message', msg);
-        //     if(msg.event==="insight.ready"){
-        //       console.log("[WS] message: Insight Dashboard is generated")
-        //       console.log("event from websockets is", msg)
-        //       const dataCreateDashboard= await msg?.payload?.summary?.finalDashboard
-        //       setIsLoading(false)
-        //       setErrorDash(null);
-        //       setDashboard_data(dataCreateDashboard.analytics);
-        //       let resStoreDash
-        //       try{
-        //         resStoreDash = await apiFetch("/api/insights/store", {
-        //           method: "POST",
-        //           headers: { "Content-Type": "application/json"
-        //           },
-        //           body: JSON.stringify({
-        //               user_id: localStorage.getItem("user_id"),
-        //               session_id: localStorage.getItem("session_id"),
-        //               s3_location: localStorage.getItem("s3Key"),
-        //               analytical_json_output: dataCreateDashboard.analytics
-        //             }),
-        //         });
-        //       }catch (error) {
-        //           // If apiFetch throws, the request failed
-        //           console.error("Unable to store dashboard for this session")
-        //           if (wb.readyState === WebSocket.OPEN){
-        //             wb.close()
-        //             wb.onclose = () => console.log('[WS] disconnected');
-        //             console.log("Web_Socket connection closed from kpi_step")
-        //           }
-        //           return;
-        //       }
-        //       const dataStoreDash= await resStoreDash.data
-        //       console.log("Successfully stored dashboard data", JSON.stringify(dataStoreDash));
-        //       if (wb.readyState === WebSocket.OPEN){
-        //         wb.close()
-        //         wb.onclose = () => console.log('[WS] disconnected');
-        //         console.log("Web_Socket connection closed from kpi_step")
-        //       }
-        //     }
-        //   } catch (e) {
-        //     console.log('[WS] raw', evt.data);
-        //     if (wb.readyState === WebSocket.OPEN){
-        //       wb.close()
-        //       wb.onclose = () => console.log('[WS] disconnected');
-        //       console.log("Web_Socket connection closed from kpi_step")
-        //     }
-        //   }
-        // };
+        console.log("Adding handler")
+        addListener(handler, "charts-generator");
       }catch(error){
         closeWebSocket();
-        removeListener(handler)
         console.log("Error is", error)
       }
   }

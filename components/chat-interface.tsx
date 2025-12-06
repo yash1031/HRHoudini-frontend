@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
 import { apiFetch } from "@/lib/api/client";
+import { useSearchParams } from "next/navigation"
 
 interface Message {
   id: string
@@ -35,8 +36,9 @@ export function ChatInterface({
   placeholder = "Ask me anything about your HR data...",
   suggestedQueries = [],
   welcomeMessage, // Added welcomeMessage parameter
-  context = {},
 }: ChatInterfaceProps) {
+
+  console.log("Received suggested queries", suggestedQueries)
   const defaultWelcomeMessage =
     "Hi! I am here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."
   const [messages, setMessages] = useState<Message[]>([
@@ -52,8 +54,8 @@ export function ChatInterface({
   const [error, setError]= useState<any>(null)
   const [fromHistory, setFromHistory]= useState<string>("true")
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const searchParams = useSearchParams()
-  const fileUploaded = searchParams.get("hasFile")
+  const searchParams= useSearchParams()
+  const fileUploaded= searchParams.get("hasFile")
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -70,10 +72,11 @@ export function ChatInterface({
     }
   }, [welcomeMessage])
 
-  useEffect(()=>{
-    const from_history= localStorage.getItem("from_history")
-    setFromHistory(from_history||"false")
-  },[])
+  // useEffect(()=>{
+  //   const from_history= localStorage.getItem("from_history") || "true"
+  //   console.log("from_history in chat-interface", from_history)
+  //   setFromHistory(from_history)
+  // },[])
 
   // useEffect(()=>{
   //   console.log("suggestedQueriesState set to", suggestedQueries)
@@ -239,8 +242,7 @@ export function ChatInterface({
           </div>
         </ScrollArea>
 
-        {/* Suggested Queries */}
-        {fromHistory==="false" && suggestedQueries &&  suggestedQueries.length > 0  && (
+        { suggestedQueries && suggestedQueries.length > 0  && (
           <div className="space-y-2">
             <p className="text-xs text-gray-600 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">

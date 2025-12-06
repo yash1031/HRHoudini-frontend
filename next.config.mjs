@@ -17,5 +17,4 @@ const nextConfig = {
     removeConsole: { exclude: ['error', 'warn'] },
   },
 }
-// Amplify.configure(amplifyConfig)
 export default nextConfig

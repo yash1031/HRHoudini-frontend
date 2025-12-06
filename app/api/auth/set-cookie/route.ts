@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 48*3600, // 48 hour default
+    maxAge: 3600*48, // 1 hour default
   });
 
   return res;

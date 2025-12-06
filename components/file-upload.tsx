@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { useOnboarding } from "./onboarding/onboarding-template"
 import { useUserContext } from "@/contexts/user-context"
 import Papa from "papaparse"
@@ -79,6 +79,7 @@ export function FileUpload({
   const [fileDropped, setFileDropped]= useState(false);
   const errorRef = useRef<string | null>(null);
   const { uploadedFile, setUploadedFile } = useOnboarding()
+  const { setMetadata} = useDashboard();
 
   const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
   return new Promise((resolve, reject) => {
@@ -91,7 +92,18 @@ export function FileUpload({
         skipEmptyLines: true,
         complete: (results) => {
           const columns = results.meta.fields || []
-          const rowCount = results.data.length
+          
+          // Filter out rows that are completely empty (all values are null, undefined, or empty strings)
+          const nonEmptyRows = results.data.filter((row: any) => {
+            return Object.values(row).some(value => 
+              value !== null && 
+              value !== undefined && 
+              value !== '' && 
+              String(value).trim() !== ''
+            )
+          })
+          
+          const rowCount = nonEmptyRows.length
           resolve({ columns, rowCount })
         },
         error: (err) => reject(err),
@@ -110,7 +122,18 @@ export function FileUpload({
 
           const [headers, ...rows] = jsonData
           const columns = (headers as string[]) || []
-          const rowCount = rows.length
+          
+          // Filter out rows that are completely empty
+          const nonEmptyRows = rows.filter((row: any) => {
+            return Array.isArray(row) && row.some(cell => 
+              cell !== null && 
+              cell !== undefined && 
+              cell !== '' && 
+              String(cell).trim() !== ''
+            )
+          })
+          
+          const rowCount = nonEmptyRows.length
 
           resolve({ columns, rowCount })
         } catch (err) {
@@ -125,12 +148,211 @@ export function FileUpload({
   })
   }
 
+  const HR_HINTS = [
+    "hire", "hired", "hiring", "termination", "terminated", "term", "terminate",
+    "depart", "departure", "resigned", "resignation", "exit", "leaving",
+    "dept", "department", "division", "team", "unit", "business unit",
+    "gender", "sex", "male", "female", "diversity",
+    "salary", "wage", "pay", "compensation", "comp", "bonus", "incentive",
+    "commission", "stock", "equity", "benefits", "allowance",
+    "age", "birth", "dob", "date of birth", "yob",
+    "tenure", "service", "seniority", "years", "experience",
+    "performance", "rating", "review", "appraisal", "evaluation", "score",
+    "manager", "supervisor", "lead", "director", "head", "chief", "reports to",
+    "title", "position", "role", "job", "designation", "function",
+    "level", "grade", "band", "tier", "rank",
+    "location", "office", "site", "city", "region", "country", "geography",
+    "state", "province", "branch", "facility",
+    "education", "degree", "qualification", "university", "college", "school",
+    "promotion", "promoted", "career", "progression", "advancement",
+    "employee", "staff", "worker", "personnel", "associate", "member",
+    "headcount", "hc", "fte", "full time", "part time", "contractor",
+    "status", "active", "inactive", "current", "former",
+    "start date", "end date", "join", "joined", "onboard", "onboarding",
+    "attrition", "turnover", "retention", "churn",
+    "absence", "leave", "vacation", "pto", "sick", "holiday",
+    "overtime", "hours", "shift", "schedule",
+    "ethnicity", "race", "nationality", "veteran", "disability",
+    "marital", "married", "single", "family",
+    "id", "emp id", "employee id", "staff id", "badge",
+    "cost center", "budget", "payroll",
+    "skill", "competency", "certification", "training",
+    "discipline", "warning", "pip", "improvement plan"
+  ];
+
+  //Normalize headers removing extra characters
+  const normalizeHeaderName = (header: string): string => {
+    return header
+      .toLowerCase()
+      .trim()
+      .replace(/[-_\s]+/g, " ") // Replace hyphens, underscores, and multiple spaces with single space
+      .replace(/[^a-z0-9\s]/g, "") // Remove special characters except spaces
+      .trim();
+  };
+
+  const areHeadersActuallyData = (headers: string[]): { isData: boolean; reason: string } => {
+  
+    for (const header of headers) {
+      const normalized = header.trim();
+      
+      // DEFINITIVE INDICATORS - if ANY of these match, it's definitely data, not headers
+      
+      // 1. Email addresses - headers should NEVER be email addresses
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found email address "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 2. Date patterns - headers should NEVER be dates
+      // Matches: MM/DD/YYYY, DD-MM-YYYY, YYYY-MM-DD, M/D/YY, etc.
+      if (/^\d{1,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4}$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found date value "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 5. Large currency amounts (5+ digits)
+      // Headers might have "2024" or "Q1" but not "65000" or "125000"
+      if (/^\d{5,}$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found large numeric value "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 6. Decimal numbers (salary, percentages, ratings)
+      // Matches: "65000.50", "3.14", "95.5"
+      if (/^\d+\.\d+$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found decimal number "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 7. ZIP codes (US 5-digit or 5+4 format)
+      // Matches: "02108", "02139", "90210-1234"
+      if (/^\d{5}(-\d{4})?$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found ZIP code "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 8. Phone numbers
+      // Matches: "555-1234", "(555) 123-4567", "555.123.4567", "+1-555-123-4567"
+      if (/^[\+\(]?\d{1,4}[\)\-\.\s]?\d{3}[\-\.\s]?\d{3,4}[\-\.\s]?\d{4}$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found phone number "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 9. Social Security Numbers (US format)
+      // Matches: "123-45-6789" or "123456789"
+      if (/^\d{3}-?\d{2}-?\d{4}$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found SSN pattern "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 10. URLs/Websites
+      if (/^(https?:\/\/|www\.)[^\s]+$/i.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found URL "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 11. ISO Date format (YYYY-MM-DD or YYYYMMDD)
+      if (/^\d{4}-?\d{2}-?\d{2}$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found ISO date "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 12. Time values (HH:MM:SS or HH:MM)
+      if (/^\d{1,2}:\d{2}(:\d{2})?(\s?(AM|PM))?$/i.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found time value "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 13. Percentage values with % symbol
+      if (/^\d+\.?\d*%$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found percentage value "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+      
+      // 14. Currency symbols with amounts
+      if (/^[\$£€¥][\d,]+\.?\d*$/.test(normalized)) {
+        return { 
+          isData: true, 
+          reason: `Found currency amount "${normalized}" in first row - this indicates file does not contain headers.` 
+        };
+      }
+    }
+
+    return { isData: false, reason:"" };
+  }
+
+  //Validate if headers received are relevant HR
+  const validateHRHeaders = (headers: string[], minHits: number = 3): { 
+    isValid: boolean; 
+    hits: number; 
+    matchedHeaders: string[];
+    normalizedHeaders: string[];
+    error: string;
+  } => {
+    // First check if these are actually data rows, not headers
+    const {isData, reason}= areHeadersActuallyData(headers)
+    if (isData) {
+      return {
+        isValid: false,
+        hits: 0,
+        matchedHeaders: [],
+        normalizedHeaders: [],
+        error: reason
+      };
+    }
+
+    const normalizedHeaders = headers.map(normalizeHeaderName);
+    const matchedHeaders: string[] = [];
+    let hits = 0;
+
+    normalizedHeaders.forEach((header, index) => {
+      const isMatch = HR_HINTS.some(hint => {
+        const normalizedHint = hint.toLowerCase().replace(/\s+/g, " ");
+        // Check if header contains the hint or hint contains the header
+        return header.includes(normalizedHint) || normalizedHint.includes(header);
+      });
+      
+      if (isMatch) {
+        hits++;
+        matchedHeaders.push(headers[index]); // Store original header name
+      }
+    });
+
+    return {
+      isValid: hits >= minHits,
+      hits,
+      matchedHeaders,
+      normalizedHeaders,
+      error: hits < minHits?"":`This doesn't appear to be an HR data file or headers are not available. Please upload a correct file`
+    };
+  };
+
   const checkFileCondition = async (file: File) =>{
       // Mock metadata extraction
 
         const { columns, rowCount } = await parseFile(file)
-
-        console.log("Identified headers in uploaded file", columns)
 
         const metadata: FileMetadata = {
           name: file.name,
@@ -142,17 +364,29 @@ export function FileUpload({
           dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
         }
 
-        localStorage.setItem("file_name", file.name)
-        localStorage.setItem("file_row_count", JSON.stringify(rowCount))
-
-
-        console.log("Metadata is: "+ JSON.stringify(metadata));
-
-        setFileMetadata(metadata)
-        setUploadedFile({file, metadata})
+        console.log("In check file condition, file_row_count", rowCount)
 
         if(rowCount == 0){
           setError("File is empty. Please upload file with some data.")
+          return;
+        }
+
+        // Validate HR headers
+        const headerValidation = validateHRHeaders(columns, 3);
+        
+        console.log("Header Validation:", {
+          columns,
+          hits: headerValidation.hits,
+          matchedHeaders: headerValidation.matchedHeaders,
+          isValid: headerValidation.isValid,
+          error: headerValidation.error,
+        });
+
+        // Check if headers are HR-related
+        if (!headerValidation.isValid) {
+          setError(
+            headerValidation.error
+          );
           return;
         }
 
@@ -161,43 +395,15 @@ export function FileUpload({
           setError(errorRef.current)
           return;
         }
+
+        localStorage.setItem("file_name", file.name)
+        localStorage.setItem("file_row_count", JSON.stringify(rowCount))
+
+        setFileMetadata(metadata)
+        setUploadedFile({file, metadata})
+        setMetadata({filename: file.name, totalRows: rowCount})
         
         console.log("no futureError")
-
-        // checkFileUpoadQuotas()
-
-        // console.log("CheckFileUploadQuotas Triggered")
-        // let currentPlanRes
-        // try{
-        //   currentPlanRes = await apiFetch("/api/billing/get-current-plan", {
-        //     method: "POST",
-        //     headers: { 
-        //       "Content-Type": "application/json", 
-        //     },
-        //     body: JSON.stringify({
-        //           user_id: localStorage.getItem("user_id")
-        //         }),
-        //   });
-        // }catch(error){
-        //   setError("Unable to check remaining tokens")
-        //   return;
-        // }
-
-        // // const dataCurrentPlan = await currentPlanRes.json();
-        // // const currentPlanData= await dataCurrentPlan.data
-        // const currentPlanData= await currentPlanRes.data
-        
-        // console.log("Successfully fetched user's current plan. Result is ", JSON.stringify(currentPlanData))
-        // console.log("Remaining quotas are", currentPlanData.subscriptions[0].remaining_tokens);
-        // console.log("File Size is", file.size);
-
-        // const tokensNeeded= parseInt(process.env.NEXT_PUBLIC_TOKEN_FOR_FULLSIZE_FILE || "0", 10);
-        // console.log("Tokens needed", tokensNeeded)
-        // if(currentPlanData.subscriptions[0].remaining_tokens<tokensNeeded){
-        //   setError("File upload quotas are exhausted.")
-        //   return;
-        // }
-
         console.log("File is dropped successfully")
         console.log("fileDropped useState", fileDropped)
         setFileDropped(true)

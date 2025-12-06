@@ -1,3 +1,4 @@
+//utils/queryBuilder.ts
 interface QueryColumn {
   expression: string;
   alias: string;
@@ -49,226 +50,126 @@ export class DynamicQueryBuilder {
     filterValues: Record<string, any> = {},
     numericFields: string[] = []
   ): string {
-    // ✅ CRITICAL CHECK: Verify FROM source exists
-    if (!queryObj.from || !queryObj.from.source) {
-      console.error('❌ CRITICAL: Missing FROM source in queryObject!');
-      throw new Error('Query object must have a valid FROM source');
-    }
+    if (!queryObj.from?.source) throw new Error('Missing FROM source');
     
+    const parquetUrl = queryObj.from.source;
+    const replacePlaceholder = (text: string) => text?.replace(/\{\{?PARQUET_SOURCE\}\}?/g, `read_parquet('${parquetUrl}')`) || '';
     
-    // ✅ Auto-detect numeric fields from filterValues with BETWEEN operator
-    const detectedNumericFields = Object.keys(filterValues).filter(field => 
-      filterValues[field] && filterValues[field].operator === 'BETWEEN'
-    );
+    // Detect numeric fields from BETWEEN filters
+    const allNumericFields = [...new Set([
+      ...numericFields, 
+      ...Object.keys(filterValues).filter(f => filterValues[f]?.operator === 'BETWEEN')
+    ])];
     
-    // Combine provided numeric fields with detected ones
-    const allNumericFields = [...new Set([...numericFields, ...detectedNumericFields])];
+    const castField = (field: string) => allNumericFields.includes(field) ? `CAST("${field}" AS INTEGER)` : `"${field}"`;
 
-    // ✅ DEFINE HELPER FUNCTIONS FIRST - BEFORE ANY OTHER CODE
-    const needsCasting = (fieldName: string): boolean => {
-      return allNumericFields.includes(fieldName);
-    };
-    
-    const getFieldRef = (fieldName: string): string => {
-      return needsCasting(fieldName) ? `CAST("${fieldName}" AS INTEGER)` : `"${fieldName}"`;
-    };
-
-    // Handle UNION queries
-    if (queryObj.union && queryObj.union.length > 0) {
-      const unionQueries = queryObj.union.map((unionPart, idx) => {
-        return this.buildSQL(unionPart, filterValues, numericFields);
-      });
-      const finalQuery = unionQueries.join(' UNION ALL ');
-      console.groupEnd();
-      return finalQuery;
+    // Handle UNION
+    if (queryObj.union?.length) {
+      return queryObj.union.map(u => this.buildSQL(u, filterValues, numericFields)).join(' UNION ALL ');
     }
 
     const parts: string[] = [];
-
-    // SELECT clause
     const columns = queryObj.select?.columns || [];
-    const selectCols = columns.map(col => {
-      let expression = col.expression;
-      
-      // ✅ Check if expression is a simple field reference
-      const fieldMatch = expression.match(/^"([^"]+)"$/);
-      if (fieldMatch) {
-        const fieldName = fieldMatch[1];
-        if (needsCasting(fieldName)) {
-          expression = getFieldRef(fieldName);
-        }
-      }
-      
-      const colStr = col.alias ? `${expression} as ${col.alias}` : expression;
-      return colStr;
-    });
-    const selectClause = `SELECT ${selectCols.join(', ') || '*'}`;
-    parts.push(selectClause);
 
-    // FROM clause
-    const from = queryObj.from || { type: 'parquet', source: '' };
-    let fromClause = '';
-    if (from.type === 'parquet') {
-      fromClause = `FROM read_parquet('${from.source}')`;
-    } else {
-      fromClause = `FROM ${from.source}`;
-    }
-    parts.push(fromClause);
-    // WHERE clause - combine static and dynamic conditions
+    // SELECT
+    const selectCols = columns.map(c => {
+      const expr = replacePlaceholder(c.expression);
+      return c.alias ? `${expr} as ${c.alias}` : expr;
+    });
+    parts.push(`SELECT ${selectCols.join(', ') || '*'}`);
+
+    // FROM
+    parts.push(`FROM read_parquet('${parquetUrl}')`);
+
+    // WHERE - Static + Dynamic
     const whereConditions: string[] = [];
     
-    // Add static conditions from query object
-    (queryObj.where || []).forEach((condition, idx) => {
-      if (condition.type === 'static') {
-        const { field, operator, value } = condition;
-        let conditionStr = '';
-        
-        // ✅ Use helper function for field reference
-        const fieldRef = getFieldRef(field);
-        
-        if (operator === 'IS NOT NULL') {
-          conditionStr = `${fieldRef} IS NOT NULL`;
-        } else if (operator === 'IS NULL') {
-          conditionStr = `${fieldRef} IS NULL`;
-        } else if (operator === '=' && value !== null && value !== undefined) {
-          // Handle static equality conditions
-          if (needsCasting(field)) {
-            conditionStr = `${fieldRef} = ${value}`;
-          } else {
-            conditionStr = `${fieldRef} = '${String(value).replace(/'/g, "''")}'`;
-          }
-        }
-        
-        if (conditionStr) {
-          whereConditions.push(conditionStr);
-        }
+    // Static conditions
+    (queryObj.where || []).forEach(w => {
+      if (w.condition) whereConditions.push(w.condition);
+      else if (w.field && w.operator === 'IS NOT NULL') whereConditions.push(`${castField(w.field)} IS NOT NULL`);
+      else if (w.field && w.operator === 'IS NULL') whereConditions.push(`${castField(w.field)} IS NULL`);
+    });
+    
+    // Dynamic filters
+    Object.entries(filterValues).forEach(([field, filter]) => {
+      if (!filter?.operator || !filter?.value) return;
+      
+      const { operator, value } = filter;
+      
+      if (operator === 'BETWEEN' && value.min != null && value.max != null) {
+        whereConditions.push(`${castField(field)} BETWEEN ${value.min} AND ${value.max}`);
+      } else if (operator === 'IN' && Array.isArray(value) && value.length) {
+        const vals = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
+        whereConditions.push(`"${field}" IN (${vals})`);
+      } else if (['=', '!=', '>', '<', '>=', '<='].includes(operator) && value != null) {
+        const fieldRef = ['>', '<', '>=', '<='].includes(operator) ? castField(field) : `"${field}"`;
+        const valStr = typeof value === 'number' ? value : `'${String(value).replace(/'/g, "''")}'`;
+        whereConditions.push(`${fieldRef} ${operator} ${valStr}`);
+      } else if (operator === 'LIKE') {
+        whereConditions.push(`"${field}" LIKE '%${String(value).replace(/'/g, "''")}%'`);
       }
     });
     
-    // Add dynamic conditions from filter values
-    Object.entries(filterValues).forEach(([field, filterDef]: [string, any], idx) => {
-      
-      if (!filterDef || typeof filterDef !== 'object') {
-        return;
+    if (whereConditions.length) parts.push(`WHERE ${whereConditions.join(' AND ')}`);
+
+    // Resolve column reference (number → alias/expression)
+    const resolveCol = (ref: any): string => {
+      if (typeof ref === 'number') {
+        const col = columns[ref - 1];
+        return col?.alias || col?.expression || String(ref);
       }
-      
-      const { operator, value } = filterDef;
-      
-      if (operator === 'BETWEEN' && value) {
-        // ✅ FIX: Validate min/max exist and are valid numbers
-        if (value.min !== undefined && value.min !== null && 
-            value.max !== undefined && value.max !== null &&
-            !isNaN(value.min) && !isNaN(value.max)) {
-          // ✅ Use helper function for field reference with casting
-          const fieldRef = getFieldRef(field);
-          const conditionStr = `${fieldRef} BETWEEN ${value.min} AND ${value.max}`;
-          whereConditions.push(conditionStr);
-        } else {
+      if (typeof ref === 'string') {
+        const match = ref.match(/^(\d+)\s+(ASC|DESC)$/i);
+        if (match) {
+          const col = columns[parseInt(match[1]) - 1];
+          return `${col?.alias || col?.expression || match[1]} ${match[2]}`;
         }
-      } else if (operator === 'IN' && value) {
-        // ✅ FIX: Check that value is an array with items
-        if (Array.isArray(value) && value.length > 0) {
-          const values = value
-            .filter(v => v !== null && v !== undefined)
-            .map((v: any) => `'${String(v).replace(/'/g, "''")}'`)
-            .join(', ');
-          
-          if (values) {
-            const conditionStr = `"${field}" IN (${values})`;
-            whereConditions.push(conditionStr);
-          } else {
-          }
-        } else {
-        }
-      } else if (operator === '=' && value !== null && value !== undefined) {
-        const conditionStr = `"${field}" = '${String(value).replace(/'/g, "''")}'`;
-        whereConditions.push(conditionStr);
-      } else if (operator === '!=' && value !== null && value !== undefined) {
-        const conditionStr = `"${field}" != '${String(value).replace(/'/g, "''")}'`;
-        whereConditions.push(conditionStr);
-      } else if (operator === '>' && value !== null && value !== undefined && !isNaN(value)) {
-        const fieldRef = getFieldRef(field);
-        const conditionStr = `${fieldRef} > ${value}`;
-        whereConditions.push(conditionStr);
-      } else if (operator === '<' && value !== null && value !== undefined && !isNaN(value)) {
-        const fieldRef = getFieldRef(field);
-        const conditionStr = `${fieldRef} < ${value}`;
-        whereConditions.push(conditionStr);
-      } else if (operator === '>=' && value !== null && value !== undefined && !isNaN(value)) {
-        const fieldRef = getFieldRef(field);
-        const conditionStr = `${fieldRef} >= ${value}`;
-        whereConditions.push(conditionStr);
-      } else if (operator === '<=' && value !== null && value !== undefined && !isNaN(value)) {
-        const fieldRef = getFieldRef(field);
-        const conditionStr = `${fieldRef} <= ${value}`;
-        whereConditions.push(conditionStr);
-      } else if (operator === 'LIKE' && value !== null && value !== undefined) {
-        const conditionStr = `"${field}" LIKE '%${String(value).replace(/'/g, "''")}%'`;
-        whereConditions.push(conditionStr);
-      } else {
       }
-    });
-    
-    if (whereConditions.length > 0) {
-      const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
-      parts.push(whereClause);
-    } else {
+      return String(ref);
+    };
+
+    // GROUP BY
+    if (queryObj.groupBy?.length) {
+      parts.push(`GROUP BY ${queryObj.groupBy.map(resolveCol).join(', ')}`);
     }
 
-    // GROUP BY clause
-    if (queryObj.groupBy && queryObj.groupBy.length > 0) {
-      const groupFields = queryObj.groupBy.map(field => {
-        const fieldRef = getFieldRef(field);
-        if (needsCasting(field)) {
+    // ORDER BY
+    if (queryObj.orderBy?.length) {
+      const orderParts = queryObj.orderBy.map(o => {
+        if (typeof o === 'object' && 'field' in o) {
+          return `${o.field || o.column || o.alias} ${o.direction || 'ASC'}`;
         }
-        return fieldRef;
-      }).join(', ');
-      const groupByClause = `GROUP BY ${groupFields}`;
-      parts.push(groupByClause);
-    } else {
-    }
-
-    // ORDER BY clause
-    if (queryObj.orderBy && queryObj.orderBy.length > 0) {
-      const orderParts = queryObj.orderBy.map(order => {
-        const orderStr = `${order.field} ${order.direction || 'ASC'}`;
-        return orderStr;
+        return resolveCol(o);
       });
-      const orderByClause = `ORDER BY ${orderParts.join(', ')}`;
-      parts.push(orderByClause);
-    } else {
+      parts.push(`ORDER BY ${orderParts.join(', ')}`);
     }
 
-    if (queryObj.limit) {
-      const limitClause = `LIMIT ${queryObj.limit}`;
-      parts.push(limitClause);
-    } else {
-    }
+    // LIMIT
+    if (queryObj.limit) parts.push(`LIMIT ${queryObj.limit}`);
 
-    const finalQuery = parts.join(' ');
-    console.groupEnd();
-    
-    return finalQuery;
+    const query = parts.join(' ');
+    console.log('SQL built:', query);
+    return query;
   }
 
   /**
    * Convert filter UI values to filter definition object
    */
   static buildFilterValues(filters: any[], userSelections: FilterState): Record<string, any> {
+    console.log('Building filter values...');
     
     const filterValues: Record<string, any> = {};
     
     if (!filters || !Array.isArray(filters)) {
-      console.groupEnd();
       return filterValues;
     }
     
     if (!userSelections || typeof userSelections !== 'object') {
-      console.groupEnd();
       return filterValues;
     }
     
-    filters.forEach((filter, idx) => {
+    filters.forEach((filter) => {
       if (!filter || !filter.field) {
         return;
       }
@@ -281,7 +182,6 @@ export class DynamicQueryBuilder {
       
       // Handle different filter types
       if (filter.whereClause && filter.whereClause.operator) {
-        
         const operator = filter.whereClause.operator;
         
         // Special handling for BETWEEN operator
@@ -294,7 +194,6 @@ export class DynamicQueryBuilder {
                 max: userValue.max
               }
             };
-          } else {
           }
         }
         // Special handling for IN operator
@@ -304,7 +203,6 @@ export class DynamicQueryBuilder {
               operator: operator,
               value: userValue
             };
-          } else {
           }
         }
         // All other operators (=, !=, >, <, >=, <=, LIKE)
@@ -314,53 +212,10 @@ export class DynamicQueryBuilder {
             value: userValue
           };
         }
-      } else {
       }
     });
     
-    console.groupEnd();
-    
+    console.log('Filter values built:', Object.keys(filterValues).length);
     return filterValues;
-  }
-  
-  /**
-   * Validate filter values before building SQL
-   */
-  static validateFilterValues(filterValues: Record<string, any>): boolean {
-    
-    let isValid = true;
-    
-    Object.entries(filterValues).forEach(([field, filterDef]) => {
-      if (!filterDef || typeof filterDef !== 'object') {
-        isValid = false;
-        return;
-      }
-      
-      const { operator, value } = filterDef;
-      
-      if (!operator) {
-        isValid = false;
-        return;
-      }
-      
-      if (operator === 'BETWEEN') {
-        if (!value || typeof value !== 'object' || value.min === undefined || value.max === undefined) {
-          isValid = false;
-        } else {
-        }
-      } else if (operator === 'IN') {
-        if (!Array.isArray(value) || value.length === 0) {
-          isValid = false;
-        } else {
-        }
-      } else {
-        if (value === null || value === undefined) {
-          isValid = false;
-        } else {
-        }
-      }
-    });
-    
-    return isValid;
   }
 }

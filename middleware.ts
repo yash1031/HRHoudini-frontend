@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  console.log("MIDDLEWARE HIT:", pathname);
 
   // Allow internal Next.js and static/public assets to load freely
   if (
@@ -32,8 +33,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  console.log("isAuthPage", isAuthPage, "isAuthenticated", isAuthenticated)
+
   // If not authenticated and trying to access a protected page → redirect
   if (!isAuthenticated && !isAuthPage) {
+    console.log("User is not authenticated")
     return NextResponse.redirect(new URL("/", req.url));
   }
 
@@ -47,10 +51,12 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
+    matcher: [
+      /*
       * Match all paths except static files
       */
-    '/((?!_next/static|_next/image|favicon.ico).*)'
-  ]
+      '/((?!_next/static|_next/image|favicon.ico).*)',
+      // '/onboarding-upload-only', // Explicitly add this
+      // '/dashboard'
+    ],
 };

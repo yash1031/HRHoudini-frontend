@@ -1,3 +1,4 @@
+//
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,12 +7,12 @@ import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building
 import { FileUpload } from "@/components/file-upload"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useUserContext } from "@/contexts/user-context"
-import { v4 as uuidv4 } from "uuid";
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
+import {generateCardsFromParquet} from "@/utils/parquetLoader"
 
 import {
   ArrowLeft,
@@ -39,8 +40,8 @@ export function FileUploadStep() {
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
-  const [uuid] = useState<string>(uuidv4());
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
+  // const completionFlags = useRef({ kpi: false, athena: false });
   const [fileDropped, setFileDropped]= useState(false);
   const [proceedToUpload, setProceedToUpload]= useState(false);
   const [isUploading, setIsUploading] = useState(false)
@@ -49,7 +50,9 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
-  const { wb, setWb } = useDashboard();
+  let aiSuggestQuestionsGenerated= true
+  // const [kpiError, setKpiError]= useState(false)
+  const { setCardsState, setChartsState, setAthenaCreated} = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
@@ -58,10 +61,20 @@ export function FileUploadStep() {
   
 
   const handleContinue = () => {
+    // if(kpiError){
+    //   // Navigate to dashboard-upload-only with specified parameters
+    //   const params = new URLSearchParams({
+    //     hasFile: "true",
+    //     showWelcome: "true",
+    //   })
+    //   localStorage.setItem("from_history","false")
+    //   let dashboardUrl = `/dashboard?${params.toString()}`
+    //   router.push(dashboardUrl)
+    // }
     if(processedFile) skipToStep(3)
     else {
       const {file, metadata}= uploadedFile
-      processFile(file, metadata.columns)
+      processFile(file, metadata.columns, metadata.rowCount)
     }
   }
 
@@ -160,16 +173,23 @@ export function FileUploadStep() {
           resolve(xhr.response);
         } else {
           console.log(`Upload failed with status ${xhr.status}`)
+          setError("Unable to process file. Please upload it again")
+          setIsUploading(false)
           reject(new Error(`Upload failed with status ${xhr.status}`));
         }
       };
 
-      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.onerror = () => {
+        console.log(`XHR Error, upload failed with status ${xhr.status}`)
+        reject(new Error("Network error during upload"));
+        setError("Unable to process file. Please upload it again")
+        setIsUploading(false)
+      }
       xhr.send(file);
     });
   };
 
-  const processFile = async (file: File, columns: string[]) => {
+  const processFile = async (file: File, columns: string[], rowCount: number) => {
     let handler: (msg: any) => void = () => {};
     try {
         setIsUploading(true)
@@ -186,28 +206,25 @@ export function FileUploadStep() {
                 fileName: file.name,
                 fileType: file.type,
                 userId: localStorage.getItem("user_id"),
-                // uuid: uuid,
+                rowCount: rowCount.toString()
               }),
           });
-        }catch(error){
-          console.log("Error in generating pre-signed URL", error)
-          setError("Insufficient Tokens")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
+          
+        }catch(error: any){
+          const parsed = JSON.parse(error.message);
+          console.log("Error in generating pre-signed URL: ", parsed.error)
+          setError(parsed.error)
           setIsUploading(false)
           return
         }
 
         const presignedURLData= await resPresignedURL.data
-        console.log("presignedURLData is", JSON.stringify(presignedURLData))
+        console.log("presignedURLData received")
         let uploadURL;
-        console.log("Uploaded the file successfully to presigned URL", resPresignedURL)
         setIsUploaded(true);
 
         setUploadProgress(20)
         const data = await presignedURLData;
-        console.log("Data after generating presigned URL is ", data)
         const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
         uploadURL = uploadUrl
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
@@ -215,99 +232,136 @@ export function FileUploadStep() {
         localStorage.setItem("session_id", sessionId)
         localStorage.setItem("idempotency_key", idempotency_key)
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
-
-        
-        
-        let createKPIsRes
-        try{
-          createKPIsRes = apiFetch("/api/file-upload/generate-kpis", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({
-                user_id: localStorage.getItem("user_id"),
-                session_id: uuid,
-                column_headers: columns
-              }),
-          });
-        }catch(error){
-          setError("Failed to process file. Please try again.")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
-          setIsUploading(false)
-          console.error("Failed to create KPIs")
-          return;
-        }
-
-        let AISuggestedQuesRes
-        try{
-          AISuggestedQuesRes = apiFetch("/api/file-upload/generate-recommended-questions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json",},
-            body: JSON.stringify({
-                user_id: localStorage.getItem("user_id"),
-                session_id: uuid,
-                column_headers: columns
-              }),
-          });
-        }catch(error){
-          setError("Failed to process file. Please try again.")
-          setTimeout(()=>{
-            setError(null);
-          }, 3000)
-          setIsUploading(false)
-          console.error("Failed to create AI recommended question")
-          return;
-        }
+        setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
         // 4. Upload file with progress
         await uploadFileWithProgress(uploadURL, file, file.type);
 
         setUploadProgress(40)
 
-        handler = (msg: any) => {
-            console.log('[WS] message', msg);
+        handler = async (msg: any) => {
+            console.log('[WS] message received', msg);
             if(msg.event==="convert.ready"){
               console.log("[WS] message: CSV converted to parquet")
+              localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
+              let resAISuggestedQues = await apiFetch("/api/file-upload/generate-recommended-questions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json",},
+                body: JSON.stringify({
+                    user_id: localStorage.getItem("user_id"),
+                    session_id: sessionId,
+                    column_headers: columns
+                  }),
+              }).catch((error) => {
+                  localStorage.removeItem("sample_questions")
+                  aiSuggestQuestionsGenerated = false
+                  console.error("Failed to create AI recommended question", error)
+                });
+
+              // const resAISuggestedQues= await AISuggestedQuesRes;
+              if(resAISuggestedQues){
+                const AISuggestedQuesData= await resAISuggestedQues.data
+                console.log("Successfully generated AI Recommended Ques.", AISuggestedQuesData)
+                localStorage.setItem("sample_questions", JSON.stringify(AISuggestedQuesData.sample_questions))
+              }
             }
-            if(msg.event==="athena.completed"){
-              console.log("Athena table created")
-              setUploadProgress(100)
-              setProcessedFile(true);
+            if(msg.event==="convert.failed"){
+              console.log("[WS] message: CSV to parquet conversion failed")
+              setError("Unable to process file. Please upload it again")
+              // setTimeout(()=>{
+              //   setError(null);
+              // }, 3000)
               setIsUploading(false)
-              hasFileUploadStarted(false)
+              return
+            }
+            if(msg.event==="kpi.ready"){
+              console.log("KPIs are ready")
+              const items = Array.isArray(msg.payload) ? msg.payload : [];
+              const kpisWithIcons: KpiItem[] = items.map((item: any) => ({
+                ...item,
+                icon: Clock, // fallback
+              }));
+ 
+              setKpis(kpisWithIcons);   // save to context
+              // setStep(3);               // go to KPIs step
+              // completionFlags.current.kpi = true;
+              // if(completionFlags.current.athena){
+              setUploadProgress(100)
+              setTimeout(()=>{
+                setProcessedFile(true);
+                setIsUploading(false)
+                hasFileUploadStarted(false)
+              },1000)
+              // }
+            }
+            if(msg.event==="kpi.error"){
+              console.log("[WS] message: Creating KPIs failed")
+              setError("Unable to process file. Please upload it again")
+              setIsUploading(false)
+              return
+            }
+
+            if (msg.event === "global_queries.ready") {
+              const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              console.log("Global queries received for cards:", msg.payload.text);
+              
+              // Set loading state
+              setCardsState(prev => ({ ...prev, loading: true, error: null }));
+              const cardsQueries= JSON.parse(msg.payload.text).summary_cards
+              
+              generateCardsFromParquet(cardsQueries, parquetUrl)
+                .then((result: any) => {
+                  console.log("Updated cardsState:", JSON.stringify(result, null, 2));
+                  
+                  // Success - update cards data in granular state
+                  setCardsState({
+                    // loading: true,
+                    loading: false,
+                    error: null,
+                    data: result.cards || []
+                  });
+                })
+                .catch((error) => {
+                  console.error("Failed to generate cards:", error);
+                  
+                  // Error - set error state
+                  setCardsState({
+                    loading: false,
+                    error: "Failed to generate KPI cards from data",
+                    data: []
+                  });
+                });
+            }
+            
+            if (msg.event === "global_queries.error") {
+              console.error("Backend error in card generation:", msg.payload);
+              
+              // Backend error
+              setCardsState({
+                loading: false,
+                error: msg.payload?.message || "Backend error generating cards",
+                data: []
+              });
             }
         };
-        addListener(handler!);
-
-        const resCreateKPIs= await createKPIsRes; 
-        const createKPIsData= await resCreateKPIs.data
-        console.log("createKPIsData is", JSON.stringify(createKPIsData))
-        const kpisData= await createKPIsData;
-        console.log("Successfully created KPIs. Result is ", JSON.stringify(kpisData))
-        const kpisWithIcons: KpiItem[] = kpisData.kpi_items.map((item: any) => ({
-          ...item,
-          icon: Clock, // fallback to Clock
-        }));
-
-        setKpis(kpisWithIcons);
-
-        const resAISuggestedQues= await AISuggestedQuesRes;
-        const AISuggestedQuesData= await resAISuggestedQues.data
-        console.log("AISuggestedQuesData is", JSON.stringify(AISuggestedQuesData))
-        const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-        console.log("Successfully generated AI Recommended Ques. Result is ", JSON.stringify(aIRecommendedQuestionsData))
-        localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
-
+        addListener(handler!, "chards-generator");
+        // const resAISuggestedQues= await AISuggestedQuesRes;
+        // if(resAISuggestedQues){
+        //   const AISuggestedQuesData= await resAISuggestedQues.data
+        //   console.log("AISuggestedQuesData generated")
+        //   const aIRecommendedQuestionsData=   await AISuggestedQuesData;
+        //   console.log("Successfully generated AI Recommended Ques.")
+        //   localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
+        // }
     } catch (err) {
       setError("Failed to process file. Please try again.")
       setTimeout(()=>{
         setError(null);
       }, 3000)
+       setIsUploading(false)
       console.error("File processing error:", err)
       closeWebSocket();
-      removeListener(handler)
     } 
   }
 
