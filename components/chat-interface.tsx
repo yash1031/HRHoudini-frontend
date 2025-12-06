@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
 import { apiFetch } from "@/lib/api/client";
-import { useSearchParams } from "next/navigation"
+
 
 interface Message {
   id: string
