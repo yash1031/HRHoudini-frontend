@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { SurveyModalProps, Question, FormAnswer } from '@/types/survey-modal';
 import QuestionRenderer from './questionComponents/QuestionRenderer';
+import { apiFetch } from "@/lib/api/client";
 
 export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: SurveyModalProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -46,15 +47,23 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
       // throw new Error('Failed to connect to survey API');
 
       // Call Next.js API route
-      const response = await fetch('/api/survey/questions');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch questions');
-      }
+      const response = await apiFetch('/api/survey/questions', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      }).catch((error) => {
+        const parsedError = JSON.parse(error.message);
+        console.error('Failed to fetch questions', parsedError);
+        return;
+      });
 
-      const data = await response.json();
-      console.log("data received from /api/survey/questions", data)
-      setQuestions(data.questions || []);
+      if(response){
+        console.log("data received from /api/survey/questions", response)
+        setQuestions(response.questions || []);
+      }
+      
     } catch (err) {
       console.error("Error in fetching survey questions", err)
       // Set fatal error - this will hide the modal content
@@ -149,6 +158,7 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
   };
 
   const handleSubmit = async () => {
+    //Check if compulsory questions are answered
     if (!validateAnswers()) {
       return;
     }
@@ -167,7 +177,7 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
       // For testing api failure
       // throw new Error('Error connecting to api for submit survey');
 
-      const response = await fetch('/api/survey/submit', {
+      const response = await apiFetch('/api/survey/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,12 +187,11 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
           answers: preparedAnswers,
           never_show_again: neverShowAgain,
         }),
+      }).catch((error) => {
+        const parsedError = JSON.parse(error.message);
+        console.error('Failed to submit survey', parsedError);
+        return;
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit survey');
-      }
 
       // Close survey modal
       onClose();
@@ -214,7 +223,7 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
         // throw new Error('Error connecting to api for submit survey');
         
         if (userId) {
-          await fetch('/api/survey/preferences', {
+          const response = await apiFetch('/api/survey/preferences', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -223,6 +232,10 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
               user_id: userId,
               never_show_again: true,
             }),
+          }).catch((error) => {
+            const parsedError = JSON.parse(error.message);
+            console.error('Failed to store user preference', parsedError);
+            return;
           });
         }
       }

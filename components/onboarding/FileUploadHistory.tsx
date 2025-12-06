@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Clock, X, Check, Trash2 } from 'lucide-react';
 import { useRouter } from "next/navigation"
 import { useDashboard } from '@/contexts/dashboard-context';
+import { apiFetch } from "@/lib/api/client";
 import {generateCardsFromParquet, generateChartsFromParquet, buildQueryFromQueryObj, generateDrilldownChartsData} from "@/utils/parquetLoader"
 
 interface FileUpload {
@@ -103,7 +104,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
       // Get user_id from localStorage or your auth context
       const userId = localStorage.getItem('user_id'); // Adjust based on your auth setup
       
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/insights/delete-session/${deleteConfirmation.sessionId}?user_id=${userId}`,
         {
           method: 'DELETE',
@@ -111,24 +112,24 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
             'Content-Type': 'application/json',
           },
         }
-      );
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Delete failed:', errorData);
+      ).catch((error) => {
+        const parsedError = JSON.parse(error.message);
+        console.log("Error in generating pre-signed URL: ", parsedError.error)
+        console.error('Delete failed:', parsedError);
         alert('Failed to delete session. Please try again.');
         return;
+      });
+
+      if(response){
+        console.log('Delete successful:', response.message);
+        
+        // Remove from local state
+        if (deleteConfirmation.uploadId !== undefined) {
+          setUploads(uploads.filter(upload => upload.id !== deleteConfirmation.uploadId));
+        }
+        
+        closeDeleteConfirmation();
       }
-      
-      const data = await response.json();
-      console.log('Delete successful:', data);
-      
-      // Remove from local state
-      if (deleteConfirmation.uploadId !== undefined) {
-        setUploads(uploads.filter(upload => upload.id !== deleteConfirmation.uploadId));
-      }
-      
-      closeDeleteConfirmation();
       
     } catch (error) {
       console.error('Error deleting session:', error);

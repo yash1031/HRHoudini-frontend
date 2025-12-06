@@ -4,13 +4,18 @@ export async function GET(request: NextRequest) {
   try {
     // Forward to Lambda
     // const lambdaUrl = process.env.NEXT_PUBLIC_SURVEY_API_URL;
+    const authHeader = request.headers.get("authorization");
     
     const response = await fetch(`https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/survey/questions`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+            ...(authHeader ? { authorization: authHeader } : {}) 
       },
     });
+
+    console.log('Response Status:', response.status);
+    console.log('Response Headers:', Object.fromEntries(response.headers));
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -21,6 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('Success Response Data:', JSON.stringify(data, null, 2));
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in questions API:', error);

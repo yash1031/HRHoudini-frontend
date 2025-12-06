@@ -57,7 +57,7 @@ export function KPIsStep() {
     chartsState,
     setChartsState, 
     setDrilldownsState, 
-    setDashboard_data 
+    // setDashboard_data 
   } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
@@ -216,15 +216,6 @@ export function KPIsStep() {
               const drilldownCharts = drilldownPayload?.charts || [];
               const drilldownFilters = drilldownPayload?.filters || [];
               const kpiId = drilldownPayload?.kpi_id;
-
-              
-              
-              // if (parentChartId) {
-              //   setDrilldownsState(prev => ({
-              //     ...prev,
-              //     [parentChartId]: { loading: true, error: false }
-              //   }));
-              // }
               
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
               
@@ -320,10 +311,11 @@ export function KPIsStep() {
                   console.error("Failed to process drilldown:", error);
                   
                   if (parentChartId) {
-                    setDrilldownsState(prev => ({
-                      ...prev,
-                      [parentChartId]: { loading: false, error: true }
-                    }));
+                    // setDrilldownsState(prev => ({
+                    //   ...prev,
+                    //   [parentChartId]: { loading: false, error: true }
+                    // }));
+                    console.error(`Converting queries to data failed for chart: ${parentChartId}`);
                   }
                 }
               })();
@@ -337,10 +329,12 @@ export function KPIsStep() {
               
               const parentChartId = msg.payload?.parent_chart_id;
               if (parentChartId) {
-                setDrilldownsState(prev => ({
-                  ...prev,
-                  [parentChartId]: { loading: false, error: true }
-                }));
+                // setDrilldownsState(prev => ({
+                //   ...prev,
+                //   [parentChartId]: { loading: false, error: true }
+                // }));
+                // Optional: Track insight errors if needed
+                console.error(`[DRILLDOWN] Failed for chart: ${parentChartId}`);
               }
             }
 
@@ -364,9 +358,6 @@ export function KPIsStep() {
               // Update chartsState - find chart and attach/merge insights
               setChartsState(prev => {
                 const currentCharts = [...prev.data];
-
-                
-
                 // Find the parent chart by ID
                 const chartIndex = currentCharts.findIndex(
                   chart => (chart.id || chart.semantic_id) === parentChartId
@@ -425,6 +416,7 @@ export function KPIsStep() {
                 // Optional: Track insight errors if needed
                 console.error(`[INSIGHTS] Failed for chart: ${parentChartId}`);
               }
+              
             }
 
           } catch (e) {
