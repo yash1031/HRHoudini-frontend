@@ -23,6 +23,14 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
+    // Pre-populate filterValues with currently applied filters
+    const initialValues: Record<string, any> = {};
+    
+    Object.entries(currentFilters).forEach(([field, filterObj]) => {
+      if (filterObj.operator === 'IN' && Array.isArray(filterObj.value)) {
+        initialValues[field] = filterObj.value;
+      }
+    });
     setFilterValues(currentFilters);
   }, [currentFilters]);
 
@@ -58,7 +66,8 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
 
   const applyFilters = () => {
     // Convert to query format that buildSQL expects
-    const queryFilters: Record<string, any> = {};
+    // const queryFilters: Record<string, any> = {};
+    const queryFilters: Record<string, any> = { ...currentFilters };
     
     Object.entries(filterValues).forEach(([field, value]) => {
         const filter = filters.find(f => f.field === field);
@@ -76,16 +85,22 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
             } else if (!Array.isArray(value)) {
                 return; // Skip if not array and not string
             }
+            // MERGE LOGIC: Combine with existing values if filter already exists
+            if (queryFilters[field]?.operator === 'IN' && Array.isArray(queryFilters[field].value)) {
+              const existingValues = queryFilters[field].value as string[];
+              const combinedValues = [...new Set([...existingValues, ...finalValue])];
+              finalValue = combinedValues;
+            }
         }
         
         // Build the filter object with operator and value
         queryFilters[field] = {
-        operator: filter.whereClause.operator,
-        value: finalValue
+          operator: filter.whereClause.operator,
+          value: finalValue
         };
     });
     
-    console.log('🎯 Applying filters:', queryFilters); // ✅ DEBUG LOG
+    console.log('Applying filters:', queryFilters);
     onFilterChange(queryFilters);
     };
 
@@ -229,19 +244,8 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
             </svg>
           </div>
           <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
-          {activeFilterCount > 0 && (
-            <Badge className="bg-indigo-100 text-indigo-800 text-[10px]">
-              {activeFilterCount} active
-            </Badge>
-          )}
         </div>
         <div className="flex items-center space-x-2">
-          {activeFilterCount > 0 && (
-            <button onClick={clearAllFilters} className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 text-[10px] font-medium rounded-md border border-red-200 hover:border-red-300 transition-all flex items-center space-x-1">
-              <X className="w-2.5 h-2.5" />
-              <span>Clear All</span>
-            </button>
-          )}
           <button onClick={(e) => { e.stopPropagation(); applyFilters(); }} className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded transition-all flex items-center space-x-1">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />

@@ -227,7 +227,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 },
@@ -375,7 +375,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 }
@@ -559,7 +559,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 },
@@ -707,7 +707,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 }
@@ -857,7 +857,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 },
@@ -1005,7 +1005,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 }
@@ -1168,7 +1168,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 },
@@ -1316,7 +1316,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 }
@@ -1468,7 +1468,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 },
@@ -1616,7 +1616,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 }
@@ -1779,7 +1779,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 },
@@ -1927,7 +1927,7 @@ const sample_dashboard_data: DashboardData = {
                                         ],
                                         "from": {
                                             "type": "parquet",
-                                            "source": "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet"
+                                            "source": `https://${process.env.NEXT_PUBLIC_SAMPLE_PARQUET_FILE}`
                                         }
                                     }
                                 }

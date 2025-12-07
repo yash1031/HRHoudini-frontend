@@ -262,16 +262,6 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
         // className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl m-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        {/* <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Help Us Improve HR Houdini
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Your feedback helps us make HR Houdini better for everyone
-            </p>
-          </div> */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between rounded-t-xl">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -291,7 +281,7 @@ export default function DynamicSurveyModal({ isOpen, onClose, onSuccess }: Surve
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
               {error}
