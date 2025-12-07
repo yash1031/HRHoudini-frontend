@@ -114,10 +114,9 @@ export class DynamicQueryBuilder {
     if (whereConditions.length) parts.push(`WHERE ${whereConditions.join(' AND ')}`);
 
     // Resolve column reference (number → alias/expression)
-    const resolveCol = (ref: any): string => {
+    const resolveCol = (ref: any): string|number => {
       if (typeof ref === 'number') {
-        const col = columns[ref - 1];
-        return col?.alias || col?.expression || String(ref);
+        return ref;
       }
       if (typeof ref === 'string') {
         const match = ref.match(/^(\d+)\s+(ASC|DESC)$/i);

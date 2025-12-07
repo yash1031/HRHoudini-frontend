@@ -96,16 +96,86 @@ const renderChart = (
   }
 
   if (chartConfig.type === 'line') {
-    return (
-      <LineChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey={chartConfig.xDataKey || 'name'} tick={{ fill: '#64748b', fontSize: 12 }} />
-        <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
-        <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-        <Legend />
-        <Line type="monotone" dataKey={chartConfig.yDataKey || 'value'} stroke={chartConfig.color || '#f59e0b'} strokeWidth={3} dot={{ r: 6, fill: chartConfig.color || '#f59e0b' }} name={chartConfig.lineName || 'Value'} />
-      </LineChart>
-    );
+      const dataPointCount = chartData.length;
+      const shouldShowDots = dataPointCount <= 15;
+      const shouldSkipLabels = dataPointCount > 15; // Skip labels if more than 50 points
+      
+      return (
+        <LineChart 
+          data={chartData}
+          margin={{ top: 20, right: 30, bottom: 20, left: 10 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+  
+          {/* X-Axis with arrow indicator */}
+          <XAxis 
+            dataKey={chartConfig.xDataKey || 'name'} 
+            tick={{ fill: '#64748b', fontSize: 12 }}
+            tickLine={{ stroke: '#cbd5e1' }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            ticks={shouldSkipLabels ? chartData
+              .map((_, idx) => idx)
+              .filter((_, idx) => idx === 0 || idx % Math.ceil(dataPointCount / 10) === 0 || idx === dataPointCount - 1)
+              .map(idx => chartData[idx][chartConfig.xDataKey || 'name'])
+              : undefined}
+            label={{ 
+              value: `${chartConfig.xLabel || ''}${chartConfig.xUnit ? ` (${chartConfig.xUnit})` : ''}`,
+              position: 'insideBottom',
+              offset: -10,
+              style: { fill: '#475569', fontSize: 13, fontWeight: 600 }
+            }}
+          />
+  
+          {/* Y-Axis with arrow indicator */}
+          <YAxis 
+            tick={{ fill: '#64748b', fontSize: 12 }}
+            tickLine={{ stroke: '#cbd5e1' }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            label={{ 
+              value: `${chartConfig.yLabel || ''}${chartConfig.yUnit ? ` (${chartConfig.yUnit})` : ''}`,
+              angle: -90, 
+              position: 'insideLeft',
+              offset: 5,
+              style: { fill: '#475569', fontSize: 13, fontWeight: 600, textAnchor: 'middle' }
+            }}
+          />
+  
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: '#fff', 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
+            formatter={(value: any) => {
+              if (chartConfig.yUnit) {
+                return [value + ' ' + chartConfig.yUnit, chartConfig.yLabel || 'Value'];
+              }
+              return [value, chartConfig.yLabel || 'Value'];
+            }}
+          />
+  
+          <Line
+            type="monotone"
+            dataKey={chartConfig.yDataKey || 'value'}
+            stroke={chartConfig.color || '#f59e0b'}
+            strokeWidth={shouldShowDots ? 2 : 2.5}
+            dot={shouldShowDots ? { 
+              r: 5, 
+              fill: chartConfig.color || '#f59e0b',
+              strokeWidth: 2,
+              stroke: '#fff'
+            } : false}
+            activeDot={!shouldShowDots ? { 
+              r: 6, 
+              fill: chartConfig.color || '#f59e0b',
+              stroke: '#fff',
+              strokeWidth: 2
+            } : { r: 7 }}
+            name={chartConfig.lineName || chartConfig.yLabel || 'Value'}
+          />
+        </LineChart>
+      );
   }
 
   const isHorizontal = chartConfig.layout === 'horizontal';
@@ -160,30 +230,21 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
     
     try {
       const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
-      
-      // Build filter values for query
-    //   const filterValues = DynamicQueryBuilder.buildFilterValues(
-    //     modal.drillDownData.filters || [],
-    //     filters
-    //   );
-      
-    //   console.log('📊 Built filter values:', filterValues); // ✅ DEBUG LOG
-    // ✅ USE filters directly - it's already { field: { operator, value } }
-    console.log('📊 Using filters directly:', filters);
+      console.log('Using filters directly:', filters);
     
       // Build queries with filters
       const queries = modal.drillDownData.charts.map(chart => {
             if (!chart.queryObject) return '';
             const query = DynamicQueryBuilder.buildSQL(chart.queryObject, filters);
-            console.log('📝 Generated query with filters:', query); // ✅ DEBUG LOG
+            console.log('Generated query with filters:', query); 
             return query;
       });
 
-      console.log('📊 Built queries:', queries);
+      console.log('Built queries:', queries);
       
       const validQueries = queries.filter(q => q !== '');
 
-      console.log('📊 Built validQueries:', validQueries);
+      console.log('Built validQueries:', validQueries);
       
       if (validQueries.length === 0) {
         setLoadError('No valid queries');
@@ -231,6 +292,29 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
     setActiveFilters({});
   };
 
+  const handleRemoveFilterValue = async (filterField: string, valueToRemove: string) => {
+    const updatedFilters = { ...activeFilters };
+    
+    if (updatedFilters[filterField]?.operator === 'IN') {
+      // Remove specific value from array
+      const currentValues = updatedFilters[filterField].value as string[];
+      const newValues = currentValues.filter(v => v !== valueToRemove);
+      
+      if (newValues.length === 0) {
+        // If no values left, remove entire filter
+        delete updatedFilters[filterField];
+      } else {
+        updatedFilters[filterField].value = newValues;
+      }
+    } else {
+      // For non-array filters (BETWEEN, =, etc.), remove entire filter
+      delete updatedFilters[filterField];
+    }
+    
+    // Re-apply filters
+    await handleFilterChange(updatedFilters);
+  };
+
   if (!modal.isOpen || !modal.drillDownData) return null;
 
   const { drillDownData } = modal;
@@ -259,6 +343,73 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
                 onClearFilters={handleClearFilters}
                 currentFilters={activeFilters}
               />
+            )}
+
+            {/* Active Filters Display */}
+            {Object.keys(activeFilters).length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-slate-700 flex items-center">
+                    Active Filters ({Object.keys(activeFilters).length})
+                  </h4>
+                  <button 
+                    onClick={handleClearFilters} 
+                    className="text-sm text-red-600 hover:text-red-800 font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {Object.entries(activeFilters).map(([field, filter]) => (
+                    <div key={field} className="flex items-start gap-2">
+                      <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
+                        {field}:
+                      </span>
+                      <div className="flex flex-wrap gap-2 flex-1">
+                        {/* Render individual badges based on operator type */}
+                        {filter.operator === 'IN' && Array.isArray(filter.value) ? (
+                          filter.value.map((val, idx) => (
+                            <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                              {val}
+                              <X 
+                                className="w-3 h-3 cursor-pointer hover:text-red-600" 
+                                onClick={() => handleRemoveFilterValue(field, val)}
+                              />
+                            </Badge>
+                          ))
+                        ) : filter.operator === 'BETWEEN' ? (
+                          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                            {filter.value.min} - {filter.value.max}
+                            <X 
+                              className="w-3 h-3 cursor-pointer hover:text-red-600" 
+                              onClick={() => handleRemoveFilterValue(field, '')}
+                            />
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                            {String(filter.value)}
+                            <X 
+                              className="w-3 h-3 cursor-pointer hover:text-red-600" 
+                              onClick={() => handleRemoveFilterValue(field, '')}
+                            />
+                          </Badge>
+                        )}
+                      </div>
+                      {/* Clear button for this specific filter */}
+                      <button
+                        onClick={async () => {
+                          const updatedFilters = { ...activeFilters };
+                          delete updatedFilters[field];
+                          await handleFilterChange(updatedFilters);
+                        }}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Loading */}
