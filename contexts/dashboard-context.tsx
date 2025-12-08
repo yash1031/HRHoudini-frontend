@@ -1,3 +1,5 @@
+"use client";
+
 // contexts/DashboardContext.tsx
 // ============================================
 // ENHANCED DASHBOARD CONTEXT WITH GRANULAR STATES
