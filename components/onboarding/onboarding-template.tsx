@@ -193,6 +193,7 @@ export function OnboardingTemplate({
   
         // Clear localStorage
         localStorage.clear();
+        sessionStorage.clear();
         
         // Redirect immediately
         window.location.href = '/';
@@ -200,6 +201,7 @@ export function OnboardingTemplate({
       } catch (error) {
         console.error('Sign out failed:', error);
         localStorage.clear();
+        sessionStorage.clear();
         window.location.href = '/';
       }
     };

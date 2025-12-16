@@ -11,12 +11,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
 import { apiFetch } from "@/lib/api/client";
 import { useSearchParams } from "next/navigation"
+import { useDashboard } from "@/contexts/dashboard-context"
 
 interface Message {
   id: string
   content: string
   sender: "user" | "assistant"
   timestamp: Date
+  industryStandardContent?: string
+  messageType?: "history" | "current" 
 }
 
 interface ChatInterfaceProps {
@@ -40,46 +43,185 @@ export function ChatInterface({
   console.log("Received suggested queries", suggestedQueries)
   const defaultWelcomeMessage =
     "Hi! I'm here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      content: welcomeMessage || defaultWelcomeMessage,
-      sender: "assistant",
-      timestamp: new Date(),
-    },
-  ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError]= useState<any>(null)
-  const [fromHistory, setFromHistory]= useState<string>("true")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const searchParams= useSearchParams()
   const fileUploaded= searchParams.get("hasFile")
+  const {messages, setMessages} = useDashboard()
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const oldestChatIdRef = useRef<string | null>(null);
+  const shouldScrollRef = useRef(false);
+  const isUserScrollingRef = useRef(true);
+  const scrollReferenceRef = useRef<string | null>(null); 
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  useEffect(()=>{
+    const savedChats = sessionStorage.getItem('chats');
+    console.log("Chat Component: savedChats are available")
+    if (savedChats) {
+      console.log("Chat Component: setting chat-messages");
+      const parsedChats = JSON.parse(savedChats);
+      setMessages(parsedChats);
+
+      // Set oldest chat ID from FIRST history message
+      const oldestHistoryMsg = parsedChats.find((m: Message) => m.messageType === "history" || !m.messageType);
+      console.log("Chat Component: oldestHistoryMsg", oldestHistoryMsg)
+      if (oldestHistoryMsg?.id) {
+        const chatId = oldestHistoryMsg.id.substring(0,36);
+        console.log("Chat Component: oldestChatID", chatId)
+        oldestChatIdRef.current = chatId;
+      }
+    }
+  },[])
+
   useEffect(() => {
-    if (welcomeMessage) {
-      setMessages([{
+    console.log("Chat Component: In useEffect for welcomeMessage", welcomeMessage)
+    // Skip on refresh/initial mount
+    const savedChats = sessionStorage.getItem('chats');
+    console.log("Chat Component: savedChats are available")
+    
+    if (welcomeMessage && !savedChats) {
+      console.log("Chat Component: Setting first chat Message")
+      const assistantMessage: Message= {
         id: "welcome",
-        content: welcomeMessage,
+        content: welcomeMessage || defaultWelcomeMessage,
         sender: "assistant",
         timestamp: new Date(),
-      }])
+        messageType: "current", 
+      }
+      setMessages(() => {
+        const updatedMessages = [assistantMessage]
+        sessionStorage.setItem('chats', JSON.stringify(updatedMessages))
+        return updatedMessages
+      })
+      const fromHistory= localStorage.getItem("from_history")==="true"
+      console.log("Chat Component: fromHistory",fromHistory, "welcomeMessage updated", welcomeMessage)
+      if(fromHistory){ 
+        fetchChatHistory(undefined, true)
+        return
+      }
     }
   }, [welcomeMessage])
 
-  // useEffect(()=>{
-  //   const from_history= localStorage.getItem("from_history") || "true"
-  //   console.log("from_history in chat-interface", from_history)
-  //   setFromHistory(from_history)
-  // },[])
+  const fetchChatHistory = async (beforeChat?: string, shouldScrollToBottom?: boolean) =>{
+      if (isLoadingHistory || !hasMore) return;
+      
+      setIsLoadingHistory(true);
+      const sessionId= localStorage.getItem("session_id")
+      // Build URL with optional last_chat_id for pagination
+      const url = beforeChat 
+        ? `/api/chat/fetch-history/${sessionId}?limit=2&before_chat=${beforeChat}`
+        : `/api/chat/fetch-history/${sessionId}?limit=2`;
+      
+      let responseChatHistory;
+      try {
+        responseChatHistory = await apiFetch(url, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.log("Unable to fetch chat history", error);
+        setIsLoadingHistory(false);
+        return;
+      }
+      const chatHistoryData= await responseChatHistory.data
+      console.log("Chat Component: chatHistoryData", chatHistoryData)
+      const chats= chatHistoryData?.chats
+      console.log("Chat Component: history chat are", chats)
+      // Handle empty chats
+      if (!chats || chats.length === 0) {
+        console.log("No more chat history");
+        setHasMore(false);
+        setIsLoadingHistory(false);
+        return; 
+      }
 
+		  //Build all messages first, then update state once
+		  const historyMessages: Message[] = [];
+
+		  chats.forEach((chat: any) => { 
+        // console.log("ChatHistory: individual chat", chat);
+        
+        const userMessage: Message = {
+          id: `${chat?.chat_id}-user`, // Unique ID
+          content: chat?.question,
+          sender: "user",
+          timestamp: new Date(chat?.created_at),
+          messageType: "history"
+        };
+        
+        const assistantMessage: Message = {
+          id: `${chat?.chat_id}-assistant`, // Unique ID
+          content: chat?.response,
+          sender: "assistant",
+          timestamp: new Date(chat?.created_at),
+          industryStandardContent: chat?.industry_standard_response || "Suggestions not available", 
+          messageType: "history"
+        };
+        
+        historyMessages.push(userMessage, assistantMessage);
+		  });
+
+		  // Update oldest chat ID for next pagination
+      oldestChatIdRef.current = chats[0]?.chat_id;
+
+      // Insert history at the BEGINNING
+      setMessages((prev) => {
+        // Find where current messages start
+        const firstCurrentIndex = prev.findIndex(m => m.messageType === "current");
+        
+        let updatedMessages;
+        if (firstCurrentIndex === -1) {
+          // Insert history BEFORE current messages
+          const existingHistory = prev.filter(m => m.messageType === "history" || !m.messageType);
+          // No current messages yet, append history
+          updatedMessages = [...existingHistory, ...historyMessages];
+        } else {
+          // Insert history BEFORE current messages
+          const existingHistory = prev.filter(m => m.messageType === "history" || !m.messageType);
+          const currentMessages = prev.filter(m => m.messageType === "current");
+          updatedMessages = [...historyMessages, ...existingHistory, ...currentMessages];
+        }
+        console.log("Chat Component: updatedMessages", updatedMessages)
+        sessionStorage.setItem('chats', JSON.stringify(updatedMessages));
+        return updatedMessages;
+      });
+      
+      setIsLoadingHistory(false);
+
+      // Handle scrolling based on context
+      if (shouldScrollToBottom) {
+        // Initial load from history - scroll to bottom
+        setTimeout(() => {
+          shouldScrollRef.current = true;
+          scrollToBottom();
+        }, 100);
+      } else if (scrollReferenceRef.current) {
+        // Scroll up pagination - restore scroll position
+        setTimeout(() => {
+          const referenceElement = document.getElementById(scrollReferenceRef.current!);
+          if (referenceElement) {
+            referenceElement.scrollIntoView({ block: "start" });
+            console.log("Scrolled back to reference:", scrollReferenceRef.current);
+          }
+          scrollReferenceRef.current = null;
+        }, 100);
+	    }
+  }
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    // Only scroll to bottom if flag is set (for new messages, not history)
+    if (shouldScrollRef.current) {
+      scrollToBottom();
+      shouldScrollRef.current = false;
+    }
+  }, [messages]);
 
   const handleSend = async (message?: string) => {
     try{
@@ -93,15 +235,23 @@ export function ChatInterface({
         content: messageToSend,
         sender: "user",
         timestamp: new Date(),
+        messageType: "current"
       }
 
-      setMessages((prev) => [...prev, userMessage])
+      setMessages((prev) => {
+        const updatedMessages = [...prev, userMessage]
+        sessionStorage.setItem('chats', JSON.stringify(updatedMessages))
+        return updatedMessages
+      })
+
+      isUserScrollingRef.current = false;
+      shouldScrollRef.current = true; 
       setInput("")
       setIsLoading(true)
 
       let responseChatMessage
       try{
-        responseChatMessage = await apiFetch("/api/chat", {
+        responseChatMessage = await apiFetch("/api/chat/request", {
           method: "POST",
           headers: { "Content-Type": "application/json"},
           body: JSON.stringify({
@@ -117,9 +267,16 @@ export function ChatInterface({
           content: "Failed to request answer. Try with some other question",
           sender: "assistant",
           timestamp: new Date(),
+          messageType: "current"
         }
-        setMessages((prev) => [...prev, assistantMessage])
+        setMessages((prev) => {
+          const updatedMessages = [...prev, assistantMessage]
+          sessionStorage.setItem('chats', JSON.stringify(updatedMessages))
+          return updatedMessages
+        })
+        shouldScrollRef.current = true; 
         setIsLoading(false)
+        setTimeout(() => { isUserScrollingRef.current = true; }, 500); // Re-enable after scroll completes
         return;
       }
       const chatMessageData= await responseChatMessage.data
@@ -133,9 +290,17 @@ export function ChatInterface({
         content: chatMessageData.natural_language_response?chatMessageData.natural_language_response:"Failed to fetch answer. Try with some other question",
         sender: "assistant",
         timestamp: new Date(),
+        industryStandardContent: chatMessageData.industry_standard_response || "Suggestions Not Available",
+        messageType: "current", 
       }
-      setMessages((prev) => [...prev, assistantMessage])
+      setMessages((prev) => {
+        const updatedMessages = [...prev, assistantMessage]
+        sessionStorage.setItem('chats', JSON.stringify(updatedMessages))
+        return updatedMessages
+      })
+      shouldScrollRef.current = true; 
       setIsLoading(false)
+      setTimeout(() => { isUserScrollingRef.current = true; }, 500); // Re-enable after scroll completes
     } catch(error){
       console.log("Error in query")
       const assistantMessage: Message = {
@@ -143,9 +308,15 @@ export function ChatInterface({
           content: "Failed to request answer. Try with some other question",
           sender: "assistant",
           timestamp: new Date(),
+          messageType: "current"
         }
-        setMessages((prev) => [...prev, assistantMessage])
+        setMessages((prev) => {
+          const updatedMessages = [...prev, assistantMessage]
+          sessionStorage.setItem('chats', JSON.stringify(updatedMessages))
+          return updatedMessages
+        })
         setIsLoading(false)
+        setTimeout(() => { isUserScrollingRef.current = true; }, 500);
     }
   }
 
@@ -155,6 +326,27 @@ export function ChatInterface({
       handleSend()
     }
   }
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!isUserScrollingRef.current) return; // Skip if programmatic scroll
+    
+    const target = e.currentTarget;
+    const { scrollTop } = target;
+    
+    // Load more when scrolling UP near TOP (within 100px from top)
+    if (scrollTop < 100 && hasMore && !isLoadingHistory) {
+      console.log("Chat Component: Near top, loading older chats...");
+
+      // Save the FIRST visible message as scroll reference
+      const firstVisibleMessage = messages.find(m => m.messageType === "history" || !m.messageType);
+      if (firstVisibleMessage) {
+        scrollReferenceRef.current = firstVisibleMessage.id;
+        console.log("Chat Component: Saved scroll reference:", scrollReferenceRef.current);
+      }
+
+      fetchChatHistory(oldestChatIdRef.current || undefined, false);
+    }
+  };
 
   return (
     <Card className="w-full flex flex-col shadow-xl border-2 border-blue-100 bg-gradient-to-b from-white to-blue-50/30">
@@ -184,10 +376,30 @@ export function ChatInterface({
 
       <CardContent className="flex-1 flex flex-col p-4 pt-4 space-y-3 min-h-0">
         {/* Messages Area */}
-        <ScrollArea className="flex-1 pr-4">
+        <div  
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="w-full max-h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50"
+        >
+          {/* Loading indicator at TOP */}
+          {isLoadingHistory && (
+            <div className="flex justify-center py-2">
+              <div className="text-xs text-gray-500">Loading older chats...</div>
+            </div>
+          )}
+
+          {/* No more chats indicator at TOP */}
+          {!hasMore && messages.some(m => m.messageType === "history" || !m.messageType) && (
+            <div className="flex justify-center py-2">
+              <div className="text-xs text-gray-400">All chats are available</div>
+            </div>
+          )}
           <div className="space-y-3">
             {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={message.id}
+                id={message.id} // Add id attribute for scroll targeting 
+                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+              >
                 <div
                   className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                     message.sender === "user"
@@ -202,6 +414,18 @@ export function ChatInterface({
                     </div>
                   )}
                   <p className="whitespace-pre-wrap">{message.content}</p>
+                  {/* Industry Standard Response Section  */}
+                  {message.sender === "assistant" && message.industryStandardContent && (
+                    <div className="mt-3 pt-3 border-t border-blue-100">
+                      <div className="flex items-center space-x-1 mb-2">
+                        <BarChart3 className="h-3.5 w-3.5 text-amber-600" />
+                        <span className="text-xs font-semibold text-amber-700">Industry Insight</span>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-200 rounded-md p-2.5">
+                        <p className="text-xs text-amber-900 leading-relaxed">{message.industryStandardContent}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -234,7 +458,7 @@ export function ChatInterface({
             )}
             <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+        </div>
 
         { suggestedQueries && suggestedQueries.length > 0  && (
           <div className="space-y-2">

@@ -28,6 +28,15 @@ export interface DrilldownState {
   };
 }
 
+interface Message {
+  id: string
+  content: string
+  sender: "user" | "assistant"
+  timestamp: Date
+  industryStandardContent?: string
+  messageType?: "history" | "current" 
+}
+
 // ============================================
 // CONTEXT TYPE DEFINITION
 // ============================================
@@ -46,11 +55,10 @@ interface DashboardContextType {
   // Metadata
   metadata: any;
   setMetadata: (metadata: any) => void;
-  
-  // Legacy compatibility - combines cards + charts
-  // dashboard_data: DashboardData | null;
-  // setDashboard_data: (data: DashboardData | null | ((prev: DashboardData | null) => DashboardData | null)) => void;
-  
+
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+
   // Legacy loading & error (kept for backward compatibility)
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -63,14 +71,6 @@ interface DashboardContextType {
 
   athenaCreated: boolean;
   setAthenaCreated: (athenaCreated: boolean) => void;
-  
-  // Dashboard code (legacy)
-  // dashboardCode: string | null;
-  // setDashboardCode: (code: string | null) => void;
-  
-  // WebSocket instance (legacy)
-  // wb: any;
-  // setWb: any;
 }
 
 // ============================================
@@ -84,29 +84,114 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 // ============================================
 
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [cardsState, setCardsState] = useState(() => {
-    // Initialize from sessionStorage
-    try {
-      console.log("cardsState fetched From session Storage")
-      const saved = sessionStorage.getItem('cardsState');
-      return saved ? JSON.parse(saved) : { data: [], loading: false, error: null };
-    } catch {
-      console.log("Error loading cardsState from dashboard-context")
-      return { data: [], loading: false, error: null };
-    }
+  // const [cardsState, setCardsState] = useState(() => {
+  //   // Initialize from sessionStorage
+  //   try {
+  //     console.log("cardsState fetched From session Storage")
+  //     const saved = sessionStorage.getItem('cardsState');
+  //     return saved ? JSON.parse(saved) : { data: [], loading: false, error: null };
+  //   } catch {
+  //     console.log("Error loading cardsState from dashboard-context")
+  //     return { data: [], loading: false, error: null };
+  //   }
+  // });
+
+  // const [chartsState, setChartsState] = useState(() => {
+  //   // Initialize from sessionStorage
+  //   try {
+  //     console.log("chartsState fetched From session Storage")
+  //     const saved = sessionStorage.getItem('chartsState');
+  //     return saved ? JSON.parse(saved) : { data: [], loading: false, error: null };
+  //   } catch {
+  //     console.log("Error loading chartsState from dashboard-context")
+  //     return { data: [], loading: false, error: null };
+  //   }
+  // });
+  
+  // const [metadata, setMetadata] = useState<any>(()=>{
+  //   try {
+  //     console.log("metadata fetched From session Storage")
+  //     const saved = sessionStorage.getItem('metadata');
+  //     return saved ? JSON.parse(saved) : { "filename":"", "totalRows":""};
+  //   } catch {
+  //     console.log("Error loading metadata from dashboard-context")
+  //     return { "filename":"", "totalRows":""};
+  //   }
+  // });
+
+  // const [messages, setMessages] = useState<Message[]>(()=>{
+  //   // Initialize from sessionStorage
+  //   try {
+  //     console.log("fetching chats from session Storage")
+  //     const saved = sessionStorage.getItem('chats');
+  //     return saved ? JSON.parse(saved) : [];
+  //   } catch {
+  //     console.log("Error fetching chats from dashboard-context")
+  //     return [];
+  //   }
+  // })
+  const [cardsState, setCardsState] = useState<SectionState<KPICard[]>>({
+    data: [],
+    loading: false,
+    error: null
   });
 
-  const [chartsState, setChartsState] = useState(() => {
-    // Initialize from sessionStorage
-    try {
-      console.log("chartsState fetched From session Storage")
-      const saved = sessionStorage.getItem('chartsState');
-      return saved ? JSON.parse(saved) : { data: [], loading: false, error: null };
-    } catch {
-      console.log("Error loading chartsState from dashboard-context")
-      return { data: [], loading: false, error: null };
-    }
+  const [chartsState, setChartsState] = useState<SectionState<ChartConfig[]>>({
+    data: [],
+    loading: false,
+    error: null
   });
+
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const [metadata, setMetadata] = useState<any>({
+    filename: "",
+    totalRows: ""
+  });
+
+  // Add a single useEffect to hydrate from sessionStorage after mount:
+  useEffect(() => {
+    console.log("Running dashboard-context useEffect")
+    // Only run on client side after mount
+    if (typeof window !== 'undefined') {
+      try {
+        const savedCards = sessionStorage.getItem('cardsState');
+        if (savedCards) {
+          // console.log("cardsState fetched from sessionStorage");
+          setCardsState(JSON.parse(savedCards));
+        }
+
+        const savedCharts = sessionStorage.getItem('chartsState');
+        if (savedCharts) {
+          // console.log("chartsState fetched from sessionStorage");
+          setChartsState(JSON.parse(savedCharts));
+        }
+
+        const savedMetadata = sessionStorage.getItem('metadata');
+        if (savedMetadata) {
+          // console.log("metadata fetched from sessionStorage");
+          setMetadata(JSON.parse(savedMetadata));
+        }
+
+        const savedChats = sessionStorage.getItem('chats');
+        console.log("savedChats are", savedChats)
+        if (savedChats) {
+          console.log("chats fetched from sessionStorage");
+          setMessages(JSON.parse(savedChats));
+        }
+      } catch (error) {
+        console.error("Error loading from sessionStorage:", error);
+      }
+    }
+  }, []); // Empty dependency array - runs once after mount
+  // const [messages, setMessages] = useState<Message[]>([
+  //     {
+  //       id: "welcome",
+  //       content: welcomeMessage || defaultWelcomeMessage,
+  //       sender: "assistant",
+  //       timestamp: new Date(),
+  //     },
+  //   ])
 
   // Save cardsState to sessionStorage whenever it changes
   useEffect(() => {
@@ -119,19 +204,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     console.log("Saving chartsState to sessionStorage");
     sessionStorage.setItem("chartsState", JSON.stringify(chartsState));
   }, [chartsState]);
-  
-  const [drilldownsState, setDrilldownsState] = useState<DrilldownState>({});
-  
-  const [metadata, setMetadata] = useState<any>(()=>{
-    try {
-      console.log("metadata fetched From session Storage")
-      const saved = sessionStorage.getItem('metadata');
-      return saved ? JSON.parse(saved) : { "filename":"", "totalRows":""};
-    } catch {
-      console.log("Error loading metadata from dashboard-context")
-      return { "filename":"", "totalRows":""};
-    }
-  });
 
   // Save cardsState to sessionStorage whenever it changes
   useEffect(() => {
@@ -139,63 +211,14 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     sessionStorage.setItem("metadata", JSON.stringify(metadata));
   }, [metadata]);
   
+  const [drilldownsState, setDrilldownsState] = useState<DrilldownState>({});
+  
   const [athenaCreated, setAthenaCreated] = useState<boolean>(true);
   
   // Legacy states
   const [isLoading, setIsLoading] = useState(false);
   const [errorDash, setErrorDash] = useState<string | null>(null);
   const [sample_questions, setSample_questions] = useState<string[] | null>(null);
-
-  // Computed dashboard_data from granular states
-  const dashboard_data: DashboardData | null = 
-    (cardsState.data.length > 0 || chartsState.data.length > 0 || metadata)
-      ? {
-          cards: cardsState.data,
-          charts: chartsState.data,
-          metadata: metadata || {}
-        }
-      : null;
-
-  // Enhanced setDashboard_data that updates granular states
-  // const setDashboard_data = (
-  //   data: DashboardData | null | ((prev: DashboardData | null) => DashboardData | null)
-  // ) => {
-  //   if (typeof data === 'function') {
-  //     // Handle functional update
-  //     // Build current data from granular states
-  //     const currentData: DashboardData | null = 
-  //       (cardsState.data.length > 0 || chartsState.data.length > 0 || metadata)
-  //         ? {
-  //             cards: cardsState.data,
-  //             charts: chartsState.data,
-  //             metadata: metadata || {}
-  //           }
-  //         : null;
-      
-  //     const newData = data(currentData);
-      
-  //     if (newData) {
-  //       setCardsState(prev => ({ ...prev, data: newData.cards || [] }));
-  //       setChartsState(prev => ({ ...prev, data: newData.charts || [] }));
-  //       setMetadata(newData.metadata || null);
-  //     } else {
-  //       setCardsState(prev => ({ ...prev, data: [] }));
-  //       setChartsState(prev => ({ ...prev, data: [] }));
-  //       setMetadata(null);
-  //     }
-  //   } else {
-  //     // Handle direct update
-  //     if (data) {
-  //       setCardsState(prev => ({ ...prev, data: data.cards || [] }));
-  //       setChartsState(prev => ({ ...prev, data: data.charts || [] }));
-  //       setMetadata(data.metadata || null);
-  //     } else {
-  //       setCardsState(prev => ({ ...prev, data: [] }));
-  //       setChartsState(prev => ({ ...prev, data: [] }));
-  //       setMetadata(null);
-  //     }
-  //   }
-  // };
 
   return (
     <DashboardContext.Provider
@@ -208,8 +231,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setDrilldownsState,
         metadata,
         setMetadata,
-        // dashboard_data,
-        // setDashboard_data,
         isLoading,
         setIsLoading,
         errorDash,
@@ -218,10 +239,8 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setSample_questions,
         athenaCreated,
         setAthenaCreated,
-        // dashboardCode,
-        // setDashboardCode,
-        // wb,
-        // setWb,
+        messages,
+        setMessages,
       }}
     >
       {children}
