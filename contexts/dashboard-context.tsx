@@ -184,14 +184,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
     }
   }, []); // Empty dependency array - runs once after mount
-  // const [messages, setMessages] = useState<Message[]>([
-  //     {
-  //       id: "welcome",
-  //       content: welcomeMessage || defaultWelcomeMessage,
-  //       sender: "assistant",
-  //       timestamp: new Date(),
-  //     },
-  //   ])
 
   // Save cardsState to sessionStorage whenever it changes
   useEffect(() => {

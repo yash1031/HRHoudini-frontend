@@ -28,7 +28,7 @@ interface FileUploadHistoryProps {
 const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistoryProps) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   const router = useRouter()
-  const { setCardsState, setChartsState, setDrilldownsState, setMetadata} = useDashboard();
+  const { setCardsState, setChartsState, setDrilldownsState, setMetadata, setMessages} = useDashboard();
   // Add state for delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -174,13 +174,22 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     localStorage.setItem("file_name", name)
     localStorage.setItem("file_row_count", String(rowCount))
     localStorage.setItem("sample_questions", JSON.stringify(aiSuggestedQuestions))
+    setCardsState({
+          data: [],
+          loading: false,
+          error: null
+    })
+    setChartsState({
+      data: [],
+      loading: false,
+      error: null
+    })
+    setMetadata({
+      filename: "",
+      totalRows: ""
+    })
+    setMessages([])
     sessionStorage.removeItem("chats")
-    sessionStorage.removeItem("cardsState")
-    sessionStorage.removeItem("chartsState")
-    sessionStorage.removeItem("metadata")
-    setCardsState({data: [], loading: false, error: null})
-    setChartsState({data: [], loading: false, error: null})
-    setMetadata({"filename":"", "totalRows":""})
     console.log("Cards Queries Received on clicking side panel", cardsQueries)
     console.log("Charts Queries Received on clicking side panel", chartsQueries)
     console.log("Parquet URL Received on clicking side panel", parquetUrl)

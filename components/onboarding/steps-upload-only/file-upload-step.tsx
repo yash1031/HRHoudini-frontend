@@ -51,7 +51,12 @@ export function FileUploadStep() {
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   let aiSuggestQuestionsGenerated= true
-  const { setCardsState} = useDashboard();
+  const { 
+    setCardsState,
+    setChartsState,
+    setMetadata, 
+    setMessages
+  } = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
@@ -99,6 +104,22 @@ export function FileUploadStep() {
       dataType: "headcount",
       isSample: true,
     }
+    setCardsState({
+          data: [],
+          loading: false,
+          error: null
+    })
+    setChartsState({
+      data: [],
+      loading: false,
+      error: null
+    })
+    setMetadata({
+      filename: "",
+      totalRows: ""
+    })
+    setMessages([])
+    sessionStorage.removeItem("chats")
 
     const sampleFile = new File(["sample"], "SharpMedian.csv", { type: "text/csv" })
     setUploadedFile({ file: sampleFile, metadata: sampleMetadata })
@@ -264,6 +285,11 @@ export function FileUploadStep() {
               return
             }
             if(msg.event==="kpi.ready"){
+              setCardsState({
+                data: [],
+                loading: false,
+                error: null
+              })
               console.log("KPIs are ready")
               const items = Array.isArray(msg.payload) ? msg.payload : [];
               const kpisWithIcons: KpiItem[] = items.map((item: any) => ({

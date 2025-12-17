@@ -52,12 +52,12 @@ const ROLE_KPI_RECOMMENDATIONS = {
 export function KPIsStep() {
   
   const { setStep ,userContext } = useOnboarding()
-  // const { dashboard_data, setDashboard_data, setIsLoading, setErrorDash, wb } = useDashboard();
   const { 
-    chartsState,
-    setChartsState, 
+    setCardsState,
+    setChartsState,
+    setMetadata, 
     setDrilldownsState, 
-    // setDashboard_data 
+    setMessages
   } = useDashboard();
   const router = useRouter()
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(
@@ -98,7 +98,13 @@ export function KPIsStep() {
         // Store selected KPIs in localStorage
         localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
         localStorage.setItem("hr-houdini-selected-kpis-with-desc", JSON.stringify(selectedKPIWithDesc))
-
+        setChartsState({
+          data: [],
+          loading: false,
+          error: null
+        })
+        setMessages([])
+        sessionStorage.removeItem("chats")
         // Navigate to dashboard-upload-only with specified parameters
         const params = new URLSearchParams({
           hasFile: "true",
@@ -116,26 +122,7 @@ export function KPIsStep() {
 
         const user_id= localStorage.getItem("user_id")
         const session_id= localStorage.getItem("session_id")
-        const idempotency_key= localStorage.getItem("idempotency_key")
         
-        // Insights Dashboard Generation
-        // let resCreateDash
-        // try{
-        //   resCreateDash = await apiFetch("/api/create-dashboard", {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json"},
-        //     body: JSON.stringify({
-        //         user_id: user_id,
-        //         session_id: session_id,
-        //         selected_kpis: selectedKPIWithDesc,
-        //         idempotency_key: idempotency_key
-        //       }),
-        //   });
-        // }catch(error){
-        //   setIsLoading(false)
-        //   setErrorDash("Failed to created Dashboard");
-        //   console.log("Unable to create dashboard")
-        // }
         // Insights Dashboard Generation by Parts
         setChartsState(prev => ({ ...prev, loading: true, error: null }));
         let resCreateDash
