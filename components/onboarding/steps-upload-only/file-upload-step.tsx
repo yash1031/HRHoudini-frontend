@@ -35,13 +35,11 @@ interface KpiItem {
 }
 
 export function FileUploadStep() {
-  // const { step, setStep, userContext } = useOnboarding()
   const { step, setStep, uploadedFile, setUploadedFile, userContext } = useOnboarding()
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
-  // const completionFlags = useRef({ kpi: false, athena: false });
   const [fileDropped, setFileDropped]= useState(false);
   const [proceedToUpload, setProceedToUpload]= useState(false);
   const [isUploading, setIsUploading] = useState(false)
@@ -55,7 +53,9 @@ export function FileUploadStep() {
     setCardsState,
     setChartsState,
     setMetadata, 
-    setMessages
+    setMessages,
+    recommendedQuestions,
+    setRecommendedQuestions,
   } = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
@@ -234,12 +234,14 @@ export function FileUploadStep() {
 
         setUploadProgress(20)
         const data = await presignedURLData;
-        const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
+        const { uploadUrl, s3Key, sessionId } = data;
+        // const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
         uploadURL = uploadUrl
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
         localStorage.setItem("s3Key", s3Key)
         localStorage.setItem("session_id", sessionId)
-        localStorage.setItem("idempotency_key", idempotency_key)
+        // localStorage.setItem("idempotency_key", idempotency_key)
+        sessionStorage.setItem("columns", JSON.stringify(columns))
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
         setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -259,11 +261,11 @@ export function FileUploadStep() {
                 headers: { "Content-Type": "application/json",},
                 body: JSON.stringify({
                     user_id: localStorage.getItem("user_id"),
-                    session_id: sessionId,
-                    column_headers: columns
+                    session_id: localStorage.getItem("session_id"),
+                    column_headers: JSON.parse(sessionStorage.getItem("columns")||"[]")
                   }),
               }).catch((error) => {
-                  localStorage.removeItem("sample_questions")
+                  setRecommendedQuestions([])
                   aiSuggestQuestionsGenerated = false
                   console.error("Failed to create AI recommended question", error)
                 });
@@ -272,7 +274,7 @@ export function FileUploadStep() {
               if(resAISuggestedQues){
                 const AISuggestedQuesData= await resAISuggestedQues.data
                 console.log("Successfully generated AI Recommended Ques.", AISuggestedQuesData)
-                localStorage.setItem("sample_questions", JSON.stringify(AISuggestedQuesData.sample_questions))
+                setRecommendedQuestions(AISuggestedQuesData.sample_questions)
               }
             }
             if(msg.event==="convert.failed"){

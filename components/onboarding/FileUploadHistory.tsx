@@ -28,7 +28,7 @@ interface FileUploadHistoryProps {
 const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistoryProps) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   const router = useRouter()
-  const { setCardsState, setChartsState, setDrilldownsState, setMetadata, setMessages} = useDashboard();
+  const { setCardsState, setChartsState, setDrilldownsState, setMetadata, setMessages, setRecommendedQuestions} = useDashboard();
   // Add state for delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -173,7 +173,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
     localStorage.setItem("session_id",session_id)
     localStorage.setItem("file_name", name)
     localStorage.setItem("file_row_count", String(rowCount))
-    localStorage.setItem("sample_questions", JSON.stringify(aiSuggestedQuestions))
+    setRecommendedQuestions(aiSuggestedQuestions)
     setCardsState({
           data: [],
           loading: false,

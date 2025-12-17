@@ -36,11 +36,9 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({
   placeholder = "Ask me anything about your HR data...",
-  suggestedQueries = [],
   welcomeMessage, // Added welcomeMessage parameter
 }: ChatInterfaceProps) {
 
-  console.log("Received suggested queries", suggestedQueries)
   const defaultWelcomeMessage =
     "Hi! I'm here to help you analyze workforce data, track departmental metrics, and generate insights for your HR initiatives."
   const [input, setInput] = useState("")
@@ -49,7 +47,7 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const searchParams= useSearchParams()
   const fileUploaded= searchParams.get("hasFile")
-  const {messages, setMessages} = useDashboard()
+  const {messages, setMessages, recommendedQuestions, setRecommendedQuestions} = useDashboard()
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -249,6 +247,19 @@ export function ChatInterface({
       setInput("")
       setIsLoading(true)
 
+      let resAISuggestedQuestions = apiFetch("/api/file-upload/generate-recommended-questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json",},
+          body: JSON.stringify({
+              user_id: localStorage.getItem("user_id"),
+              session_id: localStorage.getItem("session_id"),
+              column_headers: JSON.parse(sessionStorage.getItem("columns")||"[]")
+            }),
+        }).catch((error) => {
+            setRecommendedQuestions([])
+            console.error("Chat Component Failed to create AI recommended question", error)
+          });
+
       let responseChatMessage
       try{
         responseChatMessage = await apiFetch("/api/chat/request", {
@@ -279,11 +290,23 @@ export function ChatInterface({
         setTimeout(() => { isUserScrollingRef.current = true; }, 500); // Re-enable after scroll completes
         return;
       }
-      const chatMessageData= await responseChatMessage.data
-      console.log("chatMessageData is", JSON.stringify(chatMessageData))
 
-      console.log("queryResponse is", JSON.stringify(chatMessageData))
-      console.log("queryResponse natural language response is", chatMessageData.natural_language_response)
+      // Display AI Suggested Questions first then chat response
+      const resAISuggestedQues= await resAISuggestedQuestions
+
+      if(resAISuggestedQues){
+        const AISuggestedQuesData= await resAISuggestedQues.data
+        console.log("Chat Component: Successfully generated AI Recommended Ques.", AISuggestedQuesData)
+        setRecommendedQuestions(AISuggestedQuesData.sample_questions)
+      }
+
+      // Display query response
+      const chatMessageData= await responseChatMessage.data
+
+      // console.log("chatMessageData is", JSON.stringify(chatMessageData))
+
+      // console.log("queryResponse is", JSON.stringify(chatMessageData))
+      // console.log("queryResponse natural language response is", chatMessageData.natural_language_response)
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -460,11 +483,11 @@ export function ChatInterface({
           </div>
         </div>
 
-        { suggestedQueries && suggestedQueries.length > 0  && (
+        { recommendedQuestions && recommendedQuestions.length > 0  && (
           <div className="space-y-2">
             <p className="text-xs text-gray-600 font-medium">Try asking:</p>
             <div className="flex flex-wrap gap-2">
-              {suggestedQueries.slice(0, 3).map((query, index) => (
+              {recommendedQuestions.slice(0, 3).map((query, index) => (
                 <Button
                   key={index}
                   variant="outline"

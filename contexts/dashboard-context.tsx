@@ -66,8 +66,8 @@ interface DashboardContextType {
   setErrorDash: (error: string | null) => void;
   
   // Sample questions (for chat)
-  sample_questions: string[] | null;
-  setSample_questions: (questions: string[] | null) => void;
+  recommendedQuestions: string[] ;
+  setRecommendedQuestions: (recommendedQuestions: string[]) => void;
 
   athenaCreated: boolean;
   setAthenaCreated: (athenaCreated: boolean) => void;
@@ -149,6 +149,10 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     totalRows: ""
   });
 
+  const [recommendedQuestions, setRecommendedQuestions] = useState<string[]>([]);
+
+  // const [suggestedQueries, setSuggestedQueries]= useState<String[]>([]);
+
   // Add a single useEffect to hydrate from sessionStorage after mount:
   useEffect(() => {
     console.log("Running dashboard-context useEffect")
@@ -179,6 +183,13 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
           console.log("chats fetched from sessionStorage");
           setMessages(JSON.parse(savedChats));
         }
+
+        const savedRecommendedQuestions = sessionStorage.getItem('recommendedQuestions');
+        console.log("savedRecommendedQuestions are", savedRecommendedQuestions)
+        if (savedRecommendedQuestions) {
+          console.log("recommendedQuestions fetched from sessionStorage");
+          setRecommendedQuestions(JSON.parse(savedRecommendedQuestions));
+        }
       } catch (error) {
         console.error("Error loading from sessionStorage:", error);
       }
@@ -202,6 +213,12 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
     console.log("Saving metadata to sessionStorage");
     sessionStorage.setItem("metadata", JSON.stringify(metadata));
   }, [metadata]);
+
+  // Save recommendedQuestions to sessionStorage whenever it changes
+  useEffect(() => {
+    console.log("Saving recommendedQuestions to sessionStorage");
+    sessionStorage.setItem("recommendedQuestions", JSON.stringify(recommendedQuestions));
+  }, [recommendedQuestions]);
   
   const [drilldownsState, setDrilldownsState] = useState<DrilldownState>({});
   
@@ -210,7 +227,6 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
   // Legacy states
   const [isLoading, setIsLoading] = useState(false);
   const [errorDash, setErrorDash] = useState<string | null>(null);
-  const [sample_questions, setSample_questions] = useState<string[] | null>(null);
 
   return (
     <DashboardContext.Provider
@@ -227,8 +243,8 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setIsLoading,
         errorDash,
         setErrorDash,
-        sample_questions,
-        setSample_questions,
+        recommendedQuestions,
+        setRecommendedQuestions,
         athenaCreated,
         setAthenaCreated,
         messages,
