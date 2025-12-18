@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {user_id, session_id, column_headers} = body;
+    const {user_id, session_id} = body;
+    // const {user_id, session_id, column_headers} = body;
     const authHeader = req.headers.get("authorization");
     if (!user_id) {
       return NextResponse.json(
@@ -20,12 +21,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!column_headers) {
-      return NextResponse.json(
-        { error: "column_headers is required" },
-        { status: 400 }
-      );
-    }
+    // if (!column_headers) {
+    //   return NextResponse.json(
+    //     { error: "column_headers is required" },
+    //     { status: 400 }
+    //   );
+    // }
 
     const response = fetch(
     // const response = fetch(
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             user_id: user_id,
             session_id: session_id,
-            column_headers: column_headers
+            // column_headers: column_headers
           }),
         }
       );

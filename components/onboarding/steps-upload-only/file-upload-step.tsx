@@ -241,7 +241,7 @@ export function FileUploadStep() {
         localStorage.setItem("s3Key", s3Key)
         localStorage.setItem("session_id", sessionId)
         // localStorage.setItem("idempotency_key", idempotency_key)
-        sessionStorage.setItem("columns", JSON.stringify(columns))
+        // sessionStorage.setItem("columns", JSON.stringify(columns))
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
         setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -256,25 +256,28 @@ export function FileUploadStep() {
               console.log("[WS] message: CSV converted to parquet")
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
-              let resAISuggestedQues = await apiFetch("/api/file-upload/generate-recommended-questions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json",},
-                body: JSON.stringify({
-                    user_id: localStorage.getItem("user_id"),
-                    session_id: localStorage.getItem("session_id"),
-                    column_headers: JSON.parse(sessionStorage.getItem("columns")||"[]")
-                  }),
-              }).catch((error) => {
-                  setRecommendedQuestions([])
-                  aiSuggestQuestionsGenerated = false
-                  console.error("Failed to create AI recommended question", error)
+              let responseSuggestedQueries
+              try{
+                responseSuggestedQueries = await apiFetch("/api/chat/request", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json"},
+                  body: JSON.stringify({
+                        question: null,
+                        user_id: localStorage.getItem("user_id"),
+                        session_id: localStorage.getItem("session_id")
+                      }),
                 });
+              }catch (error) {
+                console.log("Unable to fetch suggested queries", error)
+              }
 
-              // const resAISuggestedQues= await AISuggestedQuesRes;
-              if(resAISuggestedQues){
-                const AISuggestedQuesData= await resAISuggestedQues.data
-                console.log("Successfully generated AI Recommended Ques.", AISuggestedQuesData)
-                setRecommendedQuestions(AISuggestedQuesData.sample_questions)
+              if(responseSuggestedQueries){
+                const suggestedQueriesData= await responseSuggestedQueries.data
+
+                console.log("SuggestionQuestionData received", suggestedQueriesData)
+      
+                // Display AI Suggested Questions 
+                setRecommendedQuestions(suggestedQueriesData.sample_questions)  
               }
             }
             if(msg.event==="convert.failed"){

@@ -33,13 +33,21 @@ export async function GET(request: NextRequest,
 
     return NextResponse.json(
         { success: true, data },
-        { status: response.status }
+        { status: response.status,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          } 
+        }
       );
     } catch (error: any) {
       console.error("Error generating response", error);
       return NextResponse.json(
         { error: "Error generating response" },
-        { status: 500 }
+        { status: 500,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          }
+        }
       );
     }
 }

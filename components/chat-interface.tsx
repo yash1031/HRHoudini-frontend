@@ -122,7 +122,7 @@ export function ChatInterface({
       try {
         responseChatHistory = await apiFetch(url, {
           method: "GET",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Cache-Control": "no-cache", },
         });
       } catch (error) {
         console.log("Unable to fetch chat history", error);
@@ -247,19 +247,6 @@ export function ChatInterface({
       setInput("")
       setIsLoading(true)
 
-      let resAISuggestedQuestions = apiFetch("/api/file-upload/generate-recommended-questions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json",},
-          body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: localStorage.getItem("session_id"),
-              column_headers: JSON.parse(sessionStorage.getItem("columns")||"[]")
-            }),
-        }).catch((error) => {
-            setRecommendedQuestions([])
-            console.error("Chat Component Failed to create AI recommended question", error)
-          });
-
       let responseChatMessage
       try{
         responseChatMessage = await apiFetch("/api/chat/request", {
@@ -291,17 +278,12 @@ export function ChatInterface({
         return;
       }
 
-      // Display AI Suggested Questions first then chat response
-      const resAISuggestedQues= await resAISuggestedQuestions
-
-      if(resAISuggestedQues){
-        const AISuggestedQuesData= await resAISuggestedQues.data
-        console.log("Chat Component: Successfully generated AI Recommended Ques.", AISuggestedQuesData)
-        setRecommendedQuestions(AISuggestedQuesData.sample_questions)
-      }
-
+      
       // Display query response
       const chatMessageData= await responseChatMessage.data
+      
+      // Display AI Suggested Questions 
+      setRecommendedQuestions(chatMessageData.sample_questions)  
 
       // console.log("chatMessageData is", JSON.stringify(chatMessageData))
 
