@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -24,7 +24,7 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 import {generateChartsFromParquet } from "@/utils/parquetLoader"
-import {attachDrilldownToParent} from "@/utils/drilldownHelpers"
+// import {attachDrilldownToParent} from "@/utils/drilldownHelpers"
 import {generateDrilldownChartsData, buildQueryFromQueryObj} from "@/utils/parquetLoader"
 
 
@@ -53,9 +53,8 @@ export function KPIsStep() {
   
   const { setStep ,userContext } = useOnboarding()
   const { 
-    setCardsState,
+    chartsState,
     setChartsState,
-    setMetadata, 
     setDrilldownsState, 
     setMessages
   } = useDashboard();
@@ -65,6 +64,9 @@ export function KPIsStep() {
   )
   // State to hold full info (label + description)
   const [selectedKPIWithDesc, setSelectedKPIWithDesc] = useState<SelectedKPIInfo[]>([]);
+
+  const mainChartTimeout = useRef<NodeJS.Timeout | null>(null);
+  const drilldownTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const handleKPIToggle = (kpiId: string) => {
     setSelectedKPIs((prev) => (prev.includes(kpiId) ? prev.filter((id) => id !== kpiId) : [...prev, kpiId]))
@@ -94,6 +96,19 @@ export function KPIsStep() {
 
   const handleNext = async () => {
       let handler: (msg: any) => void = () => {};
+
+      // Start 20s timeout for main charts
+      console.log("[TIMEOUT] Setting timeout for main charts")
+      const timeout = setTimeout(() => {
+        setChartsState({
+          loading: false,
+          error: "Timeout generating charts.",
+          data: []
+        });
+        console.error("[TIMEOUT] No main charts received within 20 seconds");
+      }, 30000);
+      mainChartTimeout.current = timeout;
+
       try{
         // Store selected KPIs in localStorage
         localStorage.setItem("hr-houdini-selected-kpis", JSON.stringify(selectedKPIs))
@@ -149,7 +164,7 @@ export function KPIsStep() {
             // ============================================
             if (msg.event === "kpi.main.ready") {
               console.log("[STEP 2] Main Charts received");
-              console.log("Message from websockets:", msg);
+              // console.log("Message from websockets:", msg);
               
               const mainChartsQueries = JSON.parse(msg?.payload?.charts?.text).charts;
               console.log("Queries received for charts generation:", mainChartsQueries);
@@ -159,6 +174,15 @@ export function KPIsStep() {
               generateChartsFromParquet(mainChartsQueries, parquetUrl)
                 .then((result: any) => {
                   console.log("Result for generateChartsFromParquet:", JSON.stringify(result, null, 2));
+
+                  console.log("[TIMEOUT] mainChartTimeout is", mainChartTimeout.current)
+
+                  // Clear main chart timeout
+                  if (mainChartTimeout.current) {
+                    console.log("[TIMEOUT] Main charts received, timeout cleared")
+                    clearTimeout(mainChartTimeout.current);
+                    mainChartTimeout.current = null;
+                  }
                   
                   // Success - update charts data in granular state
                   setChartsState(prev => ({
@@ -166,16 +190,34 @@ export function KPIsStep() {
                     error: null,
                     data: [...prev.data, ...result]  // ← Append new charts to existing
                   }));
+
+                  // Start 20s timeout for each chart's drilldown
+                  result.forEach((chart: any) => {
+                    const chartId = chart.id || chart.semantic_id;
+                    console.log("[TIMEOUT] Setting timout for drilldown of chartId", chartId)
+                    const timeout = setTimeout(() => {
+                      setDrilldownsState(prev => ({
+                        ...prev,
+                        [chartId]: { loading: false, error: true }
+                      }));
+                      console.error(`[TIMEOUT] No drilldown received for chart ${chartId} within 20 seconds`);
+                      drilldownTimeouts.current.delete(chartId);
+                    }, 30000);
+                    
+                    drilldownTimeouts.current.set(chartId, timeout);
+                  });
                 })
                 .catch((error) => {
                   console.error("Failed to generate charts:", error);
                   
                   // Error - set error state
-                  setChartsState({
-                    loading: false,
-                    error: "Failed to generate analytical charts",
-                    data: []
-                  });
+                  if(mainChartTimeout.current){
+                    setChartsState({
+                      loading: false,
+                      error: "Failed to generate analytical charts",
+                      data: []
+                    });
+                  }
                 });
             }
             
@@ -185,11 +227,13 @@ export function KPIsStep() {
             if (msg.event === "kpi.main.error") {
               console.error("Backend error in chart generation:", msg.payload);
               
-              setChartsState({
-                loading: false,
-                error: msg.payload?.message || "Backend error generating charts",
-                data: []
-              });
+              if(mainChartTimeout.current){
+                setChartsState({
+                  loading: false,
+                  error: msg.payload?.message || "Backend error generating charts",
+                  data: []
+                });
+              }
             }
 
             // ============================================
@@ -203,6 +247,13 @@ export function KPIsStep() {
               const drilldownCharts = drilldownPayload?.charts || [];
               const drilldownFilters = drilldownPayload?.filters || [];
               const kpiId = drilldownPayload?.kpi_id;
+
+              // Clear drilldown timeout for this chart
+              if (parentChartId && drilldownTimeouts.current.has(parentChartId)) {
+                console.log("[TIMEOUT] Drilldown charts received, timeout cleared for", parentChartId)
+                clearTimeout(drilldownTimeouts.current.get(parentChartId)!);
+                drilldownTimeouts.current.delete(parentChartId);
+              }
               
               const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
               
@@ -337,6 +388,13 @@ export function KPIsStep() {
               const parentChartId = insightsPayload?.parent_chart_id;
               const insights = insightsPayload?.insights;
 
+              // Clear drilldown timeout for this chart
+              if (parentChartId && drilldownTimeouts.current.has(parentChartId)) {
+                console.log("[TIMEOUT] Insights received, timeout cleared for", parentChartId)
+                clearTimeout(drilldownTimeouts.current.get(parentChartId)!);
+                drilldownTimeouts.current.delete(parentChartId);
+              }
+
               if (!parentChartId || !insights) {
                 console.warn("[INSIGHTS] Missing parent_chart_id or insights data");
                 return;
@@ -438,6 +496,40 @@ export function KPIsStep() {
         <CardDescription>
           Select all the metrics those you track regularly to get personalized insights and automated alerts when trends change.
         </CardDescription>
+        {/* To select all KPIs at once */}
+        <div className="flex items-center justify-end gap-3 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const allKpiIds = kpis.map(kpi => kpi.id);
+              setSelectedKPIs(allKpiIds);
+              
+              const allKpiDetails = kpis.map(({ id, label, description, category }) => ({ 
+                kpi_id: id,
+                label,
+                description, 
+                category 
+              }));
+              setSelectedKPIWithDesc(allKpiDetails);
+            }}
+            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+          >
+            Select All
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelectedKPIs([]);
+              setSelectedKPIWithDesc([]);
+            }}
+            className="text-gray-600 border-gray-300 hover:bg-gray-50"
+          >
+            Clear All
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
