@@ -6,12 +6,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle } from 'lucide-react';
+import { Sparkles, CheckCircle, FileText} from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } from '@/types/dashboard';
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
+import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
+import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
 
@@ -46,6 +48,15 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     title: ''
   });
 
+    // HTML Report Modal state
+  const [htmlReportModal, setHtmlReportModal] = useState({
+    isOpen: false,
+    htmlContent: '',
+    isLoading: false,
+    error: null as string | null
+  });
+
+
   /**
    * Handle KPI card click - open drilldown modal
    */
@@ -77,6 +88,91 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
    */
   const closeModal = (): void => {
     setModal({ isOpen: false, title: '' });
+  };
+
+  /**
+ * Handle HTML report generation
+ */
+const handleGenerateReport = async (): Promise<void> => {
+  setHtmlReportModal({
+    isOpen: true,
+    htmlContent: '',
+    isLoading: true,
+    error: null
+  });
+
+  try {
+    // Fetch values from localStorage
+    const selectedKpisStr = localStorage.getItem('hr-houdini-selected-kpis-with-desc');
+    const userIdFromStorage = localStorage.getItem('user_id');
+    const sessionIdFromStorage = localStorage.getItem('session_id');
+    const fileNameFromStorage = localStorage.getItem('file_name');
+
+    // Validate required fields
+    if (!userIdFromStorage || !sessionIdFromStorage || !fileNameFromStorage) {
+      throw new Error('Missing required data in localStorage. Please refresh and try again.');
+    }
+
+    // Parse selected KPIs
+    let selectedKpis = [];
+    if (selectedKpisStr) {
+      try {
+        selectedKpis = JSON.parse(selectedKpisStr);
+      } catch (e) {
+        console.warn('Failed to parse selected KPIs from localStorage:', e);
+        selectedKpis = [];
+      }
+    }
+
+    const response = await apiFetch('/api/dashboard-agent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userIdFromStorage,
+        session_id: sessionIdFromStorage,
+        file_name: fileNameFromStorage,
+        selected_kpis: selectedKpis
+      })
+    }).catch((error) => {
+      const parsedError = JSON.parse(error.message);
+      console.error('Error generating HTML report:', parsedError);
+      throw new Error(parsedError.error || 'Failed to generate report');
+    });
+
+    if (response) {
+      if (response.error) {
+        throw new Error(response.error);
+      }
+
+      setHtmlReportModal(prev => ({
+        ...prev,
+        htmlContent: response.html_content,
+        isLoading: false
+      }));
+    }
+
+  } catch (error) {
+    console.error('Error generating HTML report:', error);
+    setHtmlReportModal(prev => ({
+      ...prev,
+      isLoading: false,
+      error: error instanceof Error ? error.message : 'Failed to generate report'
+    }));
+  }
+};
+
+  /**
+   * Close HTML report modal
+   */
+  const closeHtmlReportModal = (): void => {
+    setHtmlReportModal({
+      isOpen: false,
+      htmlContent: '',
+      isLoading: false,
+      error: null
+    });
   };
 
   // Extract summary data from first few cards (only if cards loaded)
@@ -112,6 +208,15 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                   {/* <Badge className="bg-white/20 text-white border-white/30">
                     Analysis Completed
                   </Badge> */}
+                  {/* Generate Report Button */}
+                  <button
+                    onClick={handleGenerateReport}
+                    className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors border border-white/20 hover:border-white/30"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span className="font-medium">Generate Detailed Dashboard</span>
+                  </button>
+
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <div className="flex items-center space-x-2 text-white">
                       <CheckCircle className="h-4 w-4" />
@@ -199,6 +304,15 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
 
         {/* Drilldown Modal */}
         <DrillDownModal modal={modal} onClose={closeModal} />
+
+        {/* HTML Report Modal */}
+        <HTMLDashboardModal
+          isOpen={htmlReportModal.isOpen}
+          onClose={closeHtmlReportModal}
+          htmlContent={htmlReportModal.htmlContent}
+          isLoading={htmlReportModal.isLoading}
+          error={htmlReportModal.error}
+        />
       </div>
     </>
   );

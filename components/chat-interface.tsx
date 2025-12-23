@@ -396,7 +396,7 @@ export function ChatInterface({
           {/* No more chats indicator at TOP */}
           {!hasMore && messages.some(m => m.messageType === "history" || !m.messageType) && (
             <div className="flex justify-center py-2">
-              <div className="text-xs text-gray-400">All chats are available</div>
+              <div className="text-xs text-gray-400">All chats are loaded</div>
             </div>
           )}
           <div className="space-y-3">
