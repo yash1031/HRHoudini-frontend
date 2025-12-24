@@ -254,8 +254,8 @@ export function ChatInterface({
           headers: { "Content-Type": "application/json"},
           body: JSON.stringify({
                 question: messageToSend,
-                user_id: fileUploaded=="false" ? process.env.NEXT_PUBLIC_SAMPLE_USER_ID: localStorage.getItem("user_id"),
-                session_id: fileUploaded=="false" ? process.env.NEXT_PUBLIC_SAMPLE_FILE_SESSION_ID: localStorage.getItem("session_id")
+                user_id: localStorage.getItem("user_id"),
+                session_id: fileUploaded=="false" ? '00000000-0000-0000-0000-000000000000': localStorage.getItem("session_id")
               }),
         });
       }catch (error) {
@@ -283,7 +283,7 @@ export function ChatInterface({
       const chatMessageData= await responseChatMessage.data
       
       // Display AI Suggested Questions 
-      setRecommendedQuestions(chatMessageData.sample_questions)  
+      if(fileUploaded=="true") setRecommendedQuestions(chatMessageData.sample_questions)  
 
       // console.log("chatMessageData is", JSON.stringify(chatMessageData))
 
@@ -333,7 +333,7 @@ export function ChatInterface({
   }
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!isUserScrollingRef.current) return; // Skip if programmatic scroll
+    if (!isUserScrollingRef.current || fileUploaded=="false") return; // Skip if programmatic scroll
     
     const target = e.currentTarget;
     const { scrollTop } = target;
