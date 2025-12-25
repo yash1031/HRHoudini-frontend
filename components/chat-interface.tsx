@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles } from "lucide-react"
+import { Send, MessageSquare, Database, AlertCircle, Users, BarChart3, Sparkles, ArrowDown } from "lucide-react"
 import { apiFetch } from "@/lib/api/client";
 import { useSearchParams } from "next/navigation"
 import { useDashboard } from "@/contexts/dashboard-context"
@@ -55,6 +55,7 @@ export function ChatInterface({
   const shouldScrollRef = useRef(false);
   const isUserScrollingRef = useRef(true);
   const scrollReferenceRef = useRef<string | null>(null); 
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -333,11 +334,15 @@ export function ChatInterface({
   }
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!isUserScrollingRef.current || fileUploaded=="false") return; // Skip if programmatic scroll
-    
     const target = e.currentTarget;
-    const { scrollTop } = target;
+    const { scrollTop, scrollHeight, clientHeight } = target;
     
+    // Show button if user scrolled up more than 200px from bottom
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+    setShowScrollButton(!isNearBottom);
+    
+    if (!isUserScrollingRef.current || fileUploaded=="false") return;
+
     // Load more when scrolling UP near TOP (within 100px from top)
     if (scrollTop < 100 && hasMore && !isLoadingHistory) {
       console.log("Chat Component: Near top, loading older chats...");
@@ -351,6 +356,12 @@ export function ChatInterface({
 
       fetchChatHistory(oldestChatIdRef.current || undefined, false);
     }
+  };
+
+  const handleScrollToBottom = () => {
+    isUserScrollingRef.current = false;
+    scrollToBottom();
+    setTimeout(() => { isUserScrollingRef.current = true; }, 300);
   };
 
   return (
@@ -381,87 +392,98 @@ export function ChatInterface({
 
       <CardContent className="flex-1 flex flex-col p-4 pt-4 space-y-3 min-h-0">
         {/* Messages Area */}
-        <div  
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="w-full max-h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50"
-        >
-          {/* Loading indicator at TOP */}
-          {isLoadingHistory && (
-            <div className="flex justify-center py-2">
-              <div className="text-xs text-gray-500">Loading older chats...</div>
-            </div>
-          )}
-
-          {/* No more chats indicator at TOP */}
-          {!hasMore && messages.some(m => m.messageType === "history" || !m.messageType) && (
-            <div className="flex justify-center py-2">
-              <div className="text-xs text-gray-400">All chats are loaded</div>
-            </div>
-          )}
-          <div className="space-y-3">
-            {messages.map((message) => (
-              <div key={message.id}
-                id={message.id} // Add id attribute for scroll targeting 
-                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                    message.sender === "user"
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-white text-gray-900 border border-blue-200 shadow-sm"
-                  }`}
-                >
-                  {message.sender === "assistant" && message.id === "welcome" && (
-                    <div className="flex items-center space-x-1 mb-1">
-                      <Sparkles className="h-3 w-3 text-blue-600" />
-                      <span className="text-xs font-medium text-blue-600">Welcome!</span>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                  {/* Industry Standard Response Section  */}
-                  {message.sender === "assistant" && message.industryStandardContent && (
-                    <div className="mt-3 pt-3 border-t border-blue-100">
-                      <div className="flex items-center space-x-1 mb-2">
-                        <BarChart3 className="h-3.5 w-3.5 text-amber-600" />
-                        <span className="text-xs font-semibold text-amber-700">Industry Insight</span>
-                      </div>
-                      <div className="bg-amber-50 border border-amber-200 rounded-md p-2.5">
-                        <p className="text-xs text-amber-900 leading-relaxed">{message.industryStandardContent}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+        <div className="relative flex-1">
+          <div  
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="w-full max-h-[500px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-50"
+          >
+            {/* Loading indicator at TOP */}
+            {isLoadingHistory && (
+              <div className="flex justify-center py-2">
+                <div className="text-xs text-gray-500">Loading older chats...</div>
               </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm shadow-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                      <div
-                        className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "0.1s" }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "0.2s" }}
-                      ></div>
-                    </div>
-                    <span className="text-gray-600">Analyzing...</span>
+            )}
+
+            {/* No more chats indicator at TOP */}
+            {!hasMore && messages.some(m => m.messageType === "history" || !m.messageType) && (
+              <div className="flex justify-center py-2">
+                <div className="text-xs text-gray-400">All chats are loaded</div>
+              </div>
+            )}
+            <div className="space-y-3">
+              {messages.map((message) => (
+                <div key={message.id}
+                  id={message.id} // Add id attribute for scroll targeting 
+                  className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                      message.sender === "user"
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-white text-gray-900 border border-blue-200 shadow-sm"
+                    }`}
+                  >
+                    {message.sender === "assistant" && message.id === "welcome" && (
+                      <div className="flex items-center space-x-1 mb-1">
+                        <Sparkles className="h-3 w-3 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-600">Welcome!</span>
+                      </div>
+                    )}
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {/* Industry Standard Response Section  */}
+                    {message.sender === "assistant" && message.industryStandardContent && (
+                      <div className="mt-3 pt-3 border-t border-blue-100">
+                        <div className="flex items-center space-x-1 mb-2">
+                          <BarChart3 className="h-3.5 w-3.5 text-amber-600" />
+                          <span className="text-xs font-semibold text-amber-700">Industry Insight</span>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-md p-2.5">
+                          <p className="text-xs text-amber-900 leading-relaxed">{message.industryStandardContent}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.1s" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        ></div>
+                      </div>
+                      <span className="text-gray-600">Analyzing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            {showScrollButton && (
+              <button
+                onClick={handleScrollToBottom}
+                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white hover:bg-gray-50 text-gray-700 rounded-full p-3 shadow-lg border border-gray-200 transition-all duration-200 hover:shadow-xl z-10"
+                aria-label="Scroll to bottom"
+              >
+                <ArrowDown className="h-5 w-5" />
+              </button>
             )}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <div ref={messagesEndRef} />
           </div>
         </div>
 
