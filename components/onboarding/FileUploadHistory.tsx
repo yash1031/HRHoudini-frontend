@@ -7,6 +7,58 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { apiFetch } from "@/lib/api/client";
 import {generateCardsFromParquet, generateChartsFromParquet, buildQueryFromQueryObj, generateDrilldownChartsData} from "@/utils/parquetLoader"
 
+const HistorySkeleton = () => (
+  <div className="space-y-3 px-4 py-6">
+    {Array.from({ length: 20 }).map((_, i) => (
+      <div
+        key={i}
+        className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-3 bg-gray-100 rounded w-1/2" />
+          </div>
+          <div className="h-4 w-4 bg-gray-200 rounded" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// const HistorySkeleton = () => (
+//   <div className="px-4 py-6 space-y-4">
+//     {/* Status text */}
+//     <div className="mb-2">
+//       <p className="text-sm font-medium text-gray-700">
+//         Loading your previous uploads
+//       </p>
+//       <p className="text-xs text-gray-500 mt-0.5">
+//         Fetching dashboards and insights from your history
+//       </p>
+//     </div>
+
+//     {/* Skeleton cards */}
+//     <div className="space-y-3">
+//       {Array.from({ length: 10 }).map((_, i) => (
+//         <div
+//           key={i}
+//           className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse"
+//         >
+//           <div className="flex items-start justify-between gap-3">
+//             <div className="flex-1 space-y-2">
+//               <div className="h-4 bg-gray-200 rounded w-3/4" />
+//               <div className="h-3 bg-gray-100 rounded w-1/2" />
+//             </div>
+//             <div className="h-4 w-4 bg-gray-200 rounded" />
+//           </div>
+//         </div>
+//       ))}
+//     </div>
+//   </div>
+// );
+
+
 interface FileUpload {
   id: string;
   session_id: string;
@@ -22,11 +74,13 @@ interface FileUpload {
 
 interface FileUploadHistoryProps {
   onClose?: () => void;
+  isLoading: boolean;
   fileUploadHistoryData: any;
 }
 
-const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistoryProps) => {
+const FileUploadHistory = ({ onClose, isLoading, fileUploadHistoryData }: FileUploadHistoryProps) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
+  // const [isLoading, setIsLoading] = useState(true);
   const router = useRouter()
   const { setCardsState, setChartsState, setDrilldownsState, setMetadata, setMessages, setRecommendedQuestions} = useDashboard();
   // Add state for delete confirmation
@@ -47,6 +101,7 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
   useEffect(()=>{
     console.log("uploads in FileUploadHistory comp is", fileUploadHistoryData)
     setUploads(fileUploadHistoryData)
+    // setIsLoading(false) 
   },[fileUploadHistoryData])
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -401,7 +456,13 @@ const FileUploadHistory = ({ onClose, fileUploadHistoryData }: FileUploadHistory
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {uploads.length === 0 ? (
+        {isLoading ? (
+          <HistorySkeleton />
+          // <div className="flex flex-col items-center justify-center h-full">
+          //   <div className="w-12 h-12 border-4 border-[#4f5bde] border-t-transparent rounded-full animate-spin mb-4"></div>
+          //   <p className="text-gray-600 font-medium">Loading history...</p>
+          // </div>
+        ) :uploads.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <FileText size={64} strokeWidth={1.5} className="mb-4" />
             <p className="text-lg font-medium mb-1">No previous file uploads</p>
