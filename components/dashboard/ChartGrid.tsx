@@ -385,8 +385,6 @@ export const ChartGrid: React.FC<ChartGridProps> = ({
         const isDrilldownLoading = drilldownState?.loading || false;
         const isDrilldownError = drilldownState?.error || false;
 
-
-
         return (
           <div
             key={idx}
