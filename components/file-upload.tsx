@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback,Dispatch, SetStateAction, useRef } from "react"
+import { useState, useCallback, useEffect, Dispatch, SetStateAction, useRef } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,7 +81,7 @@ export function FileUpload({
   const { uploadedFile, setUploadedFile } = useOnboarding()
   const { setMetadata} = useDashboard();
 
-  const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number }> => {
+  const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number; data?: any[] }> => {
   return new Promise((resolve, reject) => {
     const fileExtension = file.name.split(".").pop()?.toLowerCase()
 
@@ -104,7 +104,7 @@ export function FileUpload({
           })
           
           const rowCount = nonEmptyRows.length
-          resolve({ columns, rowCount })
+          resolve({ columns, rowCount, data: nonEmptyRows })
         },
         error: (err) => reject(err),
       })
@@ -133,9 +133,18 @@ export function FileUpload({
             )
           })
           
+          // Convert rows to objects with headers as keys
+          const dataRows = nonEmptyRows.map((row: any) => {
+            const rowObj: any = {}
+            columns.forEach((col, index) => {
+              rowObj[col] = row[index] || ''
+            })
+            return rowObj
+          })
+          
           const rowCount = nonEmptyRows.length
 
-          resolve({ columns, rowCount })
+          resolve({ columns, rowCount, data: dataRows })
         } catch (err) {
           reject(err)
         }
@@ -148,211 +157,174 @@ export function FileUpload({
   })
   }
 
-  const HR_HINTS = [
-    "hire", "hired", "hiring", "termination", "terminated", "term", "terminate",
-    "depart", "departure", "resigned", "resignation", "exit", "leaving",
-    "dept", "department", "division", "team", "unit", "business unit",
-    "gender", "sex", "male", "female", "diversity",
-    "salary", "wage", "pay", "compensation", "comp", "bonus", "incentive",
-    "commission", "stock", "equity", "benefits", "allowance",
-    "age", "birth", "dob", "date of birth", "yob",
-    "tenure", "service", "seniority", "years", "experience",
-    "performance", "rating", "review", "appraisal", "evaluation", "score",
-    "manager", "supervisor", "lead", "director", "head", "chief", "reports to",
-    "title", "position", "role", "job", "designation", "function",
-    "level", "grade", "band", "tier", "rank",
-    "location", "office", "site", "city", "region", "country", "geography",
-    "state", "province", "branch", "facility",
-    "education", "degree", "qualification", "university", "college", "school",
-    "promotion", "promoted", "career", "progression", "advancement",
-    "employee", "staff", "worker", "personnel", "associate", "member",
-    "headcount", "hc", "fte", "full time", "part time", "contractor",
-    "status", "active", "inactive", "current", "former",
-    "start date", "end date", "join", "joined", "onboard", "onboarding",
-    "attrition", "turnover", "retention", "churn",
-    "absence", "leave", "vacation", "pto", "sick", "holiday",
-    "overtime", "hours", "shift", "schedule",
-    "ethnicity", "race", "nationality", "veteran", "disability",
-    "marital", "married", "single", "family",
-    "id", "emp id", "employee id", "staff id", "badge",
-    "cost center", "budget", "payroll",
-    "skill", "competency", "certification", "training",
-    "discipline", "warning", "pip", "improvement plan"
-  ];
+  // Load HR headers list
+  const [hrHeadersList, setHrHeadersList] = useState<string[]>([]);
 
-  //Normalize headers removing extra characters
-  const normalizeHeaderName = (header: string): string => {
+  // Load HR headers on component mount
+  useEffect(() => {
+    fetch('/hr-headers.json')
+      .then(res => res.json())
+      .then(data => setHrHeadersList(data))
+      .catch(err => console.error('Failed to load HR headers list:', err));
+  }, []);
+
+  // Normalize header - remove all spaces and special characters
+  const normalizeHeader = (header: string): string => {
     return header
       .toLowerCase()
       .trim()
-      .replace(/[-_\s]+/g, " ") // Replace hyphens, underscores, and multiple spaces with single space
-      .replace(/[^a-z0-9\s]/g, "") // Remove special characters except spaces
+      .replace(/[-_\s]+/g, '') // Remove hyphens, underscores, and spaces
+      .replace(/[^a-z0-9]/g, '') // Remove all special characters
       .trim();
   };
 
+
   const areHeadersActuallyData = (headers: string[]): { isData: boolean; reason: string } => {
-  
     for (const header of headers) {
       const normalized = header.trim();
       
-      // DEFINITIVE INDICATORS - if ANY of these match, it's definitely data, not headers
-      
-      // 1. Email addresses - headers should NEVER be email addresses
+      // Email addresses
       if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found email address "${normalized}" in first row - this indicates file does not contain headers.` 
+          reason: `Found email address "${normalized}" in first row - file appears to lack headers.` 
         };
       }
       
-      // 2. Date patterns - headers should NEVER be dates
-      // Matches: MM/DD/YYYY, DD-MM-YYYY, YYYY-MM-DD, M/D/YY, etc.
+      // Date patterns
       if (/^\d{1,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4}$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found date value "${normalized}" in first row - this indicates file does not contain headers.` 
+          reason: `Found date value "${normalized}" in first row - file appears to lack headers.` 
         };
       }
       
-      // 5. Large currency amounts (5+ digits)
-      // Headers might have "2024" or "Q1" but not "65000" or "125000"
-      if (/^\d{5,}$/.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found large numeric value "${normalized}" in first row - this indicates file does not contain headers.` 
-        };
-      }
-      
-      // 6. Decimal numbers (salary, percentages, ratings)
-      // Matches: "65000.50", "3.14", "95.5"
-      if (/^\d+\.\d+$/.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found decimal number "${normalized}" in first row - this indicates file does not contain headers.` 
-        };
-      }
-      
-      // 7. ZIP codes (US 5-digit or 5+4 format)
-      // Matches: "02108", "02139", "90210-1234"
-      if (/^\d{5}(-\d{4})?$/.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found ZIP code "${normalized}" in first row - this indicates file does not contain headers.` 
-        };
-      }
-      
-      // 8. Phone numbers
-      // Matches: "555-1234", "(555) 123-4567", "555.123.4567", "+1-555-123-4567"
+      // Phone numbers
       if (/^[\+\(]?\d{1,4}[\)\-\.\s]?\d{3}[\-\.\s]?\d{3,4}[\-\.\s]?\d{4}$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found phone number "${normalized}" in first row - this indicates file does not contain headers.` 
+          reason: `Found phone number "${normalized}" in first row - file appears to lack headers.` 
         };
       }
       
-      // 9. Social Security Numbers (US format)
-      // Matches: "123-45-6789" or "123456789"
-      if (/^\d{3}-?\d{2}-?\d{4}$/.test(normalized)) {
+      // Large numbers (likely salary or ID)
+      if (/^\d{5,}$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found SSN pattern "${normalized}" in first row - this indicates file does not contain headers.` 
+          reason: `Found large numeric value "${normalized}" in first row - file appears to lack headers.` 
         };
       }
       
-      // 10. URLs/Websites
-      if (/^(https?:\/\/|www\.)[^\s]+$/i.test(normalized)) {
+      // Decimal numbers
+      if (/^\d+\.\d+$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found URL "${normalized}" in first row - this indicates file does not contain headers.` 
+          reason: `Found decimal number "${normalized}" in first row - file appears to lack headers.` 
         };
       }
       
-      // 11. ISO Date format (YYYY-MM-DD or YYYYMMDD)
+      // ISO Date
       if (/^\d{4}-?\d{2}-?\d{2}$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found ISO date "${normalized}" in first row - this indicates file does not contain headers.` 
-        };
-      }
-      
-      // 12. Time values (HH:MM:SS or HH:MM)
-      if (/^\d{1,2}:\d{2}(:\d{2})?(\s?(AM|PM))?$/i.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found time value "${normalized}" in first row - this indicates file does not contain headers.` 
-        };
-      }
-      
-      // 13. Percentage values with % symbol
-      if (/^\d+\.?\d*%$/.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found percentage value "${normalized}" in first row - this indicates file does not contain headers.` 
-        };
-      }
-      
-      // 14. Currency symbols with amounts
-      if (/^[\$£€¥][\d,]+\.?\d*$/.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found currency amount "${normalized}" in first row - this indicates file does not contain headers.` 
+          reason: `Found ISO date "${normalized}" in first row - file appears to lack headers.` 
         };
       }
     }
 
-    return { isData: false, reason:"" };
+    return { isData: false, reason: '' };
   }
 
-  //Validate if headers received are relevant HR
-  const validateHRHeaders = (headers: string[], minHits: number = 3): { 
+  // SIMPLE HR HEADER VALIDATION - Match against comprehensive HR headers list
+  const validateHRHeaders = (
+    headers: string[],
+    minMatchRatio: number = 0.7 // 70% of headers must match HR headers list
+  ): { 
     isValid: boolean; 
-    hits: number; 
-    matchedHeaders: string[];
+    matchRatio: number;
+    matchedCount: number;
+    totalCount: number;
+    matchedHeaders: Array<{ 
+      original: string; 
+      normalized: string; 
+      matchedPattern: string;
+    }>;
     normalizedHeaders: string[];
     error: string;
   } => {
     // First check if these are actually data rows, not headers
-    const {isData, reason}= areHeadersActuallyData(headers)
+    const { isData, reason } = areHeadersActuallyData(headers);
     if (isData) {
       return {
         isValid: false,
-        hits: 0,
+        matchRatio: 0,
+        matchedCount: 0,
+        totalCount: headers.length,
         matchedHeaders: [],
         normalizedHeaders: [],
-        error: reason
+        error: reason,
       };
     }
 
-    const normalizedHeaders = headers.map(normalizeHeaderName);
-    const matchedHeaders: string[] = [];
-    let hits = 0;
+    // Wait for HR headers list to load
+    if (hrHeadersList.length === 0) {
+      return {
+        isValid: false,
+        matchRatio: 0,
+        matchedCount: 0,
+        totalCount: headers.length,
+        matchedHeaders: [],
+        normalizedHeaders: [],
+        error: 'HR headers list is still loading. Please try again.',
+      };
+    }
 
-    normalizedHeaders.forEach((header, index) => {
-      const isMatch = HR_HINTS.some(hint => {
-        const normalizedHint = hint.toLowerCase().replace(/\s+/g, " ");
-        // Check if header contains the hint or hint contains the header
-        return header.includes(normalizedHint) || normalizedHint.includes(header);
-      });
-      
-      if (isMatch) {
-        hits++;
-        matchedHeaders.push(headers[index]); // Store original header name
+    // Normalize all headers (remove spaces and special characters)
+    const normalizedHeaders = headers.map(header => normalizeHeader(header));
+    const matchedHeaders: Array<{ 
+      original: string; 
+      normalized: string; 
+      matchedPattern: string;
+    }> = [];
+
+    // Check each normalized header against HR headers list
+    normalizedHeaders.forEach((normalizedHeader, index) => {
+      // Check if normalized header matches any HR header pattern
+      const matchedPattern = hrHeadersList.find(hrHeader => 
+        normalizedHeader === hrHeader || normalizedHeader.includes(hrHeader) || hrHeader.includes(normalizedHeader)
+      );
+
+      if (matchedPattern) {
+        matchedHeaders.push({
+          original: headers[index],
+          normalized: normalizedHeader,
+          matchedPattern: matchedPattern,
+        });
       }
     });
 
+    const matchedCount = matchedHeaders.length;
+    const totalCount = headers.length;
+    const matchRatio = totalCount > 0 ? matchedCount / totalCount : 0;
+    const isValid = matchRatio >= minMatchRatio;
+
     return {
-      isValid: hits >= minHits,
-      hits,
+      isValid,
+      matchRatio,
+      matchedCount,
+      totalCount,
       matchedHeaders,
       normalizedHeaders,
-      error: hits < minHits?"":`This doesn't appear to be an HR data file or headers are not available. Please upload a correct file`
+      error: isValid 
+        ? '' 
+        : `This doesn't appear to be an HR data file. Please upload a file with HR data.`,
     };
   };
 
   const checkFileCondition = async (file: File) =>{
       // Mock metadata extraction
 
-        const { columns, rowCount } = await parseFile(file)
+        const { columns, rowCount, data } = await parseFile(file)
 
         const metadata: FileMetadata = {
           name: file.name,
@@ -371,12 +343,14 @@ export function FileUpload({
           return;
         }
 
-        // Validate HR headers
-        const headerValidation = validateHRHeaders(columns, 3);
+        // Validate HR headers against comprehensive list
+        const headerValidation = validateHRHeaders(columns, 0.7);
         
         console.log("Header Validation:", {
           columns,
-          hits: headerValidation.hits,
+          matchRatio: headerValidation.matchRatio,
+          matchedCount: headerValidation.matchedCount,
+          totalCount: headerValidation.totalCount,
           matchedHeaders: headerValidation.matchedHeaders,
           isValid: headerValidation.isValid,
           error: headerValidation.error,

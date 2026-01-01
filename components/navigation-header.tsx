@@ -138,6 +138,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   
         // Clear localStorage
         localStorage.clear();
+        sessionStorage.clear();
         
         // Redirect immediately
         window.location.href = '/';
@@ -145,6 +146,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       } catch (error) {
         console.error('Sign out failed:', error);
         localStorage.clear();
+        sessionStorage.clear();
         window.location.href = '/';
       }
     };

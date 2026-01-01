@@ -35,13 +35,11 @@ interface KpiItem {
 }
 
 export function FileUploadStep() {
-  // const { step, setStep, userContext } = useOnboarding()
   const { step, setStep, uploadedFile, setUploadedFile, userContext } = useOnboarding()
   const router = useRouter()
   const [selectedOption, setSelectedOption] = useState<"upload" | "sample" | null>(null)
   const [hasBrowsedFiles, setHasBrowsedFiles] = useState(false)
   const [fileUploadStarted, setFileUploadStarted] = useState(false)
-  // const completionFlags = useRef({ kpi: false, athena: false });
   const [fileDropped, setFileDropped]= useState(false);
   const [proceedToUpload, setProceedToUpload]= useState(false);
   const [isUploading, setIsUploading] = useState(false)
@@ -51,7 +49,14 @@ export function FileUploadStep() {
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
   let aiSuggestQuestionsGenerated= true
-  const { setCardsState} = useDashboard();
+  const { 
+    setCardsState,
+    setChartsState,
+    setMetadata, 
+    setMessages,
+    recommendedQuestions,
+    setRecommendedQuestions,
+  } = useDashboard();
   
   const hasFileDropped = (args: boolean) => {
     console.log("Args recieved after selecting the file", args)
@@ -99,6 +104,22 @@ export function FileUploadStep() {
       dataType: "headcount",
       isSample: true,
     }
+    setCardsState({
+          data: [],
+          loading: false,
+          error: null
+    })
+    setChartsState({
+      data: [],
+      loading: false,
+      error: null
+    })
+    setMetadata({
+      filename: "",
+      totalRows: ""
+    })
+    setMessages([])
+    sessionStorage.removeItem("chats")
 
     const sampleFile = new File(["sample"], "SharpMedian.csv", { type: "text/csv" })
     setUploadedFile({ file: sampleFile, metadata: sampleMetadata })
@@ -267,22 +288,18 @@ export function FileUploadStep() {
       setIsUploaded(true);
       setUploadProgress(20);
 
-      const data = await presignedURLData;
-      const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
-      uploadURL = uploadUrl;
-
-      console.log("=== STEP 2: Upload details ===");
-      console.log("uploadUrl:", uploadUrl);
-      console.log("s3Key:", s3Key);
-      console.log("sessionId:", sessionId);
-      console.log("idempotency_key:", idempotency_key);
-
-      localStorage.setItem("s3Key", s3Key);
-      localStorage.setItem("session_id", sessionId);
-      localStorage.setItem("idempotency_key", idempotency_key);
-
-      connectWebSocket(data.sessionId, localStorage.getItem("user_id") || "");
-      setCardsState(prev => ({ ...prev, loading: true, error: null }));
+        setUploadProgress(20)
+        const data = await presignedURLData;
+        const { uploadUrl, s3Key, sessionId } = data;
+        // const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
+        uploadURL = uploadUrl
+        console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
+        localStorage.setItem("s3Key", s3Key)
+        localStorage.setItem("session_id", sessionId)
+        // localStorage.setItem("idempotency_key", idempotency_key)
+        // sessionStorage.setItem("columns", JSON.stringify(columns))
+        connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
+        setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
       // STEP 3: Upload file with progress
       console.log("=== STEP 3: Starting file upload ===");
@@ -300,65 +317,76 @@ export function FileUploadStep() {
         throw uploadError; // Re-throw to be caught by outer try-catch
       }
 
-      handler = async (msg: any) => {
-        console.log('[WS] message received', msg);
+        handler = async (msg: any) => {
+            console.log('[WS] message received', msg);
+            if(msg.event==="convert.ready"){
+              console.log("[WS] message: CSV converted to parquet")
+              localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
+              setUploadProgress(70)
+              let responseSuggestedQueries
+              try{
+                responseSuggestedQueries = await apiFetch("/api/chat/request", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json"},
+                  body: JSON.stringify({
+                        question: null,
+                        user_id: localStorage.getItem("user_id"),
+                        session_id: localStorage.getItem("session_id")
+                      }),
+                });
+              }catch (error) {
+                console.log("Unable to fetch suggested queries", error)
+              }
 
-        if(msg.event==="convert.ready"){
-          console.log("[WS] message: CSV converted to parquet");
-          localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url);
-          setUploadProgress(70);
+              if(responseSuggestedQueries){
+                const suggestedQueriesData= await responseSuggestedQueries.data
 
-          let resAISuggestedQues = await apiFetch("/api/file-upload/generate-recommended-questions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: localStorage.getItem("user_id"),
-              session_id: sessionId,
-              column_headers: columns
-            }),
-          }).catch((error) => {
-            localStorage.removeItem("sample_questions");
-            aiSuggestQuestionsGenerated = false;
-            console.error("Failed to create AI recommended question", error);
-          });
-
-          if(resAISuggestedQues){
-            const AISuggestedQuesData= await resAISuggestedQues.data;
-            console.log("Successfully generated AI Recommended Ques.", AISuggestedQuesData);
-            localStorage.setItem("sample_questions", JSON.stringify(AISuggestedQuesData.sample_questions));
-          }
-        }
-
-        if(msg.event==="convert.failed"){
-          console.log("[WS] message: CSV to parquet conversion failed");
-          setError("Unable to process file. Please upload it again");
-          setIsUploading(false);
-          return;
-        }
-
-        if(msg.event==="kpi.ready"){
-          console.log("KPIs are ready");
-          const items = Array.isArray(msg.payload) ? msg.payload : [];
-          const kpisWithIcons: KpiItem[] = items.map((item: any) => ({
-            ...item,
-            icon: Clock,
-          }));
-
-          setKpis(kpisWithIcons);
-          setUploadProgress(100);
-          setTimeout(()=>{
-            setProcessedFile(true);
-            setIsUploading(false);
-            hasFileUploadStarted(false);
-          },1000);
-        }
-
-        if(msg.event==="kpi.error"){
-          console.log("[WS] message: Creating KPIs failed");
-          setError("Unable to process file. Please upload it again");
-          setIsUploading(false);
-          return;
-        }
+                console.log("SuggestionQuestionData received", suggestedQueriesData)
+      
+                // Display AI Suggested Questions 
+                setRecommendedQuestions(suggestedQueriesData.sample_questions)  
+              }
+            }
+            if(msg.event==="convert.failed"){
+              console.log("[WS] message: CSV to parquet conversion failed")
+              setError("Unable to process file. Please upload it again")
+              // setTimeout(()=>{
+              //   setError(null);
+              // }, 3000)
+              setIsUploading(false)
+              return
+            }
+            if(msg.event==="kpi.ready"){
+              setCardsState({
+                data: [],
+                loading: false,
+                error: null
+              })
+              console.log("KPIs are ready")
+              const items = Array.isArray(msg.payload) ? msg.payload : [];
+              const kpisWithIcons: KpiItem[] = items.map((item: any) => ({
+                ...item,
+                icon: Clock, // fallback
+              }));
+ 
+              setKpis(kpisWithIcons);   // save to context
+              // setStep(3);               // go to KPIs step
+              // completionFlags.current.kpi = true;
+              // if(completionFlags.current.athena){
+              setUploadProgress(100)
+              setTimeout(()=>{
+                setProcessedFile(true);
+                setIsUploading(false)
+                hasFileUploadStarted(false)
+              },1000)
+              // }
+            }
+            if(msg.event==="kpi.error"){
+              console.log("[WS] message: Creating KPIs failed")
+              setError("Unable to process file. Please upload it again")
+              setIsUploading(false)
+              return
+            }
 
         if (msg.event === "global_queries.ready") {
           const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";

@@ -26,12 +26,12 @@ export default function OnboardingUploadOnlyPage() {
     console.log("In onboarding-upload-only page", "name", name, "email", email, "company", company, "role", role)
     const context = { name, email, company, role }
     setUserContext(context)
-    sessionStorage.removeItem("cardsState")
-    sessionStorage.removeItem("chartsState")
-    sessionStorage.removeItem("metadata")
-    setCardsState({data: [], loading: false, error: null})
-    setChartsState({data: [], loading: false, error: null})
-    setMetadata({"filename":"", "totalRows":""})
+    // sessionStorage.removeItem("cardsState")
+    // sessionStorage.removeItem("chartsState")
+    // sessionStorage.removeItem("metadata")
+    // setCardsState({data: [], loading: false, error: null})
+    // setChartsState({data: [], loading: false, error: null})
+    // setMetadata({"filename":"", "totalRows":""})
   }, [])
 
   if (!userContext) {

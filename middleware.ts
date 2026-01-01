@@ -5,6 +5,16 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   console.log("MIDDLEWARE HIT:", pathname);
 
+  const res = NextResponse.next();
+
+   //Disable CloudFront + browser caching
+  res.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
+  res.headers.set("Pragma", "no-cache");
+  res.headers.set("Expires", "0");
+
   // Allow internal Next.js and static/public assets to load freely
   if (
     pathname.startsWith("/_next") ||
@@ -13,10 +23,10 @@ export function middleware(req: NextRequest) {
     pathname.startsWith("/static") ||
     pathname === "/favicon.ico" ||
     pathname.match(/\.(png|jpg|jpeg|svg|gif|webp)$/) ||
-    req.url.includes("code=") || // ✅ Google OAuth redirect
-    req.url.includes("state=")   // ✅ Google OAuth redirect
+    req.url.includes("code=") || // Google OAuth redirect
+    req.url.includes("state=")   // Google OAuth redirect
   ) {
-    return NextResponse.next();
+    return res;
   }
 
 
@@ -43,6 +53,7 @@ export function middleware(req: NextRequest) {
 
   // If authenticated but trying to go back to login → redirect to dashboard
   if (isAuthenticated && isAuthPage) {
+    console.log("User is authenticated, pulling him back to onboarding-upload-only")
     return NextResponse.redirect(new URL("/onboarding-upload-only", req.url));
   }
 

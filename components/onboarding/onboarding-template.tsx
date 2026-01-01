@@ -54,6 +54,7 @@ export function OnboardingTemplate({
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
   const sidePanelRef = useRef<HTMLDivElement>(null)
   const [displayName, setDisplayName]= useState<String>("")
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   
   // Close side panel when clicking outside
   useEffect(() => {
@@ -80,14 +81,9 @@ export function OnboardingTemplate({
   },[])
 
   const fetchFileUploadHistory = useCallback(async () =>{
+    setIsHistoryLoading(true); //start loader
+
     try{
-     // Store file upload history
-      
-      // let access_token= await getValidIdToken()
-      // let access_token= localStorage.getItem("id_token")
-      // if(!access_token) console.log("access_token not available")
-      // console.log("access_token in /api/insights/fetch-all-sessions", access_token)
-      // const resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
       let resFetchFileUploadHistory;
       try{
         resFetchFileUploadHistory = await apiFetch("/api/insights/fetch-all-sessions", {
@@ -105,11 +101,6 @@ export function OnboardingTemplate({
 
         let fileUploadData: any =[];
         dataFileUploadHistory.map((data:any, id:any)=>{
-          // // Step 1: Extract the filename (after the last '/')
-          // const fileNameWithExt = data.s3_location.split("/").pop() || ""; // → "SharpMedian_V1.csv"
-
-          // // Step 2: Remove the extension (everything after the last '.')
-          // const fileNameWithoutExt = fileNameWithExt.split(".").slice(0, -1).join("."); // → "SharpMedian_V1"
           console.log("In onboarding-template, ai_suggested_questions received is", data.ai_suggested_questions)
           fileUploadData.push({id: id, 
               session_id: data.session_id, 
@@ -149,6 +140,8 @@ export function OnboardingTemplate({
       // If apiFetch throws, the request failed
       console.error("Received Error", error);
       return;
+    }finally {
+      setIsHistoryLoading(false); //stop loader
     }
 
   },[])
@@ -193,6 +186,7 @@ export function OnboardingTemplate({
   
         // Clear localStorage
         localStorage.clear();
+        sessionStorage.clear();
         
         // Redirect immediately
         window.location.href = '/';
@@ -200,6 +194,7 @@ export function OnboardingTemplate({
       } catch (error) {
         console.error('Sign out failed:', error);
         localStorage.clear();
+        sessionStorage.clear();
         window.location.href = '/';
       }
     };
@@ -229,7 +224,8 @@ export function OnboardingTemplate({
         }`}
       >
         <FileUploadHistory 
-          fileUploadHistoryData={memoizedFileUploadHistoryData} 
+          fileUploadHistoryData={memoizedFileUploadHistoryData}
+          isLoading={isHistoryLoading} 
           onClose={handleCloseSidePanel} 
         />
       </div>

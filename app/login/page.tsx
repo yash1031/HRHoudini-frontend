@@ -39,6 +39,7 @@ export default function LoginPage() {
       setGoogleSignInInProgress(true)
       handleGoogleAuthComplete()
     }
+    window.addEventListener('unload', () => {});
   }, [])
 
   const handleGoogleAuthComplete = async () => {

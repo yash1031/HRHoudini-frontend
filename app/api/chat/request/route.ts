@@ -8,12 +8,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {question , user_id, session_id } = body;
     const authHeader = req.headers.get("authorization");
-    if (!question) {
-      return NextResponse.json(
-        { error: "question is required" },
-        { status: 400 }
-      );
-    }
+    
     if (!user_id) {
       return NextResponse.json(
         { error: "user_id is required" },

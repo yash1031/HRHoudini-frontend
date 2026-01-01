@@ -108,3 +108,28 @@
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
+
+/* Custom Scrollbar Styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f8fafc; /* slate-50 - light background */
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #94a3b8; /* slate-400 - darker gray */
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b; /* slate-500 - even darker on hover */
+}
+
+/* For Firefox */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f8fafc;
+}
