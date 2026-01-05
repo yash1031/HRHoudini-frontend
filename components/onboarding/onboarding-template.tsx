@@ -4,9 +4,7 @@ import type React from "react"
 import { useCallback,useState, useRef, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle, Menu, X  } from "lucide-react"
-// import type { OnboardingScenarioConfig } from "@/lib/demo-config"
 import FileUploadHistory from './FileUploadHistory'
-import { useUserContext } from "@/contexts/user-context"
 import { apiFetch } from "@/lib/api/client";
 import Link from "next/link"
 import { Settings, User, Building, LogOut, ChevronDown } from "lucide-react"
@@ -19,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import {signOut } from 'aws-amplify/auth';
-import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
+import { closeWebSocket } from '@/lib/ws';
 
 interface UserContext {
   name: string
@@ -164,6 +162,7 @@ export function OnboardingTemplate({
 
   const handleSignOut = async () => {
       try {
+        closeWebSocket();
         const user_id = localStorage.getItem('user_id');
         const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
   

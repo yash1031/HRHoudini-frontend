@@ -465,14 +465,14 @@ export function KPIsStep() {
             }
 
           } catch (e) {
-            console.error("WebSocket handler error:", e);
-            closeWebSocket();
+            console.error("Error in insights-dashboard-handler:", e);
+            // closeWebSocket();
           }
         };
         console.log("Adding handler")
-        addListener(handler, "charts-generator");
+        addListener(handler, "insights-dashboard-handler");
       }catch(error){
-        closeWebSocket();
+        // closeWebSocket();
         console.log("Error is", error)
       }
   }

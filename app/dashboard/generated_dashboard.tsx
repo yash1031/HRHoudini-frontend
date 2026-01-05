@@ -5,8 +5,8 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { Sparkles, CheckCircle, FileText} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } from '@/types/dashboard';
 import { KPICards } from "@/components/dashboard/KPICards";
@@ -16,6 +16,7 @@ import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
+import { addListener } from '@/lib/ws';
 
 interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   // Section states
@@ -48,10 +49,21 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     title: ''
   });
 
-    // HTML Report Modal state
+  // State for available dashboards
+  const [availableDashboards, setAvailableDashboards] = useState<Array<{
+    report_title: string;
+    report_description: string;
+    html_content: string;
+  }>>([]);
+  const [dashboardsLoading, setDashboardsLoading] = useState(false);
+  let handler: (msg: any) => void = () => {};
+
+  // HTML Report Modal state
   const [htmlReportModal, setHtmlReportModal] = useState({
     isOpen: false,
     htmlContent: '',
+    reportTitle: '',
+    reportDescription: '',
     isLoading: false,
     error: null as string | null
   });
@@ -90,78 +102,87 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     setModal({ isOpen: false, title: '' });
   };
 
-  /**
- * Handle HTML report generation
- */
-const handleGenerateReport = async (): Promise<void> => {
-  setHtmlReportModal({
-    isOpen: true,
-    htmlContent: '',
-    isLoading: true,
-    error: null
-  });
-
-  try {
-    // Fetch values from localStorage
-    const selectedKpisStr = localStorage.getItem('hr-houdini-selected-kpis-with-desc');
+  const fetchAvailableDashboards = async () => {
     const userIdFromStorage = localStorage.getItem('user_id');
     const sessionIdFromStorage = localStorage.getItem('session_id');
-    const fileNameFromStorage = localStorage.getItem('file_name');
 
-    // Validate required fields
-    if (!userIdFromStorage || !sessionIdFromStorage || !fileNameFromStorage) {
-      throw new Error('Missing required data in localStorage. Please refresh and try again.');
+    if (!userIdFromStorage || !sessionIdFromStorage) {
+      return;
     }
 
-    // Parse selected KPIs
-    let selectedKpis = [];
-    if (selectedKpisStr) {
-      try {
-        selectedKpis = JSON.parse(selectedKpisStr);
-      } catch (e) {
-        console.warn('Failed to parse selected KPIs from localStorage:', e);
-        selectedKpis = [];
+    setDashboardsLoading(true);
+    try {
+      const response = await apiFetch('/api/dashboard-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userIdFromStorage,
+          session_id: sessionIdFromStorage
+        })
+      }).catch((error) => {
+        console.error('Error fetching dashboards:', error);
+        return null;
+      });
+
+      if (response && response.success && response.reports && response.reports.length > 0) {
+        setAvailableDashboards(response.reports);
       }
+    } catch (error) {
+      console.error('Error fetching available dashboards:', error);
+    } finally {
+      setDashboardsLoading(false);
     }
+  };
 
-    const response = await apiFetch('/api/dashboard-agent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: userIdFromStorage,
-        session_id: sessionIdFromStorage,
-        file_name: fileNameFromStorage,
-        selected_kpis: selectedKpis
-      })
-    }).catch((error) => {
-      const parsedError = JSON.parse(error.message);
-      console.error('Error generating HTML report:', parsedError);
-      throw new Error(parsedError.error || 'Failed to generate report');
+  // Fetch available dashboards on component mount
+  useEffect(() => {
+    fetchAvailableDashboards();
+    handler = async (msg: any) => {
+        console.log('[WS] message received', msg);
+        if(msg.event==="agent_dashboard.stored"){
+          fetchAvailableDashboards();
+        }
+    };
+    addListener(handler!, "agentic-dashboard-handler");
+  }, []);
+
+  /**
+   * Handle individual dashboard generation
+   */
+  const handleGenerateDashboard = async (report: {
+    report_title: string;
+    report_description: string;
+    html_content: string;
+  }): Promise<void> => {
+    setHtmlReportModal({
+      isOpen: true,
+      htmlContent: '',
+      reportTitle: report.report_title,
+      reportDescription: report.report_description,
+      isLoading: true,
+      error: null
     });
 
-    if (response) {
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
+    try {
+      // Simulate loading if needed, or directly set content
+      setTimeout(() => {
+        setHtmlReportModal(prev => ({
+          ...prev,
+          htmlContent: report.html_content,
+          isLoading: false
+        }));
+      }, 500);
+    } catch (error) {
+      console.error('Error opening dashboard:', error);
       setHtmlReportModal(prev => ({
         ...prev,
-        htmlContent: response.html_content,
-        isLoading: false
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load dashboard'
       }));
     }
-
-  } catch (error) {
-    console.error('Error generating HTML report:', error);
-    setHtmlReportModal(prev => ({
-      ...prev,
-      isLoading: false,
-      error: error instanceof Error ? error.message : 'Failed to generate report'
-    }));
-  }
-};
+  };
 
   /**
    * Close HTML report modal
@@ -170,6 +191,8 @@ const handleGenerateReport = async (): Promise<void> => {
     setHtmlReportModal({
       isOpen: false,
       htmlContent: '',
+      reportTitle: '',
+      reportDescription: '',
       isLoading: false,
       error: null
     });
@@ -182,11 +205,37 @@ const handleGenerateReport = async (): Promise<void> => {
   return (
     <>
       <SkeletonStyles />
-      {/* <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12"> */}
+      
+      {/* Agentic Dashboards Section - Outside gradient, in white area */}
+      {availableDashboards.length > 0 && (
+        <div className="bg-white border-b border-gray-200 mb-6">
+          <div className="max-w-7xl mx-auto px-12 pt-3 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Try out our new agentic dashboards
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {availableDashboards.map((dashboard, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleGenerateDashboard(dashboard)}
+                    className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg transition-colors border border-blue-200 hover:border-blue-300"
+                  >
+                    <Bot className="h-4 w-4" />
+                    <span className="font-medium">{dashboard.report_title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dashboard Header */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12">
         <div className="max-w-7xl mx-auto">
-          
-          {/* Dashboard Header */}
           <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl shadow-xl mb-6">
             <div className="px-8 py-6">
               {/* Title Section */}
@@ -205,18 +254,6 @@ const handleGenerateReport = async (): Promise<void> => {
                 
                 {/* Status Badge */}
                 <div className="flex items-center space-x-3">
-                  {/* <Badge className="bg-white/20 text-white border-white/30">
-                    Analysis Completed
-                  </Badge> */}
-                  {/* Generate Report Button */}
-                  <button
-                    onClick={handleGenerateReport}
-                    className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors border border-white/20 hover:border-white/30"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span className="font-medium">Generate Detailed Dashboard</span>
-                  </button>
-
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <div className="flex items-center space-x-2 text-white">
                       <CheckCircle className="h-4 w-4" />
@@ -310,6 +347,8 @@ const handleGenerateReport = async (): Promise<void> => {
           isOpen={htmlReportModal.isOpen}
           onClose={closeHtmlReportModal}
           htmlContent={htmlReportModal.htmlContent}
+          reportTitle={htmlReportModal.reportTitle}
+          reportDescription={htmlReportModal.reportDescription}
           isLoading={htmlReportModal.isLoading}
           error={htmlReportModal.error}
         />

@@ -8,6 +8,8 @@ interface HTMLDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   htmlContent: string;
+  reportTitle?: string;
+  reportDescription?: string;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -16,6 +18,8 @@ export const HTMLDashboardModal: React.FC<HTMLDashboardModalProps> = ({
   isOpen,
   onClose,
   htmlContent,
+  reportTitle,
+  reportDescription,
   isLoading = false,
   error = null
 }) => {
@@ -33,12 +37,19 @@ export const HTMLDashboardModal: React.FC<HTMLDashboardModalProps> = ({
       <div className="relative bg-white rounded-lg shadow-2xl w-[95vw] h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Dashboard Report
-          </h2>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {reportTitle || 'Dashboard Report'}
+            </h2>
+            {reportDescription && (
+              <p className="text-sm text-gray-500 mt-1">
+                {reportDescription}
+              </p>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors ml-4"
             aria-label="Close modal"
           >
             <X className="h-6 w-6 text-gray-500" />
@@ -68,7 +79,7 @@ export const HTMLDashboardModal: React.FC<HTMLDashboardModalProps> = ({
             <iframe
               srcDoc={htmlContent}
               className="w-full h-full border-0"
-              title="Dashboard Report"
+              title={reportTitle || "Dashboard Report"}
               sandbox="allow-scripts allow-same-origin"
             />
           )}

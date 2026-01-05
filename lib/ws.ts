@@ -1,7 +1,6 @@
 // lib/ws.ts
 let ws: WebSocket | null = null;
 let currentSessionId: string | null = null;
-// const listeners = new Set<(msg: any) => void>();
 const listeners = new Map<string, (msg: any) => void>();
 
 export function connectWebSocket(sessionId: string, userId: string | number | undefined) {
@@ -64,9 +63,6 @@ export function connectWebSocket(sessionId: string, userId: string | number | un
   return ws;
 }
 
-// export function addListener(fn: (msg: any) => void) {
-//   listeners.add(fn);
-// }
 
 export function addListener(fn: (msg: any) => void, key?: string) {
   if (key) {
@@ -82,9 +78,6 @@ export function addListener(fn: (msg: any) => void, key?: string) {
   }
 }
 
-// export function removeListener(fn: (msg: any) => void) {
-//   listeners.delete(fn);
-// }
 
 export function removeListener(key: string) {
   const deleted = listeners.delete(key);

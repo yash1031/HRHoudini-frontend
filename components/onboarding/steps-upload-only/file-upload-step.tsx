@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building2 } from "lucide-react"
+import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building2, AlertCircle } from "lucide-react"
 import { FileUpload } from "@/components/file-upload"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
@@ -48,6 +48,7 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
+  // const [removedColumns, setRemovedColumns] = useState<string[]>([]);
   let aiSuggestQuestionsGenerated= true
   const { 
     setCardsState,
@@ -165,11 +166,12 @@ export function FileUploadStep() {
     setIsUploading(false)
     setFileDropped(false)
     setProcessedFile(false)
+    // setRemovedColumns([])
     resetSelection()
     setStep(1)
   }
 
-    // Helper: upload with progress using XMLHttpRequest
+  // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -194,6 +196,7 @@ export function FileUploadStep() {
         setError("Unable to process file. Please upload it again")
         setIsUploading(false)
       }
+
       xhr.send(file);
     });
   };
@@ -205,6 +208,7 @@ export function FileUploadStep() {
         setError(null)
         hasFileUploadStarted(true)
         setUploadProgress(0)
+        // setRemovedColumns([])
 
         let resPresignedURL
         try{
@@ -235,13 +239,10 @@ export function FileUploadStep() {
         setUploadProgress(20)
         const data = await presignedURLData;
         const { uploadUrl, s3Key, sessionId } = data;
-        // const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
         uploadURL = uploadUrl
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
         localStorage.setItem("s3Key", s3Key)
         localStorage.setItem("session_id", sessionId)
-        // localStorage.setItem("idempotency_key", idempotency_key)
-        // sessionStorage.setItem("columns", JSON.stringify(columns))
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
         setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -256,6 +257,12 @@ export function FileUploadStep() {
               console.log("[WS] message: CSV converted to parquet")
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
+      
+              // Extract removed columns if they exist
+              // if (msg.payload.removed_columns && Array.isArray(msg.payload.removed_columns) && msg.payload.removed_columns.length > 0) {
+              //   setRemovedColumns(msg.payload.removed_columns);
+              // }
+
               let responseSuggestedQueries
               try{
                 responseSuggestedQueries = await apiFetch("/api/chat/request", {
@@ -283,9 +290,6 @@ export function FileUploadStep() {
             if(msg.event==="convert.failed"){
               console.log("[WS] message: CSV to parquet conversion failed")
               setError("Unable to process file. Please upload it again")
-              // setTimeout(()=>{
-              //   setError(null);
-              // }, 3000)
               setIsUploading(false)
               return
             }
@@ -302,10 +306,7 @@ export function FileUploadStep() {
                 icon: Clock, // fallback
               }));
  
-              setKpis(kpisWithIcons);   // save to context
-              // setStep(3);               // go to KPIs step
-              // completionFlags.current.kpi = true;
-              // if(completionFlags.current.athena){
+              setKpis(kpisWithIcons);   
               setUploadProgress(100)
               setTimeout(()=>{
                 setProcessedFile(true);
@@ -364,15 +365,7 @@ export function FileUploadStep() {
               });
             }
         };
-        addListener(handler!, "chards-generator");
-        // const resAISuggestedQues= await AISuggestedQuesRes;
-        // if(resAISuggestedQues){
-        //   const AISuggestedQuesData= await resAISuggestedQues.data
-        //   console.log("AISuggestedQuesData generated")
-        //   const aIRecommendedQuestionsData=   await AISuggestedQuesData;
-        //   console.log("Successfully generated AI Recommended Ques.")
-        //   localStorage.setItem("sample_questions", JSON.stringify(aIRecommendedQuestionsData.sample_questions))
-        // }
+        addListener(handler!, "file-upload-handler");
     } catch (err) {
       setError("Failed to process file. Please try again.")
       setTimeout(()=>{
@@ -543,20 +536,48 @@ export function FileUploadStep() {
         )}
 
         {uploadedFile && processedFile && isUploaded && (
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-2 mb-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">
-                {uploadedFile.metadata.isSample ? "Sample file loaded successfully!" : "File processed successfully!"}
-              </span>
+          <div className="space-y-4">
+            <div className="mt-6 p-4 bg-green-50 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-green-800">
+                  {uploadedFile.metadata.isSample ? "Sample file loaded successfully!" : "File processed successfully!"}
+                </span>
+              </div>
+              <div className="text-sm text-green-700">
+                <strong>{uploadedFile.metadata.rowCount?.toLocaleString()} records</strong> analyzed •
+                <strong> {uploadedFile.metadata.dataType}</strong> data detected
+                {uploadedFile.metadata.isSample && (
+                  <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">SAMPLE DATA</span>
+                )}
+              </div>
             </div>
-            <div className="text-sm text-green-700">
-              <strong>{uploadedFile.metadata.rowCount?.toLocaleString()} records</strong> analyzed •
-              <strong> {uploadedFile.metadata.dataType}</strong> data detected
-              {uploadedFile.metadata.isSample && (
-                <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">SAMPLE DATA</span>
-              )}
-            </div>
+        
+            {/* {removedColumns.length > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-medium text-amber-900 mb-1">
+                      Some columns were excluded from analysis
+                    </div>
+                    <div className="text-sm text-amber-800 mb-2">
+                      The following columns contains inconsistent data and have been removed from consideration:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {removedColumns.map((column, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-amber-100 text-amber-900 rounded text-xs font-mono"
+                        >
+                          {column}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )} */}
           </div>
         )}
 
