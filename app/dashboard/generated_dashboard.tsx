@@ -205,26 +205,37 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
   return (
     <>
       <SkeletonStyles />
-      
-      {/* Agentic Dashboards Section - Outside gradient, in white area */}
+
+      {/* Agentic Dashboards Section - Modern Minimal with Subtle Animation */}
       {availableDashboards.length > 0 && (
         <div className="bg-white border-b border-gray-200 mb-6">
-          <div className="max-w-7xl mx-auto px-12 pt-3 pb-4">
+          <div className="max-w-7xl mx-auto px-12 py-6">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Try out our new agentic dashboards
-                </h2>
+              {/* Left: Clean minimal with accent */}
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
+                    <Bot className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <h2 className="text-xl font-bold text-slate-800">
+                      Explore Specialized Agentic Reports
+                    </h2>
+                  </div>
+                </div>
               </div>
+              
+              {/* Right: Vibrant buttons */}
               <div className="flex flex-wrap gap-3">
                 {availableDashboards.map((dashboard, index) => (
                   <button
                     key={index}
                     onClick={() => handleGenerateDashboard(dashboard)}
-                    className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg transition-colors border border-blue-200 hover:border-blue-300"
+                    className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1"
                   >
-                    <Bot className="h-4 w-4" />
-                    <span className="font-medium">{dashboard.report_title}</span>
+                    <span className="font-bold text-sm">{dashboard.report_title}</span>
                   </button>
                 ))}
               </div>
