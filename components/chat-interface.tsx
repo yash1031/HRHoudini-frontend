@@ -65,6 +65,8 @@ export function ChatInterface({
   const isUserScrollingRef = useRef(true);
   const scrollReferenceRef = useRef<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const firstChatMessageIdRef = useRef<boolean>(true);
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -213,8 +215,9 @@ export function ChatInterface({
         return updatedMessages;
       });
       const fromHistory = localStorage.getItem("from_history") === "true";
-      console.log("Chat Component: fromHistory", fromHistory, "welcomeMessage updated", welcomeMessage);
+      console.log("Chat Component: fromHistory", fromHistory);
       if (fromHistory) {
+        firstChatMessageIdRef.current = false;
         fetchChatHistory(undefined, true);
         return;
       }
@@ -463,6 +466,12 @@ export function ChatInterface({
         sessionStorage.setItem('chats', JSON.stringify(updatedMessages));
         return updatedMessages;
       });
+
+      // Update the oldest chat ID for very first message in order to not fetch any chat history from the backend
+      if (firstChatMessageIdRef.current) {
+        firstChatMessageIdRef.current = false;
+        oldestChatIdRef.current = chatMessageData.chat_id;  
+      }
       shouldScrollRef.current = true;
       setIsLoading(false);
       setTimeout(() => { isUserScrollingRef.current = true; }, 500);

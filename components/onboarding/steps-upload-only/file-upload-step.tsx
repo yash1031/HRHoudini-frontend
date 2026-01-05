@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building2 } from "lucide-react"
+import { ArrowRight, CheckCircle, BarChart3, Download, FileText, Users, Building2, AlertCircle } from "lucide-react"
 import { FileUpload } from "@/components/file-upload"
 import { useOnboarding } from "../onboarding-template"
 import { useRouter } from "next/navigation"
@@ -48,6 +48,7 @@ export function FileUploadStep() {
   const {setKpis } = useUserContext()
   const [processedFile, setProcessedFile]= useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
+  // const [removedColumns, setRemovedColumns] = useState<string[]>([]);
   let aiSuggestQuestionsGenerated= true
   const { 
     setCardsState,
@@ -165,11 +166,12 @@ export function FileUploadStep() {
     setIsUploading(false)
     setFileDropped(false)
     setProcessedFile(false)
+    // setRemovedColumns([])
     resetSelection()
     setStep(1)
   }
 
-    // Helper: upload with progress using XMLHttpRequest
+  // Helper: upload with progress using XMLHttpRequest
   const uploadFileWithProgress = (url: any, file: any, contentType: any) => {
     return new Promise((resolve, reject) => {
       console.log('=== UPLOAD START ===');
@@ -223,63 +225,43 @@ export function FileUploadStep() {
         setError("Network error during upload. Check browser console for details.");
         setIsUploading(false);
         reject(new Error("Network error during upload"));
-      };
-      
-      xhr.onabort = () => {
-        console.error('=== UPLOAD ABORTED ===');
-        setError("Upload was cancelled");
-        setIsUploading(false);
-        reject(new Error("Upload was cancelled"));
-      };
-      
-      // Send the file
-      console.log('Sending file...');
-      try {
-        xhr.send(file);
-        console.log('File sent, waiting for response...');
-      } catch (error) {
-        console.error('Error sending file:', error);
-        setError("Failed to send file");
-        setIsUploading(false);
-        reject(error);
+        setError("Unable to process file. Please upload it again")
+        setIsUploading(false)
       }
+
+      xhr.send(file);
     });
   };
 
   const processFile = async (file: File, columns: string[], rowCount: number) => {
     let handler: (msg: any) => void = () => {};
     try {
-      console.log("=== PROCESS FILE CALLED ===");
-      console.log("File:", file.name, file.size, file.type);
-      console.log("Columns:", columns.length);
-      console.log("Row Count:", rowCount);
+        setIsUploading(true)
+        setError(null)
+        hasFileUploadStarted(true)
+        setUploadProgress(0)
+        // setRemovedColumns([])
 
-      setIsUploading(true);
-      setError(null);
-      hasFileUploadStarted(true);
-      setUploadProgress(0);
-
-      let resPresignedURL;
-
-      try {
-        console.log('=== STEP 1: Getting presigned URL ===');
-        resPresignedURL = await apiFetch("/api/file-upload/generate-presigned-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            userId: localStorage.getItem("user_id"),
-            rowCount: rowCount.toString()
-          }),
-        });
-        console.log('✅ Presigned URL received');
-      } catch (error) {
-        console.error("❌ Error generating pre-signed URL", error);
-        setError("Insufficient Tokens");
-        setIsUploading(false);
-        return;
-      }
+        let resPresignedURL
+        try{
+          resPresignedURL = await apiFetch("/api/file-upload/generate-presigned-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json",},
+            body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type,
+                userId: localStorage.getItem("user_id"),
+                rowCount: rowCount.toString()
+              }),
+          });
+          
+        }catch(error: any){
+          const parsed = JSON.parse(error.message);
+          console.log("Error in generating pre-signed URL: ", parsed.error)
+          setError(parsed.error)
+          setIsUploading(false)
+          return
+        }
 
       const presignedURLData = await resPresignedURL.data;
       console.log("presignedURLData received:", presignedURLData);
@@ -291,13 +273,10 @@ export function FileUploadStep() {
         setUploadProgress(20)
         const data = await presignedURLData;
         const { uploadUrl, s3Key, sessionId } = data;
-        // const { uploadUrl, s3Key, sessionId, idempotency_key } = data;
         uploadURL = uploadUrl
         console.log("uploadUrl", uploadUrl, "s3Key", s3Key)
         localStorage.setItem("s3Key", s3Key)
         localStorage.setItem("session_id", sessionId)
-        // localStorage.setItem("idempotency_key", idempotency_key)
-        // sessionStorage.setItem("columns", JSON.stringify(columns))
         connectWebSocket(data.sessionId, localStorage.getItem("user_id")||"");
         setCardsState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -323,6 +302,12 @@ export function FileUploadStep() {
               console.log("[WS] message: CSV converted to parquet")
               localStorage.setItem("presigned-parquet-url", msg.payload.presigned_url)
               setUploadProgress(70)
+      
+              // Extract removed columns if they exist
+              // if (msg.payload.removed_columns && Array.isArray(msg.payload.removed_columns) && msg.payload.removed_columns.length > 0) {
+              //   setRemovedColumns(msg.payload.removed_columns);
+              // }
+
               let responseSuggestedQueries
               try{
                 responseSuggestedQueries = await apiFetch("/api/chat/request", {
@@ -350,9 +335,6 @@ export function FileUploadStep() {
             if(msg.event==="convert.failed"){
               console.log("[WS] message: CSV to parquet conversion failed")
               setError("Unable to process file. Please upload it again")
-              // setTimeout(()=>{
-              //   setError(null);
-              // }, 3000)
               setIsUploading(false)
               return
             }
@@ -369,10 +351,7 @@ export function FileUploadStep() {
                 icon: Clock, // fallback
               }));
  
-              setKpis(kpisWithIcons);   // save to context
-              // setStep(3);               // go to KPIs step
-              // completionFlags.current.kpi = true;
-              // if(completionFlags.current.athena){
+              setKpis(kpisWithIcons);   
               setUploadProgress(100)
               setTimeout(()=>{
                 setProcessedFile(true);
@@ -388,44 +367,50 @@ export function FileUploadStep() {
               return
             }
 
-        if (msg.event === "global_queries.ready") {
-          const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
-          console.log("Global queries received for cards:", msg.payload.text);
-
-          setCardsState(prev => ({ ...prev, loading: true, error: null }));
-          const cardsQueries= JSON.parse(msg.payload.text).summary_cards;
-
-          generateCardsFromParquet(cardsQueries, parquetUrl)
-            .then((result: any) => {
-              console.log("Updated cardsState:", JSON.stringify(result, null, 2));
+            if (msg.event === "global_queries.ready") {
+              const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+              console.log("Global queries received for cards:", msg.payload.text);
+              
+              // Set loading state
+              setCardsState(prev => ({ ...prev, loading: true, error: null }));
+              const cardsQueries= JSON.parse(msg.payload.text).summary_cards
+              
+              generateCardsFromParquet(cardsQueries, parquetUrl)
+                .then((result: any) => {
+                  console.log("Updated cardsState:", JSON.stringify(result, null, 2));
+                  
+                  // Success - update cards data in granular state
+                  setCardsState({
+                    // loading: true,
+                    loading: false,
+                    error: null,
+                    data: result.cards || []
+                  });
+                })
+                .catch((error) => {
+                  console.error("Failed to generate cards:", error);
+                  
+                  // Error - set error state
+                  setCardsState({
+                    loading: false,
+                    error: "Failed to generate KPI cards from data",
+                    data: []
+                  });
+                });
+            }
+            
+            if (msg.event === "global_queries.error") {
+              console.error("Backend error in card generation:", msg.payload);
+              
+              // Backend error
               setCardsState({
                 loading: false,
-                error: null,
-                data: result.cards || []
-              });
-            })
-            .catch((error) => {
-              console.error("Failed to generate cards:", error);
-              setCardsState({
-                loading: false,
-                error: "Failed to generate KPI cards from data",
+                error: msg.payload?.message || "Backend error generating cards",
                 data: []
               });
-            });
-        }
-
-        if (msg.event === "global_queries.error") {
-          console.error("Backend error in card generation:", msg.payload);
-          setCardsState({
-            loading: false,
-            error: msg.payload?.message || "Backend error generating cards",
-            data: []
-          });
-        }
-      };
-
-      addListener(handler!, "chards-generator");
-
+            }
+        };
+        addListener(handler!, "file-upload-handler");
     } catch (err) {
       console.error("=== FILE PROCESSING ERROR ===");
       console.error("Error details:", err);
@@ -598,20 +583,48 @@ export function FileUploadStep() {
         )}
 
         {uploadedFile && processedFile && isUploaded && (
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-2 mb-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">
-                {uploadedFile.metadata.isSample ? "Sample file loaded successfully!" : "File processed successfully!"}
-              </span>
+          <div className="space-y-4">
+            <div className="mt-6 p-4 bg-green-50 rounded-lg">
+              <div className="flex items-center space-x-2 mb-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-green-800">
+                  {uploadedFile.metadata.isSample ? "Sample file loaded successfully!" : "File processed successfully!"}
+                </span>
+              </div>
+              <div className="text-sm text-green-700">
+                <strong>{uploadedFile.metadata.rowCount?.toLocaleString()} records</strong> analyzed •
+                <strong> {uploadedFile.metadata.dataType}</strong> data detected
+                {uploadedFile.metadata.isSample && (
+                  <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">SAMPLE DATA</span>
+                )}
+              </div>
             </div>
-            <div className="text-sm text-green-700">
-              <strong>{uploadedFile.metadata.rowCount?.toLocaleString()} records</strong> analyzed •
-              <strong> {uploadedFile.metadata.dataType}</strong> data detected
-              {uploadedFile.metadata.isSample && (
-                <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">SAMPLE DATA</span>
-              )}
-            </div>
+        
+            {/* {removedColumns.length > 0 && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-medium text-amber-900 mb-1">
+                      Some columns were excluded from analysis
+                    </div>
+                    <div className="text-sm text-amber-800 mb-2">
+                      The following columns contains inconsistent data and have been removed from consideration:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {removedColumns.map((column, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-amber-100 text-amber-900 rounded text-xs font-mono"
+                        >
+                          {column}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )} */}
           </div>
         )}
 

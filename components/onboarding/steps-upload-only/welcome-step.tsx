@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Shield, BarChart3, Clock, Lock, CheckCircle, MessageSquare, Brain } from "lucide-react"
 import { useOnboarding } from "../onboarding-template"
-import { connectWebSocket, addListener, removeListener, closeWebSocket } from '@/lib/ws';
 
 export function WelcomeStep() {
   const { setStep } = useOnboarding()

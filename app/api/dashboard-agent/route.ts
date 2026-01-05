@@ -11,8 +11,6 @@ interface SelectedKPI {
 interface GenerateReportRequest {
   user_id: string;
   session_id: string;
-  file_name: string;
-  selected_kpis: SelectedKPI[];
 }
 
 /**
@@ -22,20 +20,20 @@ interface GenerateReportRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateReportRequest = await request.json();
-    const { user_id, session_id, file_name, selected_kpis } = body;
+    const { user_id, session_id} = body;
     const authHeader = request.headers.get("authorization");
 
     // Validate required fields
-    if (!user_id || !session_id || !file_name) {
+    if (!user_id || !session_id) {
       return NextResponse.json(
-        { error: 'Missing required fields: user_id, session_id, or file_name' },
+        { error: 'Missing required fields: user_id, session_id' },
         { status: 400 }
       );
     }
 
     // Forward to Lambda via backend domain
     const response = await fetch(
-      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/dashboard/trigger-agent`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/dashboard/fetch`,
       {
         method: 'POST',
         headers: {
@@ -45,8 +43,6 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           user_id,
           session_id,
-          file_name,
-          selected_kpis: selected_kpis || []
         })
       }
     );
@@ -60,14 +56,6 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    
-    // Ensure we have HTML content
-    if (!data.html_content) {
-      return NextResponse.json(
-        { error: 'No HTML content received from backend' },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json(data);
 
