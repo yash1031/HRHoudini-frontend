@@ -112,7 +112,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
 
     setDashboardsLoading(true);
     try {
-      const response = await apiFetch('/api/dashboard-agent', {
+      const response = await apiFetch('/api/fetch-agentic-dashboard', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
