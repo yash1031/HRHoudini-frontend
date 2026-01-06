@@ -51,10 +51,10 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // If authenticated but trying to go back to login → redirect to dashboard
+  // If authenticated but trying to go back to login → redirect to home
   if (isAuthenticated && isAuthPage) {
-    console.log("User is authenticated, pulling him back to onboarding-upload-only")
-    return NextResponse.redirect(new URL("/onboarding-upload-only", req.url));
+    console.log("User is authenticated, pulling him back to home")
+    return NextResponse.redirect(new URL("/home", req.url));
   }
 
   // Allow access
@@ -67,7 +67,5 @@ export const config = {
       * Match all paths except static files
       */
       '/((?!_next/static|_next/image|favicon.ico).*)',
-      // '/onboarding-upload-only', // Explicitly add this
-      // '/dashboard'
     ],
 };

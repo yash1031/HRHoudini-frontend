@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react"
 import { useDashboard } from '@/contexts/dashboard-context';
-import { useOnboarding } from "./onboarding/onboarding-template"
+import { useUpload } from "@/contexts/upload-context"
 import { useUserContext } from "@/contexts/user-context"
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
@@ -78,8 +78,36 @@ export function FileUpload({
   const [fileMetadata, setFileMetadata] = useState<FileMetadata | null>(null)
   const [fileDropped, setFileDropped]= useState(false);
   const errorRef = useRef<string | null>(null);
-  const { uploadedFile, setUploadedFile } = useOnboarding()
+  const metadataRestoredRef = useRef(false)
+  const { uploadedFile, setUploadedFile } = useUpload()
   const { setMetadata} = useDashboard();
+
+  // Restore fileMetadata from uploadedFile when component mounts or uploadedFile changes
+  // This handles browser back/forward navigation where state is restored from localStorage
+  useEffect(() => {
+    if (uploadedFile && uploadedFile.metadata) {
+      // Restore fileMetadata from uploadedFile.metadata (for browser navigation)
+      setFileMetadata((current) => {
+        // Only update if different to avoid unnecessary re-renders
+        if (!current || current.name !== uploadedFile.metadata.name) {
+          return uploadedFile.metadata
+        }
+        return current
+      })
+      
+      // Also restore fileDropped state if file is processed
+      if (processedFile && isUploaded) {
+        setFileDropped(true)
+      }
+      
+      metadataRestoredRef.current = true
+    } else if (!uploadedFile) {
+      // Clear fileMetadata if uploadedFile is cleared
+      setFileMetadata(null)
+      setFileDropped(false)
+      metadataRestoredRef.current = false
+    }
+  }, [uploadedFile, processedFile, isUploaded]) // Don't include fileMetadata/fileDropped to avoid loops
 
   const parseFile = (file: File): Promise<{ columns: string[]; rowCount: number; data?: any[] }> => {
   return new Promise((resolve, reject) => {
@@ -98,104 +126,126 @@ export function FileUpload({
             return Object.values(row).some(value => 
               value !== null && 
               value !== undefined && 
-              value !== '' && 
-              String(value).trim() !== ''
+              value !== ""
             )
           })
           
-          const rowCount = nonEmptyRows.length
-          resolve({ columns, rowCount, data: nonEmptyRows })
+          resolve({
+            columns,
+            rowCount: nonEmptyRows.length,
+            data: nonEmptyRows,
+          })
         },
-        error: (err) => reject(err),
+        error: (error) => {
+          reject(error)
+        },
       })
     } else if (fileExtension === "xlsx" || fileExtension === "xls") {
       // Parse Excel files
-      console.log("Uploaded file is in excel format")
       const reader = new FileReader()
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer)
           const workbook = XLSX.read(data, { type: "array" })
-          const sheetName = workbook.SheetNames[0]
-          const worksheet = workbook.Sheets[sheetName]
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) // raw rows
+          const firstSheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[firstSheetName]
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
 
-          const [headers, ...rows] = jsonData
-          const columns = (headers as string[]) || []
-          
-          // Filter out rows that are completely empty
-          const nonEmptyRows = rows.filter((row: any) => {
-            return Array.isArray(row) && row.some(cell => 
-              cell !== null && 
-              cell !== undefined && 
-              cell !== '' && 
-              String(cell).trim() !== ''
-            )
-          })
-          
-          // Convert rows to objects with headers as keys
-          const dataRows = nonEmptyRows.map((row: any) => {
-            const rowObj: any = {}
-            columns.forEach((col, index) => {
-              rowObj[col] = row[index] || ''
-            })
-            return rowObj
-          })
-          
-          const rowCount = nonEmptyRows.length
+          if (jsonData.length === 0) {
+            resolve({ columns: [], rowCount: 0, data: [] })
+            return
+          }
 
-          resolve({ columns, rowCount, data: dataRows })
-        } catch (err) {
-          reject(err)
+          // First row is headers
+          const headers = (jsonData[0] || []).map((h: any) => String(h || "").trim()).filter(Boolean)
+          
+          // Filter out completely empty rows
+          const nonEmptyRows = jsonData.slice(1).filter((row: any[]) => {
+            return row.some(cell => cell !== null && cell !== undefined && cell !== "")
+          })
+
+          resolve({
+            columns: headers,
+            rowCount: nonEmptyRows.length,
+            data: nonEmptyRows.map((row: any[]) => {
+              const rowObj: any = {}
+              headers.forEach((header, index) => {
+                rowObj[header] = row[index] || ""
+              })
+              return rowObj
+            }),
+          })
+        } catch (error) {
+          reject(error)
         }
       }
-      reader.onerror = () => reject(reader.error)
+      reader.onerror = () => reject(new Error("Failed to read Excel file"))
       reader.readAsArrayBuffer(file)
     } else {
-      reject(new Error("Unsupported file format. Please upload a CSV or XLSX file."))
+      reject(new Error("Unsupported file type"))
     }
   })
-  }
+}
 
-  // Load HR headers list
-  const [hrHeadersList, setHrHeadersList] = useState<string[]>([]);
+  // Load HR headers list from JSON file
+  const [hrHeadersList, setHrHeadersList] = useState<string[]>([])
 
-  // Load HR headers on component mount
   useEffect(() => {
-    fetch('/hr-headers.json')
-      .then(res => res.json())
-      .then(data => setHrHeadersList(data))
-      .catch(err => console.error('Failed to load HR headers list:', err));
-  }, []);
+    fetch("/hr-headers.json")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch HR headers: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((data) => {
+        let headersArray: string[] = []
+        
+        // Check if data is directly an array (current format)
+        if (Array.isArray(data)) {
+          headersArray = data
+        } 
+        // Check if data has headers property (alternative format)
+        else if (data && Array.isArray(data.headers)) {
+          headersArray = data.headers
+        } 
+        else {
+          console.error("HR headers data structure is invalid:", data)
+          setHrHeadersList([])
+          return
+        }
+        
+        // Normalize headers (remove spaces, special chars, lowercase)
+        const normalized = headersArray.map((h: string) => normalizeHeader(String(h)))
+        setHrHeadersList(normalized)
+      })
+      .catch((err) => {
+        console.error("Failed to load HR headers:", err)
+        setHrHeadersList([])
+      })
+  }, [])
 
-  // Normalize header - remove all spaces and special characters
+  // Normalize header string (remove spaces, special chars, lowercase)
   const normalizeHeader = (header: string): string => {
     return header
       .toLowerCase()
-      .trim()
-      .replace(/[-_\s]+/g, '') // Remove hyphens, underscores, and spaces
-      .replace(/[^a-z0-9]/g, '') // Remove all special characters
-      .trim();
-  };
+      .replace(/[^a-z0-9]/g, "")
+  }
 
-
+  // Check if headers are actually data rows (not real headers)
   const areHeadersActuallyData = (headers: string[]): { isData: boolean; reason: string } => {
-    for (const header of headers) {
-      const normalized = header.trim();
+    // Check first few headers for patterns that suggest they're data, not headers
+    for (let i = 0; i < Math.min(3, headers.length); i++) {
+      const normalized = normalizeHeader(headers[i])
+      
+      // Skip empty headers
+      if (!normalized) continue
       
       // Email addresses
       if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
         return { 
           isData: true, 
-          reason: `Found email address "${normalized}" in first row - file appears to lack headers.` 
-        };
-      }
-      
-      // Date patterns
-      if (/^\d{1,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4}$/.test(normalized)) {
-        return { 
-          isData: true, 
-          reason: `Found date value "${normalized}" in first row - file appears to lack headers.` 
+          reason: `Found email address "${headers[i]}" in first row - file appears to lack headers.` 
         };
       }
       
@@ -322,8 +372,19 @@ export function FileUpload({
   };
 
   const checkFileCondition = async (file: File) =>{
+      // BUG FIX: Clear previous errors when new file is selected
+      setError(null)
+      errorRef.current = null
+      
+      // File size validation - check FIRST before processing
+      if (file.size > maxSize) {
+        const errorMsg = `File is too large. Maximum size is ${maxSize / (1024 * 1024)}MB.`
+        errorRef.current = errorMsg
+        setError(errorMsg)
+        return
+      }
+      
       // Mock metadata extraction
-
         const { columns, rowCount, data } = await parseFile(file)
 
         const metadata: FileMetadata = {
@@ -388,36 +449,34 @@ export function FileUpload({
     (acceptedFiles: File[], rejectedFiles: any[]) => {
       if (rejectedFiles.length > 0) {
         const rejection = rejectedFiles[0]
-
         const file = rejection.file;
 
+        let errorMessage = ""
         if (rejection.errors.some((e: any) => e.code === "file-too-large")) {
-          errorRef.current= `File is too large. Maximum size is ${maxSize / (1024 * 1024)}MB.`
-          
+          errorMessage = `File is too large. Maximum size is ${maxSize / (1024 * 1024)}MB.`
         } else if (rejection.errors.some((e: any) => e.code === "file-invalid-type")) {
-          errorRef.current= `Invalid file type. Accepted types: ${acceptedTypes.join(", ")}`
-          
+          errorMessage = `Invalid file type. Accepted types: ${acceptedTypes.join(", ")}`
         } else {
-          errorRef.current= "File upload failed. Please try again."
-          
+          errorMessage = "File upload failed. Please try again."
         }
-        const metadata: FileMetadata = {
-          name: file.name,
-          size: file.size,
-          type: file.type || "application/octet-stream",
-          lastModified: file.lastModified,
-          rowCount: 0,
-          columns: [],
-          dataType: file.name.toLowerCase().includes("headcount") ? "headcount" : "general",
-        }
-        setFileMetadata(metadata)
-        setUploadedFile({file, metadata})
-        console.log("errorRef.current", errorRef.current)
-        setError(errorRef.current)
+        
+        // Set error immediately and don't process the file
+        errorRef.current = errorMessage
+        setError(errorMessage)
+        return // Don't process rejected files
       }
 
+      // Only process accepted files (they've passed size and type validation)
       if (acceptedFiles.length > 0) {
-        checkFileCondition(acceptedFiles[0])
+        // Double-check size here as well (defensive programming)
+        const file = acceptedFiles[0]
+        if (file.size > maxSize) {
+          const errorMsg = `File is too large. Maximum size is ${maxSize / (1024 * 1024)}MB.`
+          errorRef.current = errorMsg
+          setError(errorMsg)
+          return
+        }
+        checkFileCondition(file)
       }
     },
     [acceptedTypes, maxSize],
@@ -465,11 +524,15 @@ export function FileUpload({
       if (files && files.length > 0) {
         const file = files[0];
 
-        // File size limit check (1 MB)
+        // File size limit check - return early if too large
         if (file.size > maxSize) {
-          console.log("File is large")
-          errorRef.current= `File is too large. Maximum size is ${maxSize / (1024 * 1024)}MB.`
+          const errorMsg = `File is too large. Maximum size is ${maxSize / (1024 * 1024)}MB.`
+          errorRef.current = errorMsg
+          setError(errorMsg)
+          return // Don't process the file if it's too large
         }
+        
+        // Only process file if size is valid
         checkFileCondition(files[0])
       }
     }
@@ -483,10 +546,25 @@ export function FileUpload({
   return (
     <>
       {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="relative mb-4">
+              <Alert variant="destructive" className="pr-10">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="pr-10">{error}</AlertDescription>
+              </Alert>
+              <button
+                type="button"
+                className="absolute top-1/2 -translate-y-1/2 right-10 h-6 w-6 p-0 flex items-center justify-center rounded-sm hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 z-50 text-destructive cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setError(null)
+                  errorRef.current = null
+                }}
+                aria-label="Close error message"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           )}
       <Card className="w-full">
         <CardContent className="space-y-4">
@@ -540,6 +618,26 @@ export function FileUpload({
                     </Button>
                   </div>
                 </CardHeader>
+          )}
+
+          {processedFile && isUploaded && !isUploading && uploadedFile && fileMetadata && (
+            <div className="space-y-4">
+              <div className="mt-6 p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="font-medium text-green-800">
+                    {uploadedFile.metadata.isSample ? "Sample file loaded successfully!" : "File processed successfully!"}
+                  </span>
+                </div>
+                <div className="text-sm text-green-700">
+                  <strong>{fileMetadata.rowCount?.toLocaleString()} records</strong> analyzed •
+                  <strong> {fileMetadata.dataType}</strong> data detected
+                  {uploadedFile.metadata.isSample && (
+                    <span className="ml-2 px-2 py-1 bg-green-200 text-green-800 rounded text-xs">SAMPLE DATA</span>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {isUploading && fileMetadata && (

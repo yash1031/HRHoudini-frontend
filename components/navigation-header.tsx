@@ -71,7 +71,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     return (
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
         {/* Logo */}
-        <Link href={`/onboarding-upload-only`} className="flex items-center">
+        <Link href={`/home`} className="flex items-center">
           <Image
             src="/hr-houdini-final.png"
             alt="HR HOUDINI - Powered by PredictiveHR"
@@ -156,7 +156,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
       {/* Logo */}
-      <Link href={`/onboarding-upload-only`} className="flex items-center">
+      <Link href={`/home`} className="flex items-center">
         <Image
           src="/hr-houdini-final.png"
           alt="HR HOUDINI - Powered by PredictiveHR"
