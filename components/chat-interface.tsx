@@ -627,7 +627,7 @@ export function ChatInterface({
                       )}
 
                       {/* Citations Section - Only show if citations exist */}
-                      {message.sender === "assistant" && message.citations && message.citations.length > 0 && (
+                      {/* {message.sender === "assistant" && message.citations && message.citations.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-blue-100">
                           <div className="flex items-center space-x-1 mb-2">
                             <FileText className="h-3.5 w-3.5 text-gray-600" />
@@ -689,7 +689,7 @@ export function ChatInterface({
                             ))}
                           </div>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </div>
