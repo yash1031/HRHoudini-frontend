@@ -51,6 +51,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
 
   // State for available dashboards
   const [availableDashboards, setAvailableDashboards] = useState<Array<{
+    button_title: string;
     report_title: string;
     report_description: string;
     html_content: string;
@@ -152,6 +153,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
    * Handle individual dashboard generation
    */
   const handleGenerateDashboard = async (report: {
+    button_title: string;
     report_title: string;
     report_description: string;
     html_content: string;
@@ -235,7 +237,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                     onClick={() => handleGenerateDashboard(dashboard)}
                     className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1"
                   >
-                    <span className="font-bold text-sm">{dashboard.report_title}</span>
+                    <span className="font-bold text-sm">{dashboard.button_title}</span>
                   </button>
                 ))}
               </div>
