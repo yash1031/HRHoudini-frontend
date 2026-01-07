@@ -2,13 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 interface StoreAgenticDashboardRequest {
-  user_id: string;
-  org_id: string | null;
-  session_id: string;
   source_file_path: string;
   report_title: string;
   report_description: string;
   report_s3_path: string;
+  button_title: string;
 }
 
 /**
@@ -18,13 +16,13 @@ interface StoreAgenticDashboardRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: StoreAgenticDashboardRequest = await request.json();
-    const { user_id, org_id, session_id, source_file_path, report_title, report_description, report_s3_path } = body;
+    const { source_file_path, report_title, report_description, report_s3_path, button_title } = body;
     const authHeader = request.headers.get("authorization");
 
     // Validate required fields
-    if (!user_id || !session_id || !source_file_path || !report_title || !report_description || !report_s3_path) {
+    if (!source_file_path || !report_title || !report_description || !report_s3_path || !button_title) {
       return NextResponse.json(
-        { error: 'Missing required fields: user_id, session_id, source_file_path, report_title, report_description, report_s3_path' },
+        { error: 'Missing required fields: source_file_path, report_title, report_description, report_s3_path, button_title' },
         { status: 400 }
       );
     }
@@ -39,13 +37,11 @@ export async function POST(request: NextRequest) {
           ...(authHeader ? { authorization: authHeader } : {})
         },
         body: JSON.stringify([{
-          user_id,
-          org_id,
-          session_id,
           source_file_path,
           report_title,
           report_description,
           report_s3_path,
+          button_title,
         }])
       }
     );

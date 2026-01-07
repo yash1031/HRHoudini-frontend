@@ -146,13 +146,11 @@ export default function SelectKPIsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: localStorage.getItem("user_id"),
-          org_id: null,
-          session_id: localStorage.getItem("session_id"),
           source_file_path: `s3://${process.env.NEXT_PUBLIC_S3_FILE_UPLOAD_BUCKET}/${localStorage.getItem("s3Key")}`,
-          report_title: "Attrition Dashboard",
+          report_title: "Attrition Report",
           report_description: "This dashboard shows the attrition rate of the employees",
           report_s3_path: "s3://hr-houdini-customerdashboards-a/dashboard_templates/hr_dashboard_20251217_164451.html",
+          button_title: "Attrition Dashboard",
         }),
       })
         .then((response) => {
