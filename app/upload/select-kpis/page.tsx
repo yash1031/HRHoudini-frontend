@@ -141,25 +141,6 @@ export default function SelectKPIsPage() {
         console.log("Unable to create dashboard")
       }
 
-      // Non-blocking request to store agentic dashboard
-      apiFetch("/api/store-agentic-dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_file_path: `s3://${process.env.NEXT_PUBLIC_S3_FILE_UPLOAD_BUCKET}/${localStorage.getItem("s3Key")}`,
-          report_title: "Attrition Report",
-          report_description: "This dashboard shows the attrition rate of the employees",
-          report_s3_path: "s3://hr-houdini-customerdashboards-a/dashboard_templates/hr_dashboard_20251217_164451.html",
-          button_title: "Attrition Dashboard",
-        }),
-      })
-        .then((response) => {
-          console.log("Successfully stored agentic dashboard:", response)
-        })
-        .catch((error) => {
-          console.log("Unable to Store agentic dashboard:", error)
-        })
-
       handler = async (msg: any) => {
         try {
           // MAIN CHARTS HANDLER
