@@ -377,13 +377,28 @@ export function ChatInterface({
         });
       } catch (error) {
         // If apiFetch throws, the request failed
+        
+        let errorMessage = "Failed to request answer. Try with some other question";
+        const errorText = error instanceof Error ? error.message : String(error);
+        
+        // Try to parse as JSON
+        const errorData = JSON.parse(errorText);
+        
+        // Extract error message from data.error if available
+        if (errorData?.data?.error == "insufficient tokens") {
+          errorMessage = "Insufficient tokens. Please upgrade your plan";
+        }
+        else if (errorData?.data?.error == "no active wallet") {
+          errorMessage = "No active wallet. Please subscribe to a plan";
+        }
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: "Failed to request answer. Try with some other question",
+          content: errorMessage,
           sender: "assistant",
           timestamp: new Date(),
           messageType: "current"
         };
+
         setMessages((prev) => {
           const updatedMessages = [...prev, assistantMessage];
           sessionStorage.setItem('chats', JSON.stringify(updatedMessages));
