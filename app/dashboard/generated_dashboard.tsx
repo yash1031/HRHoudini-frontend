@@ -49,25 +49,25 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     title: ''
   });
 
-  // State for available dashboards
-  const [availableDashboards, setAvailableDashboards] = useState<Array<{
-    button_title: string;
-    report_title: string;
-    report_description: string;
-    html_content: string;
-  }>>([]);
-  const [dashboardsLoading, setDashboardsLoading] = useState(false);
-  let handler: (msg: any) => void = () => {};
+  // COMMENTED OUT: State for available dashboards
+  // const [availableDashboards, setAvailableDashboards] = useState<Array<{
+  //   button_title: string;
+  //   report_title: string;
+  //   report_description: string;
+  //   html_content: string;
+  // }>>([]);
+  // const [dashboardsLoading, setDashboardsLoading] = useState(false);
+  // let handler: (msg: any) => void = () => {};
 
   // HTML Report Modal state
-  const [htmlReportModal, setHtmlReportModal] = useState({
-    isOpen: false,
-    htmlContent: '',
-    reportTitle: '',
-    reportDescription: '',
-    isLoading: false,
-    error: null as string | null
-  });
+  // const [htmlReportModal, setHtmlReportModal] = useState({
+  //   isOpen: false,
+  //   htmlContent: '',
+  //   reportTitle: '',
+  //   reportDescription: '',
+  //   isLoading: false,
+  //   error: null as string | null
+  // });
 
 
   /**
@@ -103,117 +103,117 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     setModal({ isOpen: false, title: '' });
   };
 
-  const fetchAvailableDashboards = async () => {
-    const userIdFromStorage = localStorage.getItem('user_id');
-    const sessionIdFromStorage = localStorage.getItem('session_id');
+  // COMMENTED OUT: Fetch available dashboards
+  // const fetchAvailableDashboards = async () => {
+  //   const userIdFromStorage = localStorage.getItem('user_id');
+  //   const sessionIdFromStorage = localStorage.getItem('session_id');
 
-    if (!userIdFromStorage || !sessionIdFromStorage) {
-      return;
-    }
+  //   if (!userIdFromStorage || !sessionIdFromStorage) {
+  //     return;
+  //   }
 
-    setDashboardsLoading(true);
-    try {
-      const response = await apiFetch('/api/fetch-agentic-dashboard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userIdFromStorage,
-          session_id: sessionIdFromStorage
-        })
-      }).catch((error) => {
-        console.error('Error fetching dashboards:', error);
-        return null;
-      });
+  //   setDashboardsLoading(true);
+  //   try {
+  //     const response = await apiFetch('/api/fetch-agentic-dashboard', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         user_id: userIdFromStorage,
+  //         session_id: sessionIdFromStorage
+  //       })
+  //     }).catch((error) => {
+  //       console.error('Error fetching dashboards:', error);
+  //       return null;
+  //     });
 
-      if (response && response.success && response.reports && response.reports.length > 0) {
-        setAvailableDashboards(response.reports);
-      }
-    } catch (error) {
-      console.error('Error fetching available dashboards:', error);
-    } finally {
-      setDashboardsLoading(false);
-    }
-  };
+  //     if (response && response.success && response.reports && response.reports.length > 0) {
+  //       setAvailableDashboards(response.reports);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching available dashboards:', error);
+  //   } finally {
+  //     setDashboardsLoading(false);
+  //   }
+  // };
 
-  // Fetch available dashboards on component mount
-  useEffect(() => {
-    fetchAvailableDashboards();
-    handler = async (msg: any) => {
-        console.log('[WS] message received', msg);
-        if(msg.event==="agent_dashboard.stored"){
-          fetchAvailableDashboards();
-        }
-    };
-    addListener(handler!, "agentic-dashboard-handler");
-  }, []);
+  // COMMENTED OUT: Fetch available dashboards on component mount
+  // useEffect(() => {
+  //   fetchAvailableDashboards();
+  //   handler = async (msg: any) => {
+  //       console.log('[WS] message received', msg);
+  //       if(msg.event==="agent_dashboard.stored"){
+  //         fetchAvailableDashboards();
+  //       }
+  //   };
+  //   addListener(handler!, "agentic-dashboard-handler");
+  // }, []);
 
   /**
    * Handle individual dashboard generation
    */
-  const handleGenerateDashboard = async (report: {
-    button_title: string;
-    report_title: string;
-    report_description: string;
-    html_content: string;
-  }): Promise<void> => {
-    setHtmlReportModal({
-      isOpen: true,
-      htmlContent: '',
-      reportTitle: report.report_title,
-      reportDescription: report.report_description,
-      isLoading: true,
-      error: null
-    });
+  // const handleGenerateDashboard = async (report: {
+  //   button_title: string;
+  //   report_title: string;
+  //   report_description: string;
+  //   html_content: string;
+  // }): Promise<void> => {
+  //   setHtmlReportModal({
+  //     isOpen: true,
+  //     htmlContent: '',
+  //     reportTitle: report.report_title,
+  //     reportDescription: report.report_description,
+  //     isLoading: true,
+  //     error: null
+  //   });
 
-    try {
-      // Simulate loading if needed, or directly set content
-      setTimeout(() => {
-        setHtmlReportModal(prev => ({
-          ...prev,
-          htmlContent: report.html_content,
-          isLoading: false
-        }));
-      }, 500);
-    } catch (error) {
-      console.error('Error opening dashboard:', error);
-      setHtmlReportModal(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to load dashboard'
-      }));
-    }
-  };
+  //   try {
+  //     // Simulate loading if needed, or directly set content
+  //     setTimeout(() => {
+  //       setHtmlReportModal(prev => ({
+  //         ...prev,
+  //         htmlContent: report.html_content,
+  //         isLoading: false
+  //       }));
+  //     }, 500);
+  //   } catch (error) {
+  //     console.error('Error opening dashboard:', error);
+  //     setHtmlReportModal(prev => ({
+  //       ...prev,
+  //       isLoading: false,
+  //       error: error instanceof Error ? error.message : 'Failed to load dashboard'
+  //     }));
+  //   }
+  // };
 
-  /**
-   * Close HTML report modal
-   */
-  const closeHtmlReportModal = (): void => {
-    setHtmlReportModal({
-      isOpen: false,
-      htmlContent: '',
-      reportTitle: '',
-      reportDescription: '',
-      isLoading: false,
-      error: null
-    });
-  };
+  // /**
+  //  * Close HTML report modal
+  //  */
+  // const closeHtmlReportModal = (): void => {
+  //   setHtmlReportModal({
+  //     isOpen: false,
+  //     htmlContent: '',
+  //     reportTitle: '',
+  //     reportDescription: '',
+  //     isLoading: false,
+  //     error: null
+  //   });
+  // };
 
   // Extract summary data from first few cards (only if cards loaded)
-  const [card1, card2, card3] = kpiCards;
+  // const [card1, card2, card3] = kpiCards;
   const hasCards = kpiCards.length > 0;
 
   return (
     <>
       <SkeletonStyles />
 
-      {/* Agentic Dashboards Section - Modern Minimal with Subtle Animation */}
-      {availableDashboards.length > 0 && (
+      {/* COMMENTED OUT: Agentic Dashboards Section - Modern Minimal with Subtle Animation */}
+      {/* {availableDashboards.length > 0 && (
         <div className="bg-white border-b border-gray-200 mb-6">
           <div className="max-w-7xl mx-auto px-12 py-6">
             <div className="flex items-center justify-between gap-4">
-              {/* Left: Clean minimal with accent */}
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
@@ -229,7 +229,6 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                 </div>
               </div>
               
-              {/* Right: Vibrant buttons */}
               <div className="flex flex-wrap gap-3">
                 {availableDashboards.map((dashboard, index) => (
                   <button
@@ -244,7 +243,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Dashboard Header */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12">
@@ -356,7 +355,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
         <DrillDownModal modal={modal} onClose={closeModal} />
 
         {/* HTML Report Modal */}
-        <HTMLDashboardModal
+        {/* <HTMLDashboardModal
           isOpen={htmlReportModal.isOpen}
           onClose={closeHtmlReportModal}
           htmlContent={htmlReportModal.htmlContent}
@@ -364,7 +363,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
           reportDescription={htmlReportModal.reportDescription}
           isLoading={htmlReportModal.isLoading}
           error={htmlReportModal.error}
-        />
+        /> */}
       </div>
     </>
   );

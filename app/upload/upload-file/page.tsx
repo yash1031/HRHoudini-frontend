@@ -188,7 +188,7 @@ export default function UploadFilePage() {
           <Button
             onClick={handleContinue}
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-            disabled={!(fileDropped && !isUploading) && !processedFile}
+            disabled={!((fileDropped || uploadedFile) && !isUploading) && !processedFile}
           >
             <span>{isUploading || processedFile ? "Continue" : "Upload"}</span>
           </Button>

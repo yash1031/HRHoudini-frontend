@@ -49,17 +49,49 @@ export function UploadProvider({ children }: { children: ReactNode }) {
 
   // Load state from localStorage on mount
   useEffect(() => {
+    // Detect if this is a page refresh vs browser navigation
+    const navEntries = performance.getEntriesByType('navigation')
+    const navEntry = navEntries[0] as PerformanceNavigationTiming | undefined
+    const navigationType = navEntry?.type
+    
+    // If it's a page refresh, clear all upload state
+    if (navigationType === 'reload') {
+      // Clear all upload-related state on refresh
+      setUploadedFileState(null)
+      setProcessedFile(false)
+      setIsUploaded(false)
+      setFileDropped(false)
+      setError(null)
+      setUploadProgress(0)
+      
+      // Clear localStorage
+      localStorage.removeItem("upload_file_metadata")
+      localStorage.removeItem("upload_processed")
+      localStorage.removeItem("upload_is_uploaded")
+      localStorage.removeItem("upload_file_dropped")
+      return // Don't restore state on refresh
+    }
+    
+    // Only restore state for browser back/forward navigation
     const savedFile = localStorage.getItem("upload_file_metadata")
     const savedProcessed = localStorage.getItem("upload_processed")
     const savedUploaded = localStorage.getItem("upload_is_uploaded")
+    const savedFileDropped = localStorage.getItem("upload_file_dropped")
     
     if (savedFile) {
       try {
         const parsed = JSON.parse(savedFile)
         // Note: File object can't be serialized, so we only restore metadata
-        // The file will need to be re-uploaded if page refreshes
+        // This is for browser back/forward navigation
         if (parsed.metadata) {
           setUploadedFileState({ file: new File([], parsed.metadata.name), metadata: parsed.metadata })
+          // If file exists, set fileDropped to true (file was dropped/selected)
+          if (savedFileDropped === "true") {
+            setFileDropped(true)
+          } else {
+            // Auto-set fileDropped if file exists (for backward compatibility)
+            setFileDropped(true)
+          }
         }
       } catch (e) {
         console.error("Failed to restore upload state:", e)
@@ -95,6 +127,14 @@ export function UploadProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("upload_is_uploaded")
     }
   }, [isUploaded])
+
+  useEffect(() => {
+    if (fileDropped) {
+      localStorage.setItem("upload_file_dropped", "true")
+    } else {
+      localStorage.removeItem("upload_file_dropped")
+    }
+  }, [fileDropped])
 
   return (
     <UploadContext.Provider
