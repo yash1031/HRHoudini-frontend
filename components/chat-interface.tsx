@@ -336,7 +336,34 @@ export function ChatInterface({
       scrollToBottom();
       shouldScrollRef.current = false;
     }
-  }, [messages]);
+
+    // Auto-load more history when content doesn't overflow and user is at top
+    const checkAndLoadMore = () => {
+      if (!scrollContainerRef.current) return;
+      if (fileUploaded === "false") return;
+      if (!hasMore || isLoadingHistory) return;
+
+      const container = scrollContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } = container;
+
+      // If content doesn't overflow (scrollbar thumb is full) and at top, load more
+      if (scrollTop === 0 && scrollHeight <= clientHeight) {
+        console.log("Chat Component: Content not overflowing at top, loading more history...");
+        
+        // Save the FIRST visible message as scroll reference
+        const firstVisibleMessage = messages.find(m => m.messageType === "history" || !m.messageType);
+        if (firstVisibleMessage) {
+          scrollReferenceRef.current = firstVisibleMessage.id;
+        }
+
+        fetchChatHistory(oldestChatIdRef.current || undefined, false);
+      }
+    };
+
+    // Use setTimeout to ensure DOM has updated before measuring
+    const timeoutId = setTimeout(checkAndLoadMore, 100);
+    return () => clearTimeout(timeoutId);
+  }, [messages, hasMore, isLoadingHistory, fileUploaded]);
 
   const handleSend = async (message?: string) => {
     try {
@@ -377,7 +404,7 @@ export function ChatInterface({
         });
       } catch (error) {
         // If apiFetch throws, the request failed
-        
+
         let errorMessage = "Failed to request answer. Try with some other question";
         const errorText = error instanceof Error ? error.message : String(error);
         
@@ -579,7 +606,7 @@ export function ChatInterface({
 
       <CardContent className="flex-1 flex flex-col p-4 pt-4 space-y-3 min-h-0">
         {/* Messages Area */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-h-0">
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
