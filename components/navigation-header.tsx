@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import {signOut } from 'aws-amplify/auth';
 import { useState, useEffect } from "react"
+import { closeWebSocket } from "@/lib/ws"
 
 interface NavigationHeaderProps {
   /** Optional override for user name */
@@ -70,7 +71,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     return (
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
         {/* Logo */}
-        <Link href={`/onboarding-upload-only`} className="flex items-center">
+        <Link href={`/home`} className="flex items-center">
           <Image
             src="/hr-houdini-final.png"
             alt="HR HOUDINI - Powered by PredictiveHR"
@@ -116,6 +117,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
 
   const handleSignOut = async () => {
       try {
+        closeWebSocket();
         const user_id = localStorage.getItem('user_id');
         const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
   
@@ -138,6 +140,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   
         // Clear localStorage
         localStorage.clear();
+        sessionStorage.clear();
         
         // Redirect immediately
         window.location.href = '/';
@@ -145,6 +148,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
       } catch (error) {
         console.error('Sign out failed:', error);
         localStorage.clear();
+        sessionStorage.clear();
         window.location.href = '/';
       }
     };
@@ -152,7 +156,7 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
       {/* Logo */}
-      <Link href={`/onboarding-upload-only`} className="flex items-center">
+      <Link href={`/home`} className="flex items-center">
         <Image
           src="/hr-houdini-final.png"
           alt="HR HOUDINI - Powered by PredictiveHR"

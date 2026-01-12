@@ -15,4 +15,9 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
-      - .next/cache/**/*
+      - .next/cache/**/* 
+  customHeaders:
+  - pattern: '**'
+    headers:
+      - key: Cache-Control
+        value: no-store

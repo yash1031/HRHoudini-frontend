@@ -39,6 +39,7 @@ export default function LoginPage() {
       setGoogleSignInInProgress(true)
       handleGoogleAuthComplete()
     }
+    window.addEventListener('unload', () => {});
   }, [])
 
   const handleGoogleAuthComplete = async () => {
@@ -98,7 +99,7 @@ export default function LoginPage() {
         localStorage.setItem("user_id", data.user_id)
         localStorage.setItem("user_name", `${data.full_name}`)
         localStorage.setItem("user_email", email)
-        window.location.href = `/onboarding-upload-only`;
+        window.location.href = `/home`;
       } else {
         console.log("Error setting up access token")
       }
@@ -264,7 +265,7 @@ export default function LoginPage() {
           localStorage.setItem("user_id", dataSignIn.user_id)
           localStorage.setItem("user_name", `${dataSignIn.full_name}`)
           localStorage.setItem("user_email", email)
-          window.location.href = `/onboarding-upload-only`;
+          window.location.href = `/home`;
           setIsVerifying(false);
           console.log("User Logged In Successfully")
         } else {

@@ -5,15 +5,18 @@
 
 "use client";
 
-import React, { useState } from 'react';
-import { Sparkles, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } from '@/types/dashboard';
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
+import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
+import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
+import { addListener } from '@/lib/ws';
 
 interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   // Section states
@@ -45,6 +48,26 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     isOpen: false,
     title: ''
   });
+
+  const [availableDashboards, setAvailableDashboards] = useState<Array<{
+    button_title: string;
+    report_title: string;
+    report_description: string;
+    html_content: string;
+  }>>([]);
+  const [dashboardsLoading, setDashboardsLoading] = useState(false);
+  let handler: (msg: any) => void = () => {};
+
+  // HTML Report Modal state
+  const [htmlReportModal, setHtmlReportModal] = useState({
+    isOpen: false,
+    htmlContent: '',
+    reportTitle: '',
+    reportDescription: '',
+    isLoading: false,
+    error: null as string | null
+  });
+
 
   /**
    * Handle KPI card click - open drilldown modal
@@ -79,18 +102,148 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     setModal({ isOpen: false, title: '' });
   };
 
+  const fetchAvailableDashboards = async () => {
+    const userIdFromStorage = localStorage.getItem('user_id');
+    const sessionIdFromStorage = localStorage.getItem('session_id');
+
+    if (!userIdFromStorage || !sessionIdFromStorage) {
+      return;
+    }
+
+    setDashboardsLoading(true);
+    try {
+      const response = await apiFetch('/api/fetch-agentic-dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userIdFromStorage,
+          session_id: sessionIdFromStorage
+        })
+      }).catch((error) => {
+        console.error('Error fetching dashboards:', error);
+        return null;
+      });
+
+      if (response && response.success && response.reports && response.reports.length > 0) {
+        setAvailableDashboards(response.reports);
+      }
+    } catch (error) {
+      console.error('Error fetching available dashboards:', error);
+    } finally {
+      setDashboardsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailableDashboards();
+    handler = async (msg: any) => {
+        console.log('[WS] message received', msg);
+        if(msg.event==="agent_dashboard.stored"){
+          fetchAvailableDashboards();
+        }
+    };
+    addListener(handler!, "agentic-dashboard-handler");
+  }, []);
+
+  /**
+   * Handle individual dashboard generation
+   */
+  const handleGenerateDashboard = async (report: {
+    button_title: string;
+    report_title: string;
+    report_description: string;
+    html_content: string;
+  }): Promise<void> => {
+    setHtmlReportModal({
+      isOpen: true,
+      htmlContent: '',
+      reportTitle: report.report_title,
+      reportDescription: report.report_description,
+      isLoading: true,
+      error: null
+    });
+
+    try {
+      // Simulate loading if needed, or directly set content
+      setTimeout(() => {
+        setHtmlReportModal(prev => ({
+          ...prev,
+          htmlContent: report.html_content,
+          isLoading: false
+        }));
+      }, 500);
+    } catch (error) {
+      console.error('Error opening dashboard:', error);
+      setHtmlReportModal(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load dashboard'
+      }));
+    }
+  };
+
+  // /**
+  //  * Close HTML report modal
+  //  */
+  const closeHtmlReportModal = (): void => {
+    setHtmlReportModal({
+      isOpen: false,
+      htmlContent: '',
+      reportTitle: '',
+      reportDescription: '',
+      isLoading: false,
+      error: null
+    });
+  };
+
   // Extract summary data from first few cards (only if cards loaded)
-  const [card1, card2, card3] = kpiCards;
+  // const [card1, card2, card3] = kpiCards;
   const hasCards = kpiCards.length > 0;
 
   return (
     <>
       <SkeletonStyles />
-      {/* <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12"> */}
+      
+      {availableDashboards.length > 0 && (
+        <div className="bg-white border-b border-gray-200 mb-6">
+          <div className="max-w-7xl mx-auto px-12 py-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
+                    <Bot className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <h2 className="text-xl font-bold text-slate-800">
+                      Explore Specialized Agentic Reports
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-3">
+                {availableDashboards.map((dashboard, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleGenerateDashboard(dashboard)}
+                    className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1"
+                  >
+                    <span className="font-bold text-sm">{dashboard.button_title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dashboard Header */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12">
         <div className="max-w-7xl mx-auto">
-          
-          {/* Dashboard Header */}
           <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl shadow-xl mb-6">
             <div className="px-8 py-6">
               {/* Title Section */}
@@ -109,9 +262,6 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                 
                 {/* Status Badge */}
                 <div className="flex items-center space-x-3">
-                  {/* <Badge className="bg-white/20 text-white border-white/30">
-                    Analysis Completed
-                  </Badge> */}
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <div className="flex items-center space-x-2 text-white">
                       <CheckCircle className="h-4 w-4" />
@@ -199,6 +349,17 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
 
         {/* Drilldown Modal */}
         <DrillDownModal modal={modal} onClose={closeModal} />
+
+        {/* HTML Report Modal */}
+        <HTMLDashboardModal
+          isOpen={htmlReportModal.isOpen}
+          onClose={closeHtmlReportModal}
+          htmlContent={htmlReportModal.htmlContent}
+          reportTitle={htmlReportModal.reportTitle}
+          reportDescription={htmlReportModal.reportDescription}
+          isLoading={htmlReportModal.isLoading}
+          error={htmlReportModal.error}
+        />
       </div>
     </>
   );

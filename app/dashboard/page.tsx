@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const [sampleQuestions, setSampleQuestions] = useState<string[]>([]);
   const [chatHeight, setChatHeight] = useState(400);
   const kpiGridRef = useRef<HTMLDivElement>(null);
-  const { athenaCreated, setAthenaCreated} = useDashboard();
+  const { athenaCreated, setAthenaCreated, setRecommendedQuestions} = useDashboard();
 
   // ============================================
   // INITIALIZATION & DATA LOADING
@@ -54,7 +54,6 @@ export default function DashboardPage() {
     const fileUploaded = searchParams.get("hasFile");
     
     if (fileUploaded === "false") {
-      // localStorage.setItem("presigned-parquet-url", "https://hr-houdini-cdn.s3.us-east-1.amazonaws.com/sample-file/masked.parquet")
       // Use sample data
       handleSampleData();
       return;
@@ -66,14 +65,9 @@ export default function DashboardPage() {
     // Cleanup on unmount
     return () => {
       console.log("Unmounting dashboard component");
-      // setDashboard_data(null);
-      // Only cleanup if navigating away, not refreshing
-      // const navigationType = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
-      // if (navigationType?.type !== "reload") {
-        console.log("Closing webSocketConnection")
-        closeWebSocket();
-        setAthenaCreated(true);
-      // }
+      // console.log("Closing webSocketConnection")
+      // closeWebSocket();
+      setAthenaCreated(true);
     };
   }, []);
 
@@ -81,8 +75,6 @@ export default function DashboardPage() {
    * Handle sample/demo data
    */
   const handleSampleData = () => {
-    // setFileName("SharpMedian.csv");
-    // setFileRowCount("512");
     localStorage.setItem("from_history", "false")
     
     // Set sample data directly without loading states (instant load)
@@ -106,7 +98,7 @@ export default function DashboardPage() {
       `What would you like to explore first?`
     );
 
-    setSampleQuestions([
+    setRecommendedQuestions([
         "What is the average annual salary by department?", 
         "What are the differences in hourly rates for different job titles?",
         "How many remote vs. on-site employees are there by region?"
@@ -117,10 +109,8 @@ export default function DashboardPage() {
    * Handle real data from session
    */
   const handleRealData = () => {
-    const sessionId = localStorage.getItem("session_id");
     const storedFileName = localStorage.getItem("file_name");
     const storedRowCount = localStorage.getItem("file_row_count");
-    const storedQuestions = localStorage.getItem("sample_questions");
 
     // Set welcome message
     if (storedFileName && storedRowCount) {
@@ -129,15 +119,6 @@ export default function DashboardPage() {
         `I'm ready to help you analyze this data and generate insights for your HR initiatives. ` +
         `What would you like to explore first?`
       );
-    }
-
-    // Set sample questions
-    if (storedQuestions) {
-      try {
-        setSampleQuestions(JSON.parse(storedQuestions));
-      } catch (e) {
-        console.error("Failed to parse sample questions:", e);
-      }
     }
   };
 
@@ -266,7 +247,7 @@ export default function DashboardPage() {
       <ToastStyles />
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6">
           
           {/* Status Toasts - Below header, above dashboard */}
           <DashboardToasts
@@ -295,7 +276,6 @@ export default function DashboardPage() {
             <ChatInterface
               placeholder="Ask about your uploaded data insights..."
               welcomeMessage={welcomeMessage}
-              suggestedQueries={sampleQuestions}
             />
           </div>)}
         </div>
