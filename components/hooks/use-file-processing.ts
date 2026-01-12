@@ -46,14 +46,6 @@ export function useFileProcessing(
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest()
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100
-            // Update progress: 20-40% range for upload
-            setUploadProgress(20 + percentComplete * 0.2)
-          }
-        }
-
         xhr.open("PUT", url, true)
         xhr.setRequestHeader("Content-Type", contentType)
 

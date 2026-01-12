@@ -437,40 +437,6 @@ export default function SelectKPIsPage() {
           Select all the metrics those you track regularly to get personalized insights and automated alerts when trends
           change.
         </CardDescription>
-        {/* To select all KPIs at once */}
-        <div className="flex items-center justify-end gap-3 mt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const allKpiIds = kpis.map((kpi) => kpi.id)
-              setSelectedKPIs(allKpiIds)
-
-              const allKpiDetails = kpis.map(({ id, label, description, category }) => ({
-                kpi_id: id,
-                label,
-                description,
-                category,
-              }))
-              setSelectedKPIWithDesc(allKpiDetails)
-            }}
-            className="text-blue-600 border-blue-600 hover:bg-blue-50"
-          >
-            Select All
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSelectedKPIs([])
-              setSelectedKPIWithDesc([])
-            }}
-            className="text-gray-600 border-gray-300 hover:bg-gray-50"
-          >
-            Clear All
-          </Button>
-        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
