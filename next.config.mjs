@@ -11,10 +11,10 @@ const nextConfig = {
     unoptimized: true,
   },
   compiler: {
-    // Automatically remove console.* statements in production
-    removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production',
-    // OR keep only errors and warnings:
-    removeConsole: { exclude: ['error', 'warn'] },
+    // Remove all console statements in production except errors and warnings
+    removeConsole: process.env.NEXT_PUBLIC_NODE_ENV === 'production' 
+      ? { exclude: ['error', 'warn'] } 
+      : false,
   },
 }
 export default nextConfig
