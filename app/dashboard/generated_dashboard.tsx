@@ -16,7 +16,7 @@ import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
-import { addListener } from '@/lib/ws';
+import { addListener, removeListener } from '@/lib/ws';
 
 interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   // Section states
@@ -50,6 +50,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
   });
 
   const [availableDashboards, setAvailableDashboards] = useState<Array<{
+    report_id?: string;
     button_title: string;
     report_title: string;
     report_description: string;
@@ -102,32 +103,36 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     setModal({ isOpen: false, title: '' });
   };
 
+  /**
+   * Fetch all reports for the current session
+   */
   const fetchAvailableDashboards = async () => {
-    const userIdFromStorage = localStorage.getItem('user_id');
     const sessionIdFromStorage = localStorage.getItem('session_id');
 
-    if (!userIdFromStorage || !sessionIdFromStorage) {
+    if (!sessionIdFromStorage) {
       return;
     }
 
     setDashboardsLoading(true);
     try {
-      const response = await apiFetch('/api/fetch-agentic-dashboard', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userIdFromStorage,
-          session_id: sessionIdFromStorage
-        })
-      }).catch((error) => {
+      const response = await apiFetch(
+        `/api/ai-agents/reports?session_id=${encodeURIComponent(sessionIdFromStorage)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      ).catch((error) => {
         console.error('Error fetching dashboards:', error);
         return null;
       });
 
-      if (response && response.success && response.reports && response.reports.length > 0) {
+      if (response && response.reports && Array.isArray(response.reports) && response.reports.length > 0) {
         setAvailableDashboards(response.reports);
+      } else if (response && Array.isArray(response) && response.length > 0) {
+        // Handle case where API returns array directly
+        setAvailableDashboards(response);
       }
     } catch (error) {
       console.error('Error fetching available dashboards:', error);
@@ -136,15 +141,95 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     }
   };
 
+  /**
+   * Fetch a single report by report_id
+   */
+  const fetchReportById = async (report_id: string) => {
+    if (!report_id) {
+      console.error('No report_id provided');
+      return;
+    }
+
+    try {
+      const response = await apiFetch(
+        `/api/ai-agents/reports/${report_id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      ).catch((error) => {
+        console.error('Error fetching report by ID:', error);
+        return null;
+      });
+
+      if (response) {
+        // Normalize the response - handle different response structures
+        // The API might return the report directly, or wrapped in an object
+        const report = response.report || response.data || response;
+        
+        // Ensure all required fields are present
+        const normalizedReport = {
+          report_id: report.report_id || report_id,
+          button_title: report.button_title || report.report_title || 'New Report',
+          report_title: report.report_title || report.title || '',
+          report_description: report.report_description || report.description || '',
+          html_content: report.html_content || report.html || ''
+        };
+
+        console.log('[Dashboard] Fetched report:', normalizedReport);
+
+        // Check if report already exists to avoid duplicates
+        setAvailableDashboards(prev => {
+          const exists = prev.some(d => d.report_id === report_id);
+          if (exists) {
+            // Update existing report
+            return prev.map(d => 
+              d.report_id === report_id ? normalizedReport : d
+            );
+          } else {
+            // Append new report
+            return [...prev, normalizedReport];
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching report by ID:', error);
+    }
+  };
+
   useEffect(() => {
+    // Fetch all reports when component mounts (for history view)
     fetchAvailableDashboards();
+    
+    // Set up WebSocket listener for new reports
     handler = async (msg: any) => {
-        console.log('[WS] message received', msg);
-        if(msg.event==="agent_dashboard.stored"){
+      console.log('[WS] message received', msg);
+      if (msg.event === "agent_dashboard.stored") {
+        // Check if report_id is available in the message payload
+        // Try multiple possible locations for report_id
+        const report_id = msg.payload?.report_id || msg.report_id || msg.payload?.data?.report_id;
+        
+        console.log('[WS] agent_dashboard.stored event, report_id:', report_id);
+        
+        if (report_id) {
+          // Fetch the specific report by ID
+          await fetchReportById(report_id);
+        } else {
+          console.warn('[WS] No report_id found in message, falling back to fetch all');
+          // Fallback: fetch all reports if report_id is not available
           fetchAvailableDashboards();
         }
+      }
     };
+    
     addListener(handler!, "agentic-dashboard-handler");
+    
+    // Cleanup: remove listener on unmount
+    return () => {
+      removeListener("agentic-dashboard-handler");
+    };
   }, []);
 
   /**
