@@ -144,7 +144,7 @@ export const DashboardToasts: React.FC<ToastContainerProps> = ({
       {cardsLoading && (
         <StatusToast
           type="loading"
-          message="Loading KPI cards... meanwhile u can interact with the chat bot below"
+          message="Loading KPI cards... meanwhile you can interact with the chat bot below"
           persistent={true}
         />
       )}
@@ -168,7 +168,7 @@ export const DashboardToasts: React.FC<ToastContainerProps> = ({
       {chartsLoading && (
         <StatusToast
           type="loading"
-          message="Loading analytical charts... meanwhile u can interact with the chat bot below"
+          message="Loading analytical charts... meanwhile you can interact with the chat bot below"
           persistent={true}
         />
       )}

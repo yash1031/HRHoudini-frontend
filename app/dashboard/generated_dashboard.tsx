@@ -12,7 +12,7 @@ import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } fro
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
-import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
+import { HTMLReportModal } from "@/components/dashboard/HTMLReportModal";
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
@@ -49,7 +49,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     title: ''
   });
 
-  const [availableDashboards, setAvailableDashboards] = useState<Array<{
+  const [availableReports, setAvailableReports] = useState<Array<{
     report_id?: string;
     button_title: string;
     report_title: string;
@@ -106,7 +106,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
   /**
    * Fetch all reports for the current session
    */
-  const fetchAvailableDashboards = async () => {
+  const fetchAvailableReports = async () => {
     const sessionIdFromStorage = localStorage.getItem('session_id');
 
     if (!sessionIdFromStorage) {
@@ -129,10 +129,10 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
       });
 
       if (response && response.reports && Array.isArray(response.reports) && response.reports.length > 0) {
-        setAvailableDashboards(response.reports);
-      } else if (response && Array.isArray(response) && response.length > 0) {
-        // Handle case where API returns array directly
-        setAvailableDashboards(response);
+        setAvailableReports(response.reports);
+      } else {
+        // When No reports are found for the session_id, we don't want to show the dashboard
+        console.log('No reports found for session_id:', sessionIdFromStorage);
       }
     } catch (error) {
       console.error('Error fetching available dashboards:', error);
@@ -167,7 +167,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
       if (response) {
         // Normalize the response - handle different response structures
         // The API might return the report directly, or wrapped in an object
-        const report = response.report || response.data || response;
+        const report = response.report;
         
         // Ensure all required fields are present
         const normalizedReport = {
@@ -181,7 +181,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
         console.log('[Dashboard] Fetched report:', normalizedReport);
 
         // Check if report already exists to avoid duplicates
-        setAvailableDashboards(prev => {
+        setAvailableReports(prev => {
           const exists = prev.some(d => d.report_id === report_id);
           if (exists) {
             // Update existing report
@@ -201,12 +201,12 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
 
   useEffect(() => {
     // Fetch all reports when component mounts (for history view)
-    fetchAvailableDashboards();
+    fetchAvailableReports();
     
     // Set up WebSocket listener for new reports
     handler = async (msg: any) => {
       console.log('[WS] message received', msg);
-      if (msg.event === "agent_dashboard.stored") {
+      if (msg.event === "agentic_report.stored") {
         // Check if report_id is available in the message payload
         // Try multiple possible locations for report_id
         const report_id = msg.payload?.report_id || msg.report_id || msg.payload?.data?.report_id;
@@ -219,23 +219,23 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
         } else {
           console.warn('[WS] No report_id found in message, falling back to fetch all');
           // Fallback: fetch all reports if report_id is not available
-          fetchAvailableDashboards();
+          fetchAvailableReports();
         }
       }
     };
     
-    addListener(handler!, "agentic-dashboard-handler");
+    addListener(handler!, "agentic-reports-handler");
     
     // Cleanup: remove listener on unmount
     return () => {
-      removeListener("agentic-dashboard-handler");
+      removeListener("agentic-reports-handler");
     };
   }, []);
 
   /**
    * Handle individual dashboard generation
    */
-  const handleGenerateDashboard = async (report: {
+  const handleGenerateReport = async (report: {
     button_title: string;
     report_title: string;
     report_description: string;
@@ -291,11 +291,12 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     <>
       <SkeletonStyles />
       
-      {availableDashboards.length > 0 && (
+      {availableReports.length > 0 && (
         <div className="bg-white border-b border-gray-200 mb-6">
           <div className="max-w-7xl mx-auto px-12 py-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {/* Title Section */}
+              <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="relative">
                   <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
                     <Bot className="h-6 w-6 text-white" />
@@ -310,16 +311,19 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-3">
-                {availableDashboards.map((dashboard, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleGenerateDashboard(dashboard)}
-                    className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1"
-                  >
-                    <span className="font-bold text-sm">{dashboard.button_title}</span>
-                  </button>
-                ))}
+              {/* Buttons Container - Right aligned, with smart wrapping */}
+              <div className="flex-1 flex justify-end min-w-0">
+                <div className="flex flex-wrap justify-end items-start gap-3 max-w-full w-full">
+                  {availableReports.map((reports, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleGenerateReport(reports)}
+                      className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1 whitespace-nowrap flex-shrink-0"
+                    >
+                      <span className="font-bold text-sm">{reports.button_title}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -436,7 +440,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
         <DrillDownModal modal={modal} onClose={closeModal} />
 
         {/* HTML Report Modal */}
-        <HTMLDashboardModal
+        <HTMLReportModal
           isOpen={htmlReportModal.isOpen}
           onClose={closeHtmlReportModal}
           htmlContent={htmlReportModal.htmlContent}
