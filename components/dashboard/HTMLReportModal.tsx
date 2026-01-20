@@ -1,10 +1,10 @@
-// components/dashboard/HTMLDashboardModal.tsx
+// components/dashboard/HTMLReportModal.tsx
 "use client";
 
 import React from 'react';
 import { X } from 'lucide-react';
 
-interface HTMLDashboardModalProps {
+interface HTMLReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   htmlContent: string;
@@ -14,7 +14,7 @@ interface HTMLDashboardModalProps {
   error?: string | null;
 }
 
-export const HTMLDashboardModal: React.FC<HTMLDashboardModalProps> = ({
+export const HTMLReportModal: React.FC<HTMLReportModalProps> = ({
   isOpen,
   onClose,
   htmlContent,

@@ -12,11 +12,11 @@ import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } fro
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
-import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
+import { HTMLReportModal } from "@/components/dashboard/HTMLReportModal";
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
-import { addListener } from '@/lib/ws';
+import { addListener, removeListener } from '@/lib/ws';
 
 interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   // Section states
@@ -49,25 +49,25 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     title: ''
   });
 
-  // COMMENTED OUT: State for available dashboards
-  // const [availableDashboards, setAvailableDashboards] = useState<Array<{
-  //   button_title: string;
-  //   report_title: string;
-  //   report_description: string;
-  //   html_content: string;
-  // }>>([]);
-  // const [dashboardsLoading, setDashboardsLoading] = useState(false);
-  // let handler: (msg: any) => void = () => {};
+  const [availableReports, setAvailableReports] = useState<Array<{
+    report_id?: string;
+    button_title: string;
+    report_title: string;
+    report_description: string;
+    html_content: string;
+  }>>([]);
+  const [dashboardsLoading, setDashboardsLoading] = useState(false);
+  let handler: (msg: any) => void = () => {};
 
-  // COMMENTED OUT: HTML Report Modal state
-  // const [htmlReportModal, setHtmlReportModal] = useState({
-  //   isOpen: false,
-  //   htmlContent: '',
-  //   reportTitle: '',
-  //   reportDescription: '',
-  //   isLoading: false,
-  //   error: null as string | null
-  // });
+  // HTML Report Modal state
+  const [htmlReportModal, setHtmlReportModal] = useState({
+    isOpen: false,
+    htmlContent: '',
+    reportTitle: '',
+    reportDescription: '',
+    isLoading: false,
+    error: null as string | null
+  });
 
 
   /**
@@ -103,114 +103,200 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     setModal({ isOpen: false, title: '' });
   };
 
-  // COMMENTED OUT: Fetch available dashboards
-  // const fetchAvailableDashboards = async () => {
-  //   const userIdFromStorage = localStorage.getItem('user_id');
-  //   const sessionIdFromStorage = localStorage.getItem('session_id');
+  /**
+   * Fetch all reports for the current session
+   */
+  const fetchAvailableReports = async () => {
+    const sessionIdFromStorage = localStorage.getItem('session_id');
 
-  //   if (!userIdFromStorage || !sessionIdFromStorage) {
-  //     return;
-  //   }
+    if (!sessionIdFromStorage) {
+      return;
+    }
 
-  //   setDashboardsLoading(true);
-  //   try {
-  //     const response = await apiFetch('/api/fetch-agentic-dashboard', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         user_id: userIdFromStorage,
-  //         session_id: sessionIdFromStorage
-  //       })
-  //     }).catch((error) => {
-  //       console.error('Error fetching dashboards:', error);
-  //       return null;
-  //     });
+    setDashboardsLoading(true);
+    try {
+      const response = await apiFetch(
+        `/api/ai-agents/reports?session_id=${encodeURIComponent(sessionIdFromStorage)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      ).catch((error) => {
+        console.error('Error fetching dashboards:', error);
+        return null;
+      });
 
-  //     if (response && response.success && response.reports && response.reports.length > 0) {
-  //       setAvailableDashboards(response.reports);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching available dashboards:', error);
-  //   } finally {
-  //     setDashboardsLoading(false);
-  //   }
-  // };
+      if (response && response.reports && Array.isArray(response.reports) && response.reports.length > 0) {
+        setAvailableReports(response.reports);
+      } else {
+        // When No reports are found for the session_id, we don't want to show the dashboard
+        console.log('No reports found for session_id:', sessionIdFromStorage);
+      }
+    } catch (error) {
+      console.error('Error fetching available dashboards:', error);
+    } finally {
+      setDashboardsLoading(false);
+    }
+  };
 
-  // COMMENTED OUT: Fetch available dashboards on component mount
-  // useEffect(() => {
-  //   fetchAvailableDashboards();
-  //   handler = async (msg: any) => {
-  //       console.log('[WS] message received', msg);
-  //       if(msg.event==="agent_dashboard.stored"){
-  //         fetchAvailableDashboards();
-  //       }
-  //   };
-  //   addListener(handler!, "agentic-dashboard-handler");
-  // }, []);
+  /**
+   * Fetch a single report by report_id
+   */
+  const fetchReportById = async (report_id: string) => {
+    if (!report_id) {
+      console.error('No report_id provided');
+      return;
+    }
 
-  // COMMENTED OUT: Handle individual dashboard generation
-  // const handleGenerateDashboard = async (report: {
-  //   button_title: string;
-  //   report_title: string;
-  //   report_description: string;
-  //   html_content: string;
-  // }): Promise<void> => {
-  //   setHtmlReportModal({
-  //     isOpen: true,
-  //     htmlContent: '',
-  //     reportTitle: report.report_title,
-  //     reportDescription: report.report_description,
-  //     isLoading: true,
-  //     error: null
-  //   });
+    try {
+      const response = await apiFetch(
+        `/api/ai-agents/reports/${report_id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      ).catch((error) => {
+        console.error('Error fetching report by ID:', error);
+        return null;
+      });
 
-  //   try {
-  //     // Simulate loading if needed, or directly set content
-  //     setTimeout(() => {
-  //       setHtmlReportModal(prev => ({
-  //         ...prev,
-  //         htmlContent: report.html_content,
-  //         isLoading: false
-  //       }));
-  //     }, 500);
-  //   } catch (error) {
-  //     console.error('Error opening dashboard:', error);
-  //     setHtmlReportModal(prev => ({
-  //       ...prev,
-  //       isLoading: false,
-  //       error: error instanceof Error ? error.message : 'Failed to load dashboard'
-  //     }));
-  //   }
-  // };
+      if (response) {
+        // Normalize the response - handle different response structures
+        // The API might return the report directly, or wrapped in an object
+        const report = response.report;
+        
+        // Ensure all required fields are present
+        const normalizedReport = {
+          report_id: report.report_id || report_id,
+          button_title: report.button_title || report.report_title || 'New Report',
+          report_title: report.report_title || report.title || '',
+          report_description: report.report_description || report.description || '',
+          html_content: report.html_content || report.html || ''
+        };
 
-  // COMMENTED OUT: Close HTML report modal
-  // const closeHtmlReportModal = (): void => {
-  //   setHtmlReportModal({
-  //     isOpen: false,
-  //     htmlContent: '',
-  //     reportTitle: '',
-  //     reportDescription: '',
-  //     isLoading: false,
-  //     error: null
-  //   });
-  // };
+        console.log('[Dashboard] Fetched report:', normalizedReport);
+
+        // Check if report already exists to avoid duplicates
+        setAvailableReports(prev => {
+          const exists = prev.some(d => d.report_id === report_id);
+          if (exists) {
+            // Update existing report
+            return prev.map(d => 
+              d.report_id === report_id ? normalizedReport : d
+            );
+          } else {
+            // Append new report
+            return [...prev, normalizedReport];
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching report by ID:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch all reports when component mounts (for history view)
+    fetchAvailableReports();
+    
+    // Set up WebSocket listener for new reports
+    handler = async (msg: any) => {
+      console.log('[WS] message received', msg);
+      if (msg.event === "agentic_report.stored") {
+        // Check if report_id is available in the message payload
+        // Try multiple possible locations for report_id
+        const report_id = msg.payload?.report_id || msg.report_id || msg.payload?.data?.report_id;
+        
+        console.log('[WS] agent_dashboard.stored event, report_id:', report_id);
+        
+        if (report_id) {
+          // Fetch the specific report by ID
+          await fetchReportById(report_id);
+        } else {
+          console.warn('[WS] No report_id found in message, falling back to fetch all');
+          // Fallback: fetch all reports if report_id is not available
+          fetchAvailableReports();
+        }
+      }
+    };
+    
+    addListener(handler!, "agentic-reports-handler");
+    
+    // Cleanup: remove listener on unmount
+    return () => {
+      removeListener("agentic-reports-handler");
+    };
+  }, []);
+
+  /**
+   * Handle individual dashboard generation
+   */
+  const handleGenerateReport = async (report: {
+    button_title: string;
+    report_title: string;
+    report_description: string;
+    html_content: string;
+  }): Promise<void> => {
+    setHtmlReportModal({
+      isOpen: true,
+      htmlContent: '',
+      reportTitle: report.report_title,
+      reportDescription: report.report_description,
+      isLoading: true,
+      error: null
+    });
+
+    try {
+      // Simulate loading if needed, or directly set content
+      setTimeout(() => {
+        setHtmlReportModal(prev => ({
+          ...prev,
+          htmlContent: report.html_content,
+          isLoading: false
+        }));
+      }, 500);
+    } catch (error) {
+      console.error('Error opening dashboard:', error);
+      setHtmlReportModal(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load dashboard'
+      }));
+    }
+  };
+
+  // /**
+  //  * Close HTML report modal
+  //  */
+  const closeHtmlReportModal = (): void => {
+    setHtmlReportModal({
+      isOpen: false,
+      htmlContent: '',
+      reportTitle: '',
+      reportDescription: '',
+      isLoading: false,
+      error: null
+    });
+  };
 
   // Extract summary data from first few cards (only if cards loaded)
-  const [card1, card2, card3] = kpiCards;
+  // const [card1, card2, card3] = kpiCards;
   const hasCards = kpiCards.length > 0;
 
   return (
     <>
       <SkeletonStyles />
-
-      {/* COMMENTED OUT: Agentic Dashboards Section - Modern Minimal with Subtle Animation */}
-      {/* {availableDashboards.length > 0 && (
+      
+      {availableReports.length > 0 && (
         <div className="bg-white border-b border-gray-200 mb-6">
           <div className="max-w-7xl mx-auto px-12 py-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {/* Title Section */}
+              <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="relative">
                   <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg">
                     <Bot className="h-6 w-6 text-white" />
@@ -225,21 +311,24 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-3">
-                {availableDashboards.map((dashboard, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleGenerateDashboard(dashboard)}
-                    className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1"
-                  >
-                    <span className="font-bold text-sm">{dashboard.button_title}</span>
-                  </button>
-                ))}
+              {/* Buttons Container - Right aligned, with smart wrapping */}
+              <div className="flex-1 flex justify-end min-w-0">
+                <div className="flex flex-wrap justify-end items-start gap-3 max-w-full w-full">
+                  {availableReports.map((reports, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleGenerateReport(reports)}
+                      className="group relative flex items-center space-x-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:shadow-indigo-500/30 transform hover:-translate-y-1 whitespace-nowrap flex-shrink-0"
+                    >
+                      <span className="font-bold text-sm">{reports.button_title}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      )} */}
+      )}
 
       {/* Dashboard Header */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-12">
@@ -350,8 +439,8 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
         {/* Drilldown Modal */}
         <DrillDownModal modal={modal} onClose={closeModal} />
 
-        {/* COMMENTED OUT: HTML Report Modal */}
-        {/* <HTMLDashboardModal
+        {/* HTML Report Modal */}
+        <HTMLReportModal
           isOpen={htmlReportModal.isOpen}
           onClose={closeHtmlReportModal}
           htmlContent={htmlReportModal.htmlContent}
@@ -359,7 +448,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
           reportDescription={htmlReportModal.reportDescription}
           isLoading={htmlReportModal.isLoading}
           error={htmlReportModal.error}
-        /> */}
+        />
       </div>
     </>
   );
