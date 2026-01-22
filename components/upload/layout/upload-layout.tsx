@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useRef, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Menu, ChevronDown } from "lucide-react"
+import { Menu, Building, ChevronDown } from "lucide-react"
 import FileUploadHistory from "@/components/onboarding/FileUploadHistory"
 import { apiFetch } from "@/lib/api/client"
 import Link from "next/link"
@@ -197,6 +197,13 @@ export function UploadLayout({ children, userContext, showWelcome = true }: Uplo
               <Link href={`/dashboard/profile`} className="flex items-center w-full">
                 <User className="h-4 w-4 mr-2" />
                 Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              {/* <Link href={`/account?${searchParams.toString()}`} className="flex items-center w-full"> */}
+              <Link href={`/account`} className="flex items-center w-full">
+                <Building className="h-4 w-4 mr-2" />
+                Account
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

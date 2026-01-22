@@ -217,12 +217,13 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
               Profile
             </Link>
           </DropdownMenuItem>
-          {/* <DropdownMenuItem asChild>
-            <Link href={`/dashboard/account?${searchParams.toString()}`} className="flex items-center w-full">
+          <DropdownMenuItem asChild>
+            {/* <Link href={`/account?${searchParams.toString()}`} className="flex items-center w-full"> */}
+            <Link href={`/account`} className="flex items-center w-full">
               <Building className="h-4 w-4 mr-2" />
               Account
             </Link>
-          </DropdownMenuItem> */}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-red-600" onClick={() => {
             // Your sign out logic here
