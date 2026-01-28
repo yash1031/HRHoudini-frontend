@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useRouter } from "next/navigation";
-import { getAccessToken } from "@/lib/auth/tokens";
+import { getIdToken } from "@/lib/auth/tokens";
 import { signOutUser } from "@/lib/auth/sign-out";
 import {
   Dialog,
@@ -227,9 +227,9 @@ export default function AccountPage() {
     setIsDeletingAccount(true);
     
     try {
-      const accessToken = getAccessToken();
-      if (!accessToken) {
-        console.error("No access token found");
+      const idToken = getIdToken();
+      if (!idToken) {
+        console.error("No id token found");
         setIsDeletingAccount(false);
         return;
       }
@@ -241,7 +241,7 @@ export default function AccountPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ access_token: accessToken }),
+          body: JSON.stringify({ id_token: idToken }),
         }
       );
   
