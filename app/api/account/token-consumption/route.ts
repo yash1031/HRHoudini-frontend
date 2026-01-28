@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Call backend API
     const response = await fetch(
-      `https://api.dev.hrhoudini.ai/account/get-details?user_id=${user_id}&from=${from}&to=${to}`,
+      `https://${process.env.NEXT_PUBLIC_BACKEND_DOMAIN}/account/get-details?user_id=${user_id}&from=${from}&to=${to}`,
       {
         method: 'GET',
         headers: {
