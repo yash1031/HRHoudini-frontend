@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useRef, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Menu, ChevronDown } from "lucide-react"
+import { Menu, Building, ChevronDown } from "lucide-react"
 import FileUploadHistory from "@/components/onboarding/FileUploadHistory"
 import { apiFetch } from "@/lib/api/client"
 import Link from "next/link"
@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { signOut } from "aws-amplify/auth"
 import { closeWebSocket } from "@/lib/ws"
+import { signOutUser } from '@/lib/auth/sign-out'
 
 interface UserContext {
   name: string
@@ -116,37 +117,37 @@ export function UploadLayout({ children, userContext, showWelcome = true }: Uplo
     setIsSidePanelOpen(false)
   }, [])
 
-  const handleSignOut = async () => {
-    try {
-      closeWebSocket()
-      const user_id = localStorage.getItem("user_id")
-      const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true"
+  // const handleSignOut = async () => {
+  //   try {
+  //     closeWebSocket()
+  //     const user_id = localStorage.getItem("user_id")
+  //     const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true"
 
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_id, is_google: is_google_logged_in }),
-        credentials: "include",
-      }).catch((err) => console.error("Sign-out request failed:", err))
+  //     await fetch("/api/auth/sign-out", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ user_id, is_google: is_google_logged_in }),
+  //       credentials: "include",
+  //     }).catch((err) => console.error("Sign-out request failed:", err))
 
-      if (is_google_logged_in) {
-        console.log("User is getting google signed out")
-        signOut().catch((err) => console.error("Google sign-out failed:", err))
-      }
+  //     if (is_google_logged_in) {
+  //       console.log("User is getting google signed out")
+  //       signOut().catch((err) => console.error("Google sign-out failed:", err))
+  //     }
 
-      localStorage.clear()
-      sessionStorage.clear()
+  //     localStorage.clear()
+  //     sessionStorage.clear()
 
-      window.location.href = "/"
-    } catch (error) {
-      console.error("Sign out failed:", error)
-      localStorage.clear()
-      sessionStorage.clear()
-      window.location.href = "/"
-    }
-  }
+  //     window.location.href = "/"
+  //   } catch (error) {
+  //     console.error("Sign out failed:", error)
+  //     localStorage.clear()
+  //     sessionStorage.clear()
+  //     window.location.href = "/"
+  //   }
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 relative">
@@ -194,13 +195,20 @@ export function UploadLayout({ children, userContext, showWelcome = true }: Uplo
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem asChild>
-              <Link href={`/dashboard/profile`} className="flex items-center w-full">
+              <Link href={`/profile`} className="flex items-center w-full">
                 <User className="h-4 w-4 mr-2" />
                 Profile
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              {/* <Link href={`/account?${searchParams.toString()}`} className="flex items-center w-full"> */}
+              <Link href={`/account`} className="flex items-center w-full">
+                <Building className="h-4 w-4 mr-2" />
+                Account
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>
+            <DropdownMenuItem className="text-red-600" onClick={() => signOutUser('/')}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </DropdownMenuItem>

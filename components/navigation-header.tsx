@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useUserContext } from "@/contexts/user-context"
 import { useSearchParams } from "next/navigation"
-import { Settings, User, Building, LogOut, ChevronDown } from "lucide-react"
+import { User, Building, LogOut, ChevronDown } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +15,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import {signOut } from 'aws-amplify/auth';
 import { useState, useEffect } from "react"
-import { closeWebSocket } from "@/lib/ws"
+import { signOutUser } from "@/lib/auth/sign-out"
 
 interface NavigationHeaderProps {
   /** Optional override for user name */
@@ -115,43 +114,43 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
     )
   }
 
-  const handleSignOut = async () => {
-      try {
-        closeWebSocket();
-        const user_id = localStorage.getItem('user_id');
-        const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
+  // const handleSignOut = async () => {
+  //     try {
+  //       closeWebSocket();
+  //       const user_id = localStorage.getItem('user_id');
+  //       const is_google_logged_in = localStorage.getItem("is-google-logged-in") === "true";
   
-        // Fire-and-forget request with keepalive
-        await fetch('/api/auth/sign-out', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ user_id, is_google: is_google_logged_in}),
-          credentials: 'include',
-          // keepalive: true, // Keeps request alive even after page unload
-        }).catch(err => console.error('Sign-out request failed:', err));
+  //       // Fire-and-forget request with keepalive
+  //       await fetch('/api/auth/sign-out', {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json'
+  //         },
+  //         body: JSON.stringify({ user_id, is_google: is_google_logged_in}),
+  //         credentials: 'include',
+  //         // keepalive: true, // Keeps request alive even after page unload
+  //       }).catch(err => console.error('Sign-out request failed:', err));
   
-        // Handle Google sign-out (this is fast)
-        if (is_google_logged_in) {
-          console.log("User is getting google signed out")
-          signOut().catch(err => console.error('Google sign-out failed:', err));
-        }
+  //       // Handle Google sign-out (this is fast)
+  //       if (is_google_logged_in) {
+  //         console.log("User is getting google signed out")
+  //         signOut().catch(err => console.error('Google sign-out failed:', err));
+  //       }
   
-        // Clear localStorage
-        localStorage.clear();
-        sessionStorage.clear();
+  //       // Clear localStorage
+  //       localStorage.clear();
+  //       sessionStorage.clear();
         
-        // Redirect immediately
-        window.location.href = '/';
+  //       // Redirect immediately
+  //       window.location.href = '/';
         
-      } catch (error) {
-        console.error('Sign out failed:', error);
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = '/';
-      }
-    };
+  //     } catch (error) {
+  //       console.error('Sign out failed:', error);
+  //       localStorage.clear();
+  //       sessionStorage.clear();
+  //       window.location.href = '/';
+  //     }
+  //   };
 
   return (
     <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between bg-white px-6 shadow-sm border-b">
@@ -211,22 +210,23 @@ export function NavigationHeader({ userName, company }: NavigationHeaderProps = 
         <DropdownMenuContent align="end" className="w-56">
           {/* <DropdownMenuItem className="opacity-50 cursor-not-allowed"> */}
           <DropdownMenuItem asChild>
-            <Link href={`/dashboard/profile?${searchParams.toString()}`} className="flex items-center w-full">   
+            <Link href={`/profile?${searchParams.toString()}`} className="flex items-center w-full">   
           {/* <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed"> */}
               <User className="h-4 w-4 mr-2" />
               Profile
             </Link>
           </DropdownMenuItem>
-          {/* <DropdownMenuItem asChild>
-            <Link href={`/dashboard/account?${searchParams.toString()}`} className="flex items-center w-full">
+          <DropdownMenuItem asChild>
+            {/* <Link href={`/account?${searchParams.toString()}`} className="flex items-center w-full"> */}
+            <Link href={`/account`} className="flex items-center w-full">
               <Building className="h-4 w-4 mr-2" />
               Account
             </Link>
-          </DropdownMenuItem> */}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-red-600" onClick={() => {
             // Your sign out logic here
-            handleSignOut();
+            signOutUser('/');
           }}>
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
