@@ -23,10 +23,10 @@ function Calendar({
   
   const currentMonthIndex = month.getMonth()
   const currentYear = month.getFullYear()
-  const years = React.useMemo(() => 
-    Array.from({ length: 20 }, (_, i) => currentYear - 10 + i),
-    [currentYear]
-  )
+  let years: number[] = []
+  for(let year = 2025; year <= currentYear; year++) {
+    years.push(year)
+  }
 
   const handleMonthChange = (monthIndex: string) => {
     const newDate = new Date(month)
@@ -37,18 +37,6 @@ function Calendar({
   const handleYearChange = (year: string) => {
     const newDate = new Date(month)
     newDate.setFullYear(parseInt(year))
-    setMonth(newDate)
-  }
-
-  const goToPreviousMonth = () => {
-    const newDate = new Date(month)
-    newDate.setMonth(newDate.getMonth() - 1)
-    setMonth(newDate)
-  }
-
-  const goToNextMonth = () => {
-    const newDate = new Date(month)
-    newDate.setMonth(newDate.getMonth() + 1)
     setMonth(newDate)
   }
 
@@ -73,20 +61,20 @@ function Calendar({
       .calendar-wrapper [data-selected].rdp-day_range_start {
         background-color: rgb(37 99 235) !important;
         color: white !important;
-        border-radius: 0.375rem 0 0 0.375rem !important;
+        border-radius: 0.375rem !important;
       }
       .calendar-wrapper .rdp-day_range_end,
       .calendar-wrapper .rdp-day_range_end.rdp-day_selected,
       .calendar-wrapper [data-selected].rdp-day_range_end {
         background-color: rgb(37 99 235) !important;
         color: white !important;
-        border-radius: 0 0.375rem 0.375rem 0 !important;
+        border-radius: 0.375rem !important;
       }
       .calendar-wrapper .rdp-day_range_middle,
       .calendar-wrapper .rdp-day_range_middle.rdp-day_selected,
       .calendar-wrapper [data-selected].rdp-day_range_middle {
-        background-color: rgb(219 234 254) !important;
-        color: rgb(30 58 138) !important;
+        background-color: rgb(229 231 235) !important;
+        color: rgb(55 65 81) !important;
         border-radius: 0 !important;
       }
       .calendar-wrapper .rdp-day_selected:not(.rdp-day_range_start):not(.rdp-day_range_end):not(.rdp-day_range_middle),
@@ -112,8 +100,8 @@ function Calendar({
         color: white !important;
       }
       .calendar-wrapper [aria-selected="true"][data-range-middle] {
-        background-color: rgb(219 234 254) !important;
-        color: rgb(30 58 138) !important;
+        background-color: rgb(229 231 235) !important;
+        color: rgb(55 65 81) !important;
       }
       .calendar-wrapper .rdp-months {
         display: block !important;
@@ -122,10 +110,10 @@ function Calendar({
         display: block !important;
       }
       .calendar-wrapper .rdp-table {
-        display: table !important;
+        width: 100% !important;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
         table-layout: fixed !important;
-        border-collapse: collapse !important;
-        margin: 0 auto !important;
       }
       .calendar-wrapper .rdp-head_row,
       .calendar-wrapper .rdp-row {
@@ -134,32 +122,19 @@ function Calendar({
       .calendar-wrapper .rdp-head_cell,
       .calendar-wrapper .rdp-cell {
         display: table-cell !important;
-        width: 36px !important;
-        min-width: 36px !important;
-        max-width: 36px !important;
+        width: 14.28% !important;
         text-align: center !important;
         vertical-align: middle !important;
-        padding: 0 !important;
+        padding: 2px !important;
         box-sizing: border-box !important;
       }
-      .calendar-wrapper .rdp-head_row .rdp-head_cell,
-      .calendar-wrapper .rdp-row .rdp-cell {
-        display: table-cell !important;
-      }
-      .calendar-wrapper .rdp-month .rdp-table {
-        display: table !important;
-      }
-      .calendar-wrapper .rdp-month .rdp-table .rdp-head_row {
-        display: table-row !important;
-      }
-      .calendar-wrapper .rdp-month .rdp-table .rdp-row {
-        display: table-row !important;
-      }
-      .calendar-wrapper .rdp-month .rdp-table .rdp-head_row .rdp-head_cell {
-        display: table-cell !important;
-      }
-      .calendar-wrapper .rdp-month .rdp-table .rdp-row .rdp-cell {
-        display: table-cell !important;
+      .calendar-wrapper .rdp-day {
+        width: 36px !important;
+        height: 36px !important;
+        margin: 0 auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
     `
     document.head.appendChild(style)
@@ -171,9 +146,15 @@ function Calendar({
     }
   }, [])
 
+  // Custom formatters for weekday labels
+  const formatWeekdayName = (date: Date) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[date.getDay()];
+  };
+
   return (
     <div className="calendar-wrapper">
-      {/* Custom Header - Rendered separately */}
+      {/* Custom Header */}
       <div className="flex justify-between items-center px-3 pt-3 pb-2 bg-white">
         <div className="flex items-center gap-2">
           <Select
@@ -211,32 +192,17 @@ function Calendar({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={goToPreviousMonth}
-            className="h-8 w-8 bg-white p-0 opacity-70 hover:opacity-100 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center transition-opacity"
-            aria-label="Previous month"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={goToNextMonth}
-            className="h-8 w-8 bg-white p-0 opacity-70 hover:opacity-100 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center transition-opacity"
-            aria-label="Next month"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
       </div>
 
-      {/* DayPicker with hidden caption */}
+      {/* DayPicker */}
       <div className="px-3 pb-3">
         <DayPicker
           showOutsideDays={showOutsideDays}
           month={month}
           onMonthChange={setMonth}
+          formatters={{
+            formatWeekdayName
+          }}
           className={cn("", className)}
           classNames={{
             months: "",
@@ -247,14 +213,14 @@ function Calendar({
             nav_button: "hidden",
             nav_button_previous: "hidden",
             nav_button_next: "hidden",
-            table: "border-collapse mx-auto",
-            head_row: "",
+            table: "w-full border-collapse",
+            head_row: "flex",
             head_cell:
-              "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
-            row: "",
-            cell: "h-9 w-9 text-center text-sm p-0 relative",
+              "text-muted-foreground flex-1 font-medium text-xs text-center pb-2",
+            row: "flex w-full mt-2",
+            cell: "flex-1 text-center text-sm p-0 relative",
             day: cn(
-              "h-9 w-9 p-0 font-normal rounded-md hover:bg-gray-100 cursor-pointer"
+              "h-9 w-9 p-3 font-normal rounded-md hover:bg-gray-100 cursor-pointer mx-auto"
             ),
             day_today: "bg-gray-100 text-gray-900 font-bold",
             day_outside: "text-gray-400 opacity-50",

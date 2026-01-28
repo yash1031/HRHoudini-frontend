@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation";
+import { getAccessToken } from "@/lib/auth/tokens";
+import { signOutUser } from "@/lib/auth/sign-out";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +31,7 @@ interface AccountInfo {
   file_uploads_count: number
   chat_messages_count: number
   reports_count: number
-  tokens_consumed: string
+  tokens_remaining: number
   subscription_name: string
   subscription_days_completed: number
   subscription_days_left: number
@@ -40,7 +43,6 @@ interface AccountDetailsResponse {
   timestamp: string
 }
 
-// Token limits for each plan
 const TOKEN_LIMITS: Record<string, number> = {
   Freemium: 250000,
   Starter: 1000000,
@@ -50,37 +52,20 @@ const TOKEN_LIMITS: Record<string, number> = {
 
 export default function AccountPage() {
   const { user } = useUserContext()
-
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false)
-  const [companyData, setCompanyData] = useState({
-    companyName: user.company || "TechCorp Solutions",
-    industry: user.company === "HealthServ Solutions" ? "Healthcare Services" : "Technology",
-    size: user.company === "HealthServ Solutions" ? "120 employees" : "500-1000 employees",
-    address:
-      user.company === "HealthServ Solutions"
-        ? "456 Healthcare Blvd, Boston, MA 02101"
-        : "123 Business Ave, San Francisco, CA 94105",
-  })
-
-  // Account data state
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-
-  // Delete account dialog state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("")
-
-  // Date filter state for tokens usage
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false)
   const [dateFilter, setDateFilter] = useState<"1d" | "7d" | "30d" | "custom">("30d")
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [tempDateRange, setTempDateRange] = useState<DateRange | undefined>(undefined)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-  
-  // Token consumption data state
   const [tokensUsageData, setTokensUsageData] = useState<Array<{ date: string; tokens: number }>>([])
   const [isLoadingTokens, setIsLoadingTokens] = useState(false)
 
-  // Format date as DD/MM/YYYY for API
   const formatDateForAPI = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -88,7 +73,6 @@ export default function AccountPage() {
     return `${day}/${month}/${year}`
   }
 
-  // Fetch token consumption data
   const fetchTokenConsumption = async (fromDate: Date, toDate: Date) => {
     try {
       setIsLoadingTokens(true)
@@ -113,12 +97,10 @@ export default function AccountPage() {
       ) as { success: boolean; token_consumption: Array<{ date?: string; hour?: string; tokens_consumed: number }> }
 
       if (response.success && response.token_consumption) {
-        // Check if it's hourly data (has 'hour' field) or daily data (has 'date' field)
         const isHourly = response.token_consumption.length > 0 && 'hour' in response.token_consumption[0]
         
         const formattedData = response.token_consumption.map((item) => {
           if (isHourly && item.hour) {
-            // Parse hour format: "2026-01-20 07:00"
             const [datePart, timePart] = item.hour.split(' ')
             const [year, month, day] = datePart.split('-')
             const [hour] = timePart.split(':')
@@ -128,7 +110,6 @@ export default function AccountPage() {
               tokens: item.tokens_consumed,
             }
           } else if (item.date) {
-            // Daily data format: "2026-01-01"
             const date = new Date(item.date)
             return {
               date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -148,7 +129,6 @@ export default function AccountPage() {
     }
   }
 
-  // Fetch account details
   useEffect(() => {
     const fetchAccountDetails = async () => {
       try {
@@ -183,30 +163,24 @@ export default function AccountPage() {
     fetchAccountDetails()
   }, [])
 
-  // Fetch token consumption on mount and when filters change
   useEffect(() => {
     const today = new Date()
     let fromDate: Date
     let toDate: Date = today
 
     if (dateFilter === "1d") {
-      // Last 24 hours - use today for both from and to to get hourly data
       fromDate = new Date(today)
       toDate = new Date(today)
     } else if (dateFilter === "7d") {
-      // Last 7 days
       fromDate = new Date(today)
-      fromDate.setDate(fromDate.getDate() - 6) // Include today, so 6 days back
+      fromDate.setDate(fromDate.getDate() - 6)
     } else if (dateFilter === "30d") {
-      // Last 30 days
       fromDate = new Date(today)
-      fromDate.setDate(fromDate.getDate() - 29) // Include today, so 29 days back
+      fromDate.setDate(fromDate.getDate() - 29)
     } else if (dateFilter === "custom" && dateRange?.from && dateRange?.to) {
-      // Custom range
       fromDate = new Date(dateRange.from)
       toDate = new Date(dateRange.to)
     } else {
-      // Default: First of current month to today
       fromDate = new Date(today.getFullYear(), today.getMonth(), 1)
       toDate = today
     }
@@ -214,32 +188,31 @@ export default function AccountPage() {
     fetchTokenConsumption(fromDate, toDate)
   }, [dateFilter, dateRange])
 
-  // Calculate derived values
-  const subscriptionName = accountInfo?.subscription_name || "Freemium"
+  const subscriptionName = accountInfo?.subscription_name
+  const hasNoSubscription = subscriptionName === null || subscriptionName === undefined
   const isFreemium = subscriptionName === "Freemium"
-  const daysLeft = accountInfo?.subscription_days_left || 0
-  const daysCompleted = accountInfo?.subscription_days_completed || 0
+  const daysLeft = accountInfo?.subscription_days_left ?? 0
+  const daysCompleted = accountInfo?.subscription_days_completed ?? 0
   const totalDays = daysCompleted + daysLeft
   const progress = totalDays > 0 ? (daysCompleted / totalDays) * 100 : 0
 
-  // Calculate tokens remaining
-  const tokensConsumed = parseInt(accountInfo?.tokens_consumed || "0")
-  const tokenLimit = TOKEN_LIMITS[subscriptionName] || TOKEN_LIMITS.Freemium
-  const tokensRemaining = tokenLimit === -1 ? "Unlimited" : Math.max(0, tokenLimit - tokensConsumed).toLocaleString()
+  const tokenLimit = subscriptionName ? (TOKEN_LIMITS[subscriptionName] || TOKEN_LIMITS.Freemium) : 0
+  const tokensRemainingNum = tokenLimit === -1 ? Infinity : accountInfo?.tokens_remaining || 0
+  const tokensRemaining = tokenLimit === -1 ? "Unlimited" : tokensRemainingNum.toLocaleString()
+  const hasNoTokens = !hasNoSubscription && tokensRemainingNum <= 0
 
-  // Get upgrade button info
   const getUpgradeInfo = () => {
+    if (!subscriptionName) return null
     if (subscriptionName === "Starter") {
-      return { text: "Upgrade to Professional - $249/month", href: "/dashboard/plans" }
+      return { text: "Upgrade to Professional - $99/month", href: "/plans" }
     }
     if (subscriptionName === "Professional") {
-      return { text: "Upgrade to Enterprise - $99/month", href: "/dashboard/plans" }
+      return { text: "Upgrade to Enterprise - $249/month", href: "/plans" }
     }
     if (subscriptionName === "Enterprise") {
-      return null // No upgrade button
+      return null
     }
-    // Freemium
-    return { text: "Upgrade to Starter - $49/month", href: "/dashboard/plans" }
+    return { text: "Upgrade to Starter - $49/month", href: "/plans" }
   }
 
   const upgradeInfo = getUpgradeInfo()
@@ -248,67 +221,110 @@ export default function AccountPage() {
     setIsEditing(false)
   }
 
-  const handleDeleteAccount = () => {
-    if (deleteConfirmationText === "delete-account") {
-      // TODO: Implement account deletion API call
-      console.log("Account deletion confirmed")
-      setIsDeleteDialogOpen(false)
-      setDeleteConfirmationText("")
-    }
-  }
-
-  // Handle date range selection (temporary state for calendar)
-  const handleDateRangeSelect = (range: DateRange | undefined) => {
-    // If range is cleared or undefined, reset
-    if (!range) {
-      setTempDateRange(undefined)
-      return
-    }
-
-    // If clicking the same start date again (when range is already set), reset the range
-    if (range.from && tempDateRange?.from && tempDateRange?.to &&
-        range.from.getTime() === tempDateRange.from.getTime() && 
-        !range.to) {
-      setTempDateRange(undefined)
-      return
-    }
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmationText !== "delete-account") return;
+  
+    setIsDeletingAccount(true);
     
-    // If clicking a different date when range is already set, start a new range
-    if (range.from && tempDateRange?.from && tempDateRange?.to &&
-        range.from.getTime() !== tempDateRange.from.getTime() && 
-        !range.to) {
-      // Start a new range with the clicked date
-      const startDate = new Date(range.from)
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
+    try {
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        console.error("No access token found");
+        setIsDeletingAccount(false);
+        return;
+      }
+  
+      await apiFetch(
+        "/api/account/delete",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ access_token: accessToken }),
+        }
+      );
+  
+      // Close dialog
+      setIsDeleteDialogOpen(false);
+      setDeleteConfirmationText("");
+  
+      // Use signOutUser to properly clear all cookies (including rt) and storage
+      // This will handle the sign-out API call, cookie deletion, and redirect
+      await signOutUser("/account-deleted");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      setIsDeletingAccount(false);
+      // Optionally show a toast/snackbar here
+    }
+  };
+  
+
+  // IMPROVED: Better date range selection logic
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    if (!range || !range.from) {
+      setTempDateRange(undefined)
+      return
+    }
+
+    const getEndOfMonth = (date: Date) => {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+    }
+
+    // If there's already a complete range selected
+    if (tempDateRange?.from && tempDateRange?.to) {
+      // If clicking on the start date again, reset
+      if (range.from.getTime() === tempDateRange.from.getTime() && !range.to) {
+        setTempDateRange(undefined)
+        return
+      }
+      
+      // If clicking on a new date, start a new range
+      if (!range.to) {
+        const endOfMonth = getEndOfMonth(range.from)
+        setTempDateRange({
+          from: range.from,
+          to: endOfMonth,
+        })
+        return
+      }
+    }
+
+    // If only start date (first click)
+    if (range.from && !range.to && !tempDateRange?.from) {
+      const endOfMonth = getEndOfMonth(range.from)
       setTempDateRange({
         from: range.from,
-        to: endDate,
+        to: endOfMonth,
       })
       return
     }
 
-    // If only start date is selected, automatically set end date to end of month
-    if (range.from && !range.to) {
-      const startDate = new Date(range.from)
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0) // Last day of the month
-      
-      // Update temp range with auto end date for display
+    // If user is selecting end date
+    if (range.from && range.to && tempDateRange?.from) {
       setTempDateRange({
         from: range.from,
-        to: endDate,
+        to: range.to,
       })
-    } else {
-      // Both dates selected
+      return
+    }
+
+    // Default case
+    if (range.to) {
       setTempDateRange(range)
+    } else {
+      const endOfMonth = getEndOfMonth(range.from)
+      setTempDateRange({
+        from: range.from,
+        to: endOfMonth,
+      })
     }
   }
 
-  // Apply the selected date range
   const applyDateRange = () => {
     if (tempDateRange?.from) {
       let finalRange = tempDateRange
       
-      // If only start date is selected, default to end of that month
       if (!tempDateRange.to) {
         const startDate = new Date(tempDateRange.from)
         const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
@@ -324,15 +340,12 @@ export default function AccountPage() {
     }
   }
 
-  // Handle quick filter buttons
   const handleQuickFilter = (filter: "1d" | "7d" | "30d") => {
     setDateFilter(filter)
     setDateRange(undefined)
     setTempDateRange(undefined)
   }
 
-
-  // Format date range for custom filter display
   const getDateRangeDisplay = () => {
     if (dateFilter === "custom" && dateRange?.from) {
       const startDate = dateRange.from
@@ -359,7 +372,6 @@ export default function AccountPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
         <p className="text-gray-600 mt-2">Manage your billing, and subscription</p>
-        {/* <p className="text-gray-600 mt-2">Manage your company information, billing, and subscription</p> */}
       </div>
 
       <div className="space-y-6">
@@ -378,17 +390,51 @@ export default function AccountPage() {
               </div>
             </CardHeader>
           </Card>
-        ) : (
-          <Card className={isFreemium ? "border-orange-200 bg-orange-50" : "border-gray-200 bg-gray-50"}>
+        ) : hasNoSubscription ? (
+          <Card className={"border-orange-200 bg-orange-50"}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CreditCard className={`h-5 w-5 ${isFreemium ? "text-orange-600" : "text-gray-600"}`} />
+                  <CreditCard className="h-5 w-5 text-orange-600" />
                   <div>
-                    <CardTitle className={isFreemium ? "text-orange-900" : "text-gray-900"}>
+                    <CardTitle className="text-orange-900">No Active Plan</CardTitle>
+                    <CardDescription className="text-orange-700">
+                      You don't have an active subscription plan at the moment
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-orange-100 border border-orange-300 rounded-lg p-4">
+                <p className="text-orange-900 text-sm font-medium mb-2">
+                  Get started with a subscription plan
+                </p>
+                <p className="text-orange-700 text-sm">
+                  Subscribe to one of our plans to access all features and start using the services.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  className="bg-orange-600 hover:bg-orange-700"
+                  asChild
+                >
+                  <Link href="/plans">View Plans & Subscribe</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className={"border-orange-200 bg-orange-50"}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CreditCard className={`h-5 w-5 ${"text-orange-600"}`} />
+                  <div>
+                    <CardTitle className={"text-orange-900"}>
                       {isFreemium ? "Free Trial" : subscriptionName}
                     </CardTitle>
-                    <CardDescription className={isFreemium ? "text-orange-700" : "text-gray-700"}>
+                    <CardDescription className={"text-orange-700"}>
                       {daysLeft > 0 ? `${daysLeft} days ${isFreemium ? "to renew" : "remaining"}` : "Expired"}
                     </CardDescription>
                   </div>
@@ -401,12 +447,22 @@ export default function AccountPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {hasNoTokens && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-900 text-sm font-medium mb-2">
+                    ⚠️ Tokens Exhausted
+                  </p>
+                  <p className="text-red-700 text-sm">
+                    Your token balance has been fully consumed. Please subscribe to a plan to recharge your wallet and continue using the services.
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className={isFreemium ? "text-orange-700" : "text-gray-700"}>
+                  <span className={"text-orange-700"}>
                     {isFreemium ? "Trial Progress" : "Plan Progress"}
                   </span>
-                  <span className={isFreemium ? "text-orange-700" : "text-gray-700"}>
+                  <span className={"text-orange-700"}>
                     {daysCompleted} of {totalDays} days used
                   </span>
                 </div>
@@ -415,82 +471,24 @@ export default function AccountPage() {
               <div className="flex gap-3">
                 {upgradeInfo && (
                   <Button 
-                    className={isFreemium ? "bg-orange-600 hover:bg-orange-700" : "bg-gray-600 hover:bg-gray-700"}
-                    asChild
+                    className={"bg-orange-600 hover:bg-orange-700"}
+                    disabled = {true}
                   >
                     <Link href={upgradeInfo.href}>{upgradeInfo.text}</Link>
                   </Button>
                 )}
-                {/* <Button 
+                <Button 
                   variant="outline" 
-                  className={isFreemium ? "border-orange-300 text-orange-700 bg-transparent" : "border-gray-300 text-gray-700 bg-transparent"} 
+                  className={"border-orange-300 text-orange-700 bg-transparent"} 
                   asChild
                 >
-                  <Link href="/dashboard/plans">View All Plans</Link>
-                </Button> */}
+                  <Link href="/plans">View All Plans</Link>
+                  {/* <Link href="/plans">View All Plans</Link> */}
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
-
-        {/* Company Information */}
-        {/* <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Building className="h-5 w-5 text-gray-600" />
-              <div>
-                <CardTitle>Company Information</CardTitle>
-                <CardDescription>Update your organization details</CardDescription>
-              </div>
-            </div>
-            <Button
-              variant={isEditing ? "default" : "outline"}
-              onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-            >
-              {isEditing ? "Save Changes" : "Edit"}
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                value={companyData.companyName}
-                onChange={(e) => setCompanyData({ ...companyData, companyName: e.target.value })}
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="industry">Industry</Label>
-                <Input
-                  id="industry"
-                  value={companyData.industry}
-                  onChange={(e) => setCompanyData({ ...companyData, industry: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="size">Company Size</Label>
-                <Input
-                  id="size"
-                  value={companyData.size}
-                  onChange={(e) => setCompanyData({ ...companyData, size: e.target.value })}
-                  disabled={!isEditing}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={companyData.address}
-                onChange={(e) => setCompanyData({ ...companyData, address: e.target.value })}
-                disabled={!isEditing}
-              />
-            </div>
-          </CardContent>
-        </Card> */}
 
         {/* Usage Overview */}
         <Card>
@@ -500,7 +498,9 @@ export default function AccountPage() {
               <div>
                 <CardTitle>Usage Overview</CardTitle>
                 <CardDescription>
-                  {isFreemium 
+                  {hasNoSubscription 
+                    ? "Subscribe to a plan to start using HR Houdini services"
+                    : isFreemium 
                     ? "Monitor your current usage during the trial period"
                     : "Monitor your current usage"}
                 </CardDescription>
@@ -510,6 +510,17 @@ export default function AccountPage() {
           <CardContent className="space-y-6">
             {isLoading ? (
               <div className="text-center py-8 text-gray-500">Loading usage data...</div>
+            ) : hasNoSubscription ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">No usage data available. Please subscribe to a plan to get started.</p>
+                <Button 
+                  className="bg-orange-600 hover:bg-orange-700"
+                  asChild
+                >
+                  <Link href="/plans">View Plans & Subscribe</Link>
+                  {/* <Link href="/plans">View Plans & Subscribe</Link> */}
+                </Button>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -527,12 +538,14 @@ export default function AccountPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Tokens remaining</span>
-                    <span className="font-medium">
+                    <span className={`font-medium ${hasNoTokens ? "text-red-600" : ""}`}>
                       {tokensRemaining === "Unlimited" ? "Unlimited" : `${tokensRemaining} tokens`}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {tokenLimit === -1 
+                    {hasNoSubscription 
+                      ? "Subscribe to a plan to get tokens"
+                      : tokenLimit === -1 
                       ? "Unlimited tokens in Enterprise"
                       : `${tokenLimit.toLocaleString()} tokens in ${subscriptionName}`}
                   </div>
@@ -541,15 +554,6 @@ export default function AccountPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Reports Generated</span>
                     <span className="font-medium">{accountInfo?.reports_count || 0} reports</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Team Members</span>
-                    <span className="font-medium">1 member</span>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {isFreemium ? "Single user during trial" : "Team management available"}
                   </div>
                 </div>
               </div>
@@ -574,11 +578,7 @@ export default function AccountPage() {
                   onOpenChange={(open) => {
                     setIsCalendarOpen(open)
                     if (open) {
-                      // Initialize temp range when opening
-                      setTempDateRange(dateRange)
-                    } else {
-                      // Reset temp range when closing without applying
-                      setTempDateRange(dateRange)
+                      setTempDateRange(undefined)
                     }
                   }}
                 >
@@ -597,7 +597,7 @@ export default function AccountPage() {
                       initialFocus
                       mode="range"
                       defaultMonth={tempDateRange?.from || dateRange?.from}
-                      selected={tempDateRange || dateRange}
+                      selected={tempDateRange}
                       onSelect={handleDateRangeSelect}
                       numberOfMonths={1}
                       className="rounded-md border-0"
@@ -608,7 +608,7 @@ export default function AccountPage() {
                         size="sm"
                         onClick={() => {
                           setIsCalendarOpen(false)
-                          setTempDateRange(dateRange) // Reset to original
+                          setTempDateRange(undefined)
                         }}
                       >
                         Cancel
@@ -676,7 +676,7 @@ export default function AccountPage() {
                       tick={{ fill: "#64748b", fontSize: 12 }}
                       tickLine={{ stroke: "#cbd5e1" }}
                       axisLine={{ stroke: "#cbd5e1" }}
-                      label={{ value: "Tokens", angle: -90, position: "insideLeft", style: { fill: "#475569", fontSize: 13, fontWeight: 600 } }}
+                      label={{  angle: -90, position: "insideLeft", style: { fill: "#475569", fontSize: 13, fontWeight: 600 } }}
                     />
                     <Tooltip
                       contentStyle={{
@@ -693,58 +693,6 @@ export default function AccountPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Billing History */}
-        {/* <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-gray-600" />
-                <div>
-                  <CardTitle>Billing History</CardTitle>
-                  <CardDescription>View and download your invoices</CardDescription>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download All
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">No billing history yet</p>
-              <p className="text-xs text-gray-400 mt-1">Invoices will appear here after your first payment</p>
-            </div>
-          </CardContent>
-        </Card> */}
-
-        {/* Team Management */}
-        {/* <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Users className="h-5 w-5 text-gray-600" />
-                <div>
-                  <CardTitle>Team Management</CardTitle>
-                  <CardDescription>Manage team members and permissions</CardDescription>
-                </div>
-              </div>
-              <Badge variant="secondary">Upgrade Required</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">Team collaboration available on paid plans</p>
-              <p className="text-xs text-gray-400 mt-1">Invite team members and manage permissions</p>
-              <Button className="mt-4 bg-transparent" variant="outline">
-                Learn More About Team Features
-              </Button>
-            </div>
-          </CardContent>
-        </Card> */}
 
         {/* Delete Account */}
         <Card className="border-red-200 bg-red-50">
@@ -764,7 +712,6 @@ export default function AccountPage() {
                 className="bg-red-600 hover:bg-red-700 text-white"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
-                {/* <Trash2 className="h-4 w-4 mr-2" /> */}
                 Delete Account
               </Button>
             </div>
@@ -773,12 +720,16 @@ export default function AccountPage() {
       </div>
 
       {/* Delete Account Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <Dialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+        if (!isDeletingAccount) {
+          setIsDeleteDialogOpen(open)
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-red-900">Delete Account</DialogTitle>
             <DialogDescription className="text-gray-600">
-            Deleting your account is permanent. You will have no way of recovering your account or associated data.
+            Deleting your account is permanent. You will have no way of recovering it or associated data.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -791,6 +742,7 @@ export default function AccountPage() {
               onChange={(e) => setDeleteConfirmationText(e.target.value)}
               placeholder="delete-account"
               className="mt-2"
+              disabled={isDeletingAccount}
             />
           </div>
           <DialogFooter>
@@ -800,6 +752,7 @@ export default function AccountPage() {
                 setIsDeleteDialogOpen(false)
                 setDeleteConfirmationText("")
               }}
+              disabled={isDeletingAccount}
             >
               Cancel
             </Button>
@@ -807,9 +760,9 @@ export default function AccountPage() {
               variant="destructive"
               className="bg-red-600 hover:bg-red-700"
               onClick={handleDeleteAccount}
-              disabled={deleteConfirmationText !== "delete-account"}
+              disabled={deleteConfirmationText !== "delete-account" || isDeletingAccount}
             >
-              Delete Account
+              {isDeletingAccount ? "Deleting..." : "Delete Account"}
             </Button>
           </DialogFooter>
         </DialogContent>
