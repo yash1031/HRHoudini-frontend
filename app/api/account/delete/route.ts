@@ -4,12 +4,12 @@ export const dynamic = "force-dynamic"
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { access_token } = await request.json();
+    const { id_token } = await request.json();
     const authHeader = request.headers.get("authorization");
 
-    if (!access_token) {
+    if (!id_token) {
       return NextResponse.json(
-        { error: 'access_token is required' },
+        { error: 'id_token is required' },
         { status: 400 }
       );
     }
@@ -23,7 +23,7 @@ export async function DELETE(request: NextRequest) {
           'Content-Type': 'application/json',
           ...(authHeader ? { authorization: authHeader } : {})
         },
-        body: JSON.stringify({ access_token }),
+        body: JSON.stringify({ id_token }),
       }
     );
 
