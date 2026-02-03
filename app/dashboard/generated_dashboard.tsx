@@ -306,13 +306,14 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
       
       // Wait for render to complete (increased timeout for complex dashboards)
       setPdfProgress('Rendering all charts and data...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Generate PDF
       setPdfProgress('Generating PDF document...');
       await generateComprehensivePDF({
         filename: `${filename}_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-        scale: 2
+        scale: 2,
+        chartQty: charts.length
       });
       
       setPdfProgress('PDF generated successfully!');
@@ -505,17 +506,6 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
               </div>
             </div>
           )}
-
-          {/* Partial Success Messages or complete failure*/}
-          {/* {!cardsLoading && cardsError && !chartsLoading && !chartsError && charts.length > 0 && (
-            <SectionError message="KPI cards could not be generated, but charts are available and you can intercat with chatbot below" />
-          )}
-          {!chartsLoading && chartsError && !cardsLoading && !cardsError && kpiCards.length > 0 && (
-            <SectionError message="Some charts could not be generated, but KPI cards are available and you can intercat with chatbot below" />
-          )}
-          {!cardsLoading && !chartsLoading && cardsError && chartsError && (
-            <CompleteFailure message="Error generating the dashboard but you can still interact with chatbot below" />
-          )} */}
 
           {/* KPI Cards Section */}
           <div className={hasCards ? 'mb-6' : ''}>

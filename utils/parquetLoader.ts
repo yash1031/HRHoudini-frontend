@@ -228,7 +228,7 @@ export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: 
 
     const results = await Promise.all(
       chartsQueries.map(async (chart: any) => {
-        const { query_obj, id, title, icon, type, field } = chart;
+        const { query_obj, id, title, icon, type, field, xLabel, yLabel } = chart;
 
         const selectClause = query_obj.select.columns
           .map((c: any) => {
@@ -344,6 +344,8 @@ export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: 
           type,
           field,
           icon,
+          xLabel,
+          yLabel,
           data: dataWithPercentage,
           colors: colors.slice(0, data.length)
         };
@@ -476,6 +478,8 @@ export async function generateDrilldownChartsData(
           type: chart.type,
           field: chart.field,
           icon: chart.icon,
+          xLabel: chart.xLabel,
+          yLabel: chart.yLabel,
           description: chart.description,
           data: dataWithPercentage,
           colors: ["#3b82f6", "#10b981", "#f43f5e", "#8b5cf6", "#22d3ee"],
