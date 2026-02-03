@@ -6,17 +6,20 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain } from 'lucide-react';
+import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain, Download, Loader2, AlertCircle } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } from '@/types/dashboard';
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
 import { HTMLReportModal } from "@/components/dashboard/HTMLReportModal";
+import { PrintableDashboard } from "@/components/dashboard/PrintableDashboard";
+import { PrintStyles } from "@/components/dashboard/PrintStyles";
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
 import { addListener, removeListener } from '@/lib/ws';
+import { generateComprehensivePDF } from '@/utils/pdfGenerator';
 
 interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   // Section states
@@ -68,6 +71,12 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     isLoading: false,
     error: null as string | null
   });
+
+  // PDF generation states
+  const [showPrintable, setShowPrintable] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState('');
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
 
   /**
@@ -269,7 +278,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     }
   };
 
-  // /**
+  // /** 
   //  * Close HTML report modal
   //  */
   const closeHtmlReportModal = (): void => {
@@ -283,9 +292,51 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     });
   };
 
+  /**
+   * Handle PDF generation with progress tracking
+   */
+  const handleGeneratePDF = async (): Promise<void> => {
+    setPdfGenerating(true);
+    setPdfError(null);
+    setPdfProgress('Preparing dashboard for export...');
+
+    try {
+      // Show printable version
+      setShowPrintable(true);
+      
+      // Wait for render to complete (increased timeout for complex dashboards)
+      setPdfProgress('Rendering all charts and data...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Generate PDF
+      setPdfProgress('Generating PDF document...');
+      await generateComprehensivePDF({
+        filename: `${filename}_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        scale: 2
+      });
+      
+      setPdfProgress('PDF generated successfully!');
+      
+      // Hide printable version
+      setTimeout(() => {
+        setShowPrintable(false);
+        setPdfGenerating(false);
+        setPdfProgress('');
+      }, 1000);
+      
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      setPdfError(error instanceof Error ? error.message : 'Failed to generate PDF');
+      setShowPrintable(false);
+      setPdfGenerating(false);
+      setPdfProgress('');
+    }
+  };
+
   // Extract summary data from first few cards (only if cards loaded)
   // const [card1, card2, card3] = kpiCards;
   const hasCards = kpiCards.length > 0;
+  const isDashboardReady = !cardsLoading && !chartsLoading && (kpiCards.length > 0 || charts.length > 0);
 
   return (
     <>
@@ -351,6 +402,25 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                 
                 {/* Status Badge */}
                 <div className="flex items-center space-x-3">
+                  {/* Generate PDF Button */}
+                  <button
+                    onClick={handleGeneratePDF}
+                    disabled={pdfGenerating || !isDashboardReady}
+                    className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-400 text-white px-4 py-2 rounded-lg transition-colors shadow-lg disabled:cursor-not-allowed"
+                  >
+                    {pdfGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="font-medium">Generating PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span className="font-medium">Download PDF Report</span>
+                      </>
+                    )}
+                  </button>
+
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <div className="flex items-center space-x-2 text-white">
                       <CheckCircle className="h-4 w-4" />
@@ -402,6 +472,40 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
             </div>
           </div>
 
+          {/* PDF Progress Message */}
+          {pdfGenerating && pdfProgress && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                <div>
+                  <p className="text-blue-900 font-medium">{pdfProgress}</p>
+                  <p className="text-blue-700 text-sm mt-1">
+                    Please wait while we prepare your comprehensive report...
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PDF Error Message */}
+          {pdfError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <div>
+                  <p className="text-red-900 font-medium">PDF Generation Error</p>
+                  <p className="text-red-700 text-sm mt-1">{pdfError}</p>
+                  <button
+                    onClick={() => setPdfError(null)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium mt-2 underline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Partial Success Messages or complete failure*/}
           {/* {!cardsLoading && cardsError && !chartsLoading && !chartsError && charts.length > 0 && (
             <SectionError message="KPI cards could not be generated, but charts are available and you can intercat with chatbot below" />
@@ -449,6 +553,16 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
           isLoading={htmlReportModal.isLoading}
           error={htmlReportModal.error}
         />
+
+        {/* Hidden Printable Dashboard for PDF Generation */}
+        {showPrintable && (
+          <PrintableDashboard
+            kpiCards={kpiCards}
+            charts={charts}
+            filename={filename|| ""}
+            rowCount={Number(rowCount)}
+          />
+        )}
       </div>
     </>
   );
