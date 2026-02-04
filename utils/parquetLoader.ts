@@ -4,6 +4,13 @@ import { DynamicQueryBuilder } from '@/utils/queryBuilder';
 
 let db: duckdb.AsyncDuckDB | null = null;
 
+// No-op logger for production - prevents DuckDB from logging to console
+class NoOpLogger {
+  log() {}
+  warn() {}
+  error() {}
+}
+
 export async function initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
   if (db) {
     return db;
@@ -20,7 +27,15 @@ export async function initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
   );
 
   const worker = new Worker(worker_url);
-  const logger = new duckdb.ConsoleLogger();
+  
+  // Use no-op logger in production to prevent DuckDB structured logs
+  // In development, use ConsoleLogger for debugging
+  const isProduction = process.env.NEXT_PUBLIC_NODE_ENV === 'production';
+  
+  const logger = isProduction 
+    ? (new NoOpLogger() as any)  // Cast to match DuckDB's logger interface
+    : new duckdb.ConsoleLogger();
+  
   db = new duckdb.AsyncDuckDB(logger, worker);
   await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
   URL.revokeObjectURL(worker_url);
@@ -29,91 +44,6 @@ export async function initializeDuckDB(): Promise<duckdb.AsyncDuckDB> {
 
   return db;
 }
-
-// export async function loadParquetData(
-//   parquetUrl: string, 
-//   tokenMapsUrl?: string
-// ): Promise<any[]> {
-  
-//   try {
-//     const db = await initializeDuckDB();
-//     const conn = await db.connect();
-
-//     const query = `SELECT * FROM read_parquet('${parquetUrl}')`;
-
-//     const result = await conn.query(query);
-//     const data = result.toArray().map((row) => row.toJSON());
-
-//     await conn.close();
-
-//     // Unmask PII if token maps are available
-//     if (tokenMapsUrl && data.length > 0) {
-//       const tokenMapsResponse = await fetch(tokenMapsUrl);
-//       const tokenMaps = await tokenMapsResponse.json();
-      
-//       const unmaskedData = data.map(row => {
-//         const unmaskedRow = { ...row };
-//         Object.keys(tokenMaps).forEach(field => {
-//           if (unmaskedRow[field] && tokenMaps[field][unmaskedRow[field]]) {
-//             unmaskedRow[field] = tokenMaps[field][unmaskedRow[field]];
-//           }
-//         });
-//         return unmaskedRow;
-//       });
-      
-//       console.groupEnd();
-//       return unmaskedData;
-//     }
-
-//     console.groupEnd();
-//     return data;
-//   } catch (error) {
-//     console.error('Error loading Parquet data:', error);
-//     console.groupEnd();
-//     throw error;
-//   }
-// }
-
-/**
- * Execute a custom SQL query on the Parquet file
- */
-// export async function executeQuery(query: string): Promise<any[]> {
-  
-//   try {
-//     const db = await initializeDuckDB();
-//     const conn = await db.connect();
-//     const result = await conn.query(query);
-    
-//     // FIX: Convert BigInt to regular numbers
-//     const data = result.toArray().map((row) => {
-//       const obj = row.toJSON();
-      
-//       // Convert all BigInt values to numbers
-//       Object.keys(obj).forEach(key => {
-//         if (typeof obj[key] === 'bigint') {
-//           obj[key] = Number(obj[key]);
-//         }
-//       });
-      
-//       return obj;
-//     });
-    
-//     await conn.close();
-
-//     console.groupEnd();
-//     return data;
-//   } catch (error) {
-//     console.error('Query execution failed:', error);
-//     console.error('Failed query was:', query);
-//     console.groupEnd();
-//     throw error;
-//   }
-// }
-
-/**
- * Execute multiple queries in batch (for drilldown charts)
- */
-// utils/parquetLoader.ts (already exists)
 
 /**
  * Execute multiple queries in batch (for drilldown charts)
@@ -395,7 +325,7 @@ export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: 
     // This ensures ALL charts are returned even if some queries fail or return empty data
     const results = await Promise.allSettled(
       chartsQueries.map(async (chart: any) => {
-        const { query_obj, id, title, icon, type, field, semantic_id } = chart;
+        const { query_obj, id, title, icon, type, field, xLabel, yLabel, semantic_id } = chart;
 
         try {
           const selectClause = query_obj.select.columns
@@ -527,6 +457,8 @@ export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: 
             type,
             field,
             icon,
+          xLabel,
+          yLabel,
             data: [], // Empty data array
             colors: ["#3b82f6"],
             query_obj: query_obj,
@@ -686,6 +618,8 @@ export async function generateDrilldownChartsData(
           type: chart.type,
           field: chart.field,
           icon: chart.icon,
+          xLabel: chart.xLabel,
+          yLabel: chart.yLabel,
           description: chart.description,
           data: dataWithPercentage,
           colors: ["#3b82f6", "#10b981", "#f43f5e", "#8b5cf6", "#22d3ee"],

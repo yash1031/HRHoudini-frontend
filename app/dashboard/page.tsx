@@ -165,6 +165,8 @@ export default function DashboardPage() {
       id: chart.id,
       title: chart.title,
       icon: chart.icon,
+      xLabel: chart.xLabel,
+      yLabel: chart.yLabel,
       type: chart.type === 'horizontalBar' ? 'bar' : chart.type,
       color: chart.colors?.[0] || '#3b82f6',
       colors: chart.colors,

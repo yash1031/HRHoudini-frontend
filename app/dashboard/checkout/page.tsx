@@ -77,6 +77,7 @@ export default function CheckoutPage() {
       <div className="mb-8">
         <Link
           href="/dashboard/plans"
+          // href="/dashboard/plans"
           className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
