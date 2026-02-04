@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import { DateFilterBar } from "./DateFilterBar";
 import type { FilterOption, FilterState } from '@/types/dashboard';
 
 interface FilterControlsProps {
@@ -11,13 +12,28 @@ interface FilterControlsProps {
   onFilterChange: (filters: FilterState) => void;
   onClearFilters: () => void;
   currentFilters?: FilterState;
+  /** When filters include date_range, pass current range and change handler so date is part of the same section */
+  dateRange?: { start: string; end: string } | null;
+  /**
+   * Called by DateFilterBar when the user selects a preset or custom range.
+   * This should ONLY update local date range state, not run heavy queries.
+   */
+  onDateChange?: (start: string, end: string) => void;
+  /**
+   * Called when the user clicks the main "Apply" button.
+   * Use this to actually apply the current dateRange together with other filters.
+   */
+  onApplyDateRange?: (start: string, end: string) => void;
 }
 
 export const FilterControls: React.FC<FilterControlsProps> = ({ 
   filters, 
   onFilterChange, 
   onClearFilters,
-  currentFilters = {} 
+  currentFilters = {},
+  dateRange = null,
+  onDateChange,
+  onApplyDateRange,
 }) => {
   const [filterValues, setFilterValues] = useState<FilterState>(currentFilters);
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
@@ -102,7 +118,12 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     
     console.log('Applying filters:', queryFilters);
     onFilterChange(queryFilters);
-    };
+
+    // Apply the current date range together with other filters (if provided)
+    if (onApplyDateRange && dateRange?.start && dateRange?.end) {
+      onApplyDateRange(dateRange.start, dateRange.end);
+    }
+  };
 
   const clearAllFilters = (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -119,6 +140,19 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
   }).length;
 
   const renderFilter = (filter: FilterOption) => {
+    // Date range: render inline in same Filters section
+    if (filter.type === 'date_range' && onDateChange && dateRange) {
+      return (
+        <div key={filter.field} className="w-full col-span-full">
+          <DateFilterBar
+            dateFilter={filter as any}
+            currentStart={dateRange.start}
+            currentEnd={dateRange.end}
+            onDateChange={onDateChange}
+          />
+        </div>
+      );
+    }
     if (filter.type === 'multiselect' || filter.type === 'select') {
       const selectedCount = Array.isArray(filterValues[filter.field]) 
         ? filterValues[filter.field].length 
@@ -127,8 +161,8 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
       const isOpen = openDropdowns[filter.field];
 
       return (
-        <div key={filter.field} className="space-y-1.5 relative" onClick={(e) => e.stopPropagation()}>
-          <label className="text-xs font-medium text-slate-700">{filter.label}</label>
+        <div key={filter.field} className="space-y-1.5 relative min-w-0" onClick={(e) => e.stopPropagation()}>
+          <label className="text-xs font-medium text-slate-700 truncate block">{filter.label}</label>
 
           {/* Dropdown Trigger */}
           <div
@@ -237,26 +271,23 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
   return (
     <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-        <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-          </div>
-          <h4 className="text-sm font-semibold text-slate-800">Filters</h4>
-        </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 ml-auto">
           <button onClick={(e) => { e.stopPropagation(); applyFilters(); }} className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold rounded transition-all flex items-center space-x-1">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
             <span>Apply</span>
           </button>
+          {activeFilterCount > 0 && (
+            <button onClick={(e) => { e.stopPropagation(); clearAllFilters(e); }} className="px-2.5 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 text-[11px] font-semibold rounded transition-all">
+              Clear All
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filters.map(renderFilter)}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 items-start">
+        {filters.map((f) => renderFilter(f))}
       </div>
     </div>
   );

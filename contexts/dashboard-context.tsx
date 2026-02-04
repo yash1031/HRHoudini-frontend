@@ -59,6 +59,14 @@ interface DashboardContextType {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>
 
+  // Filters (from backend)
+  filters: any[];
+  setFilters: (filters: any[]) => void;
+  dateFilter: any | null;
+  setDateFilter: (dateFilter: any | null) => void;
+  currentDateRange: { start: string; end: string } | null;
+  setCurrentDateRange: (range: { start: string; end: string } | null) => void;
+
   // Legacy loading & error (kept for backward compatibility)
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -151,6 +159,11 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const [recommendedQuestions, setRecommendedQuestions] = useState<string[]>([]);
 
+  // Filters state
+  const [filters, setFilters] = useState<any[]>([]);
+  const [dateFilter, setDateFilter] = useState<any | null>(null);
+  const [currentDateRange, setCurrentDateRange] = useState<{ start: string; end: string } | null>(null);
+
   // const [suggestedQueries, setSuggestedQueries]= useState<String[]>([]);
 
   // Add a single useEffect to hydrate from sessionStorage after mount:
@@ -239,6 +252,12 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setDrilldownsState,
         metadata,
         setMetadata,
+        filters,
+        setFilters,
+        dateFilter,
+        setDateFilter,
+        currentDateRange,
+        setCurrentDateRange,
         isLoading,
         setIsLoading,
         errorDash,

@@ -6,13 +6,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain } from 'lucide-react';
+import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain, ChevronDown, ChevronRight, X, Filter } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } from '@/types/dashboard';
+import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig, FilterOption, FilterState } from '@/types/dashboard';
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
-import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal"
+import { HTMLDashboardModal } from "@/components/dashboard/HTMLDashboardModal";
+import { FilterControls } from "@/components/dashboard/FilterControls";
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
@@ -25,6 +26,12 @@ interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   chartsLoading?: boolean;
   chartsError?: string | null;
   drilldownsState?: Record<string, { loading: boolean; error: boolean }>;
+  // Main dashboard filters (from kpi.main.ready)
+  mainFilters?: FilterOption[];
+  mainDateFilter?: FilterOption | null;
+  mainDateRange?: { start: string; end: string } | null;
+  onMainDateRangeChange?: (range: { start: string; end: string } | null) => void;
+  onMainFilterChange?: (filters: FilterState) => void;
 }
 
 /**
@@ -41,7 +48,12 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
   cardsError = null,
   chartsLoading = false,
   chartsError = null,
-  drilldownsState = {}
+  drilldownsState = {},
+  mainFilters = [],
+  mainDateFilter = null,
+  mainDateRange = null,
+  onMainDateRangeChange,
+  onMainFilterChange,
 }) => {
   // Modal state for drilldown
   const [modal, setModal] = useState<ModalState>({
@@ -68,6 +80,19 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     error: null as string | null
   });
 
+  // Main dashboard filter state (for FilterControls display)
+  const [mainFiltersOpen, setMainFiltersOpen] = useState(true);
+  const [mainFiltersActive, setMainFiltersActive] = useState<FilterState>({});
+
+  const handleMainFilterChange = (filters: FilterState) => {
+    setMainFiltersActive(filters);
+    onMainFilterChange?.(filters);
+  };
+
+  const handleClearMainFilters = () => {
+    setMainFiltersActive({});
+    onMainFilterChange?.({});
+  };
 
   /**
    * Handle KPI card click - open drilldown modal
@@ -332,6 +357,128 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
               <KPICards cards={kpiCards} onCardClick={handleKPIClick} />
             )}
           </div>
+
+          {/* Main dashboard filters - same Filters section as drilldown modal */}
+          {!chartsLoading && !chartsError && charts.length > 0 && mainFilters.length > 0 && (
+            <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setMainFiltersOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left font-semibold text-slate-700 hover:bg-slate-100/80 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-slate-600" />
+                  {mainFiltersOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  Filters
+                </span>
+                {Object.keys(mainFiltersActive).length > 0 && (
+                  <span className="text-sm font-normal text-slate-500">
+                    {Object.keys(mainFiltersActive).length} active
+                  </span>
+                )}
+              </button>
+              {mainFiltersOpen && (
+                <div className="px-4 pb-4 pt-1 space-y-4 border-t border-slate-200">
+                  <FilterControls
+                    filters={mainFilters}
+                    onFilterChange={handleMainFilterChange}
+                    onClearFilters={handleClearMainFilters}
+                    currentFilters={mainFiltersActive}
+                    dateRange={mainDateRange ?? undefined}
+                    // For main dashboard, updating date range should ONLY update state;
+                    // actual chart re-query (if any) should happen when Apply is clicked.
+                    onDateChange={
+                      mainDateFilter && onMainDateRangeChange
+                        ? (start, end) => onMainDateRangeChange({ start, end })
+                        : undefined
+                    }
+                    // If you later want main charts to re-query based on date,
+                    // pass a handler here that uses mainDateRange + filters.
+                    onApplyDateRange={undefined}
+                  />
+
+                  {/* Active Filters - same as drilldown: Clear All + per-filter Clear */}
+                  {Object.keys(mainFiltersActive).length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-slate-700 flex items-center">
+                          Active Filters ({Object.keys(mainFiltersActive).length})
+                        </h4>
+                        <button
+                          onClick={handleClearMainFilters}
+                          className="text-sm text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {Object.entries(mainFiltersActive).map(([field, filter]) => (
+                          <div key={field} className="flex items-start gap-2">
+                            <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
+                              {field.replace(/_/g, ' ')}:
+                            </span>
+                            <div className="flex flex-wrap gap-2 flex-1">
+                              {filter?.operator === 'IN' && Array.isArray(filter?.value) ? (
+                                filter.value.map((val: string, idx: number) => (
+                                  <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {val}
+                                    <X
+                                      className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                      onClick={() => {
+                                        const updated = { ...mainFiltersActive };
+                                        const arr = (updated[field]?.value || []).filter((v: string) => v !== val);
+                                        if (arr.length === 0) delete updated[field];
+                                        else updated[field] = { ...updated[field], value: arr };
+                                        handleMainFilterChange(updated);
+                                      }}
+                                    />
+                                  </Badge>
+                                ))
+                              ) : filter?.operator === 'BETWEEN' && filter?.value ? (
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  {filter.value.min} - {filter.value.max}
+                                  <X
+                                    className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                    onClick={() => {
+                                      const updated = { ...mainFiltersActive };
+                                      delete updated[field];
+                                      handleMainFilterChange(updated);
+                                    }}
+                                  />
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  {String(filter?.value ?? '')}
+                                  <X
+                                    className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                    onClick={() => {
+                                      const updated = { ...mainFiltersActive };
+                                      delete updated[field];
+                                      handleMainFilterChange(updated);
+                                    }}
+                                  />
+                                </Badge>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => {
+                                const updated = { ...mainFiltersActive };
+                                delete updated[field];
+                                handleMainFilterChange(updated);
+                              }}
+                              className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Charts Section */}
           <div className={charts.length > 0 ? 'mt-6' : ''}>

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, ChevronDown, ChevronRight, Filter } from 'lucide-react';
 import { 
   BarChart, Bar, 
   PieChart, Pie, Cell,
@@ -200,14 +200,41 @@ const renderChart = (
   );
 };
 
+/** Order filters: date_range first, then by relevance to drilldown charts (filter label/field in chart title/field first) */
+function orderFiltersByDrilldownRelevance(
+  filters: FilterOption[],
+  charts: Array<{ title?: string; field?: string }>
+): FilterOption[] {
+  if (!filters?.length) return [];
+  const chartText = (charts || [])
+    .map((c) => `${(c.title || '').toLowerCase()} ${(c.field || '').toLowerCase()}`)
+    .join(' ');
+  const score = (f: FilterOption): number => {
+    if (f.type === 'date_range') return 1000;
+    const label = (f.label || '').toLowerCase();
+    const field = (f.field || '').toLowerCase();
+    const relevance = [label, field].filter((t) => t && chartText.includes(t)).length;
+    return relevance > 0 ? 500 + relevance : 0;
+  };
+  return [...filters].sort((a, b) => score(b) - score(a));
+}
+
 export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<FilterState>({});
   const [chartData, setChartData] = useState<Record<number, any[]>>({});
   const [originalChartData, setOriginalChartData] = useState<Record<number, any[]>>({});
+  const [dateFilter, setDateFilter] = useState<FilterOption | null>(null);
+  const [currentDateRange, setCurrentDateRange] = useState<{ start: string; end: string } | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(true); // collapsible filters section, open by default
 
-  // Store original data on first load
+  const orderedFilters = orderFiltersByDrilldownRelevance(
+    modal.drillDownData?.filters || [],
+    modal.drillDownData?.charts || []
+  );
+
+  // Store original data on first load and extract date filter
   useEffect(() => {
     if (modal.isOpen && modal.drillDownData?.charts) {
       const initial: Record<number, any[]> = {};
@@ -217,6 +244,33 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
       setChartData(initial);
       setOriginalChartData(initial);
       setActiveFilters({});
+      
+      // Extract date filter from filters array
+      console.log("[DRILLDOWN] Available filters:", modal.drillDownData.filters);
+      const dateFilterOption = modal.drillDownData.filters?.find((f: FilterOption) => f.type === "date_range");
+      console.log("[DRILLDOWN] Date filter found:", dateFilterOption);
+      
+      if (dateFilterOption) {
+        setDateFilter(dateFilterOption);
+        // Extract current date range from default or bounds
+        const defaultRange = dateFilterOption.default;
+        if (defaultRange?.start && defaultRange?.end) {
+          console.log("[DRILLDOWN] Using default date range:", defaultRange);
+          setCurrentDateRange({ start: defaultRange.start, end: defaultRange.end });
+        } else if (dateFilterOption.bounds) {
+          console.log("[DRILLDOWN] Using bounds date range:", dateFilterOption.bounds);
+          setCurrentDateRange({ 
+            start: dateFilterOption.bounds.min || '', 
+            end: dateFilterOption.bounds.max || '' 
+          });
+        } else {
+          console.warn("[DRILLDOWN] Date filter found but no default or bounds");
+        }
+      } else {
+        console.log("[DRILLDOWN] No date filter found in filters array");
+        setDateFilter(null);
+        setCurrentDateRange(null);
+      }
     }
   }, [modal.isOpen]);
 
@@ -235,7 +289,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
       // Build queries with filters
       const queries = modal.drillDownData.charts.map(chart => {
             if (!chart.queryObject) return '';
-            const query = DynamicQueryBuilder.buildSQL(chart.queryObject, filters);
+            const query = DynamicQueryBuilder.buildSQL(chart.queryObject as any, filters);
             console.log('Generated query with filters:', query); 
             return query;
       });
@@ -286,10 +340,21 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
     }
   };
 
-  // Clear filters - restore original data
+  // Clear filters - restore original data and reset date range to default
   const handleClearFilters = () => {
     setChartData(originalChartData);
     setActiveFilters({});
+    if (dateFilter) {
+      const defaultRange = dateFilter.default;
+      if (defaultRange?.start && defaultRange?.end) {
+        setCurrentDateRange({ start: defaultRange.start, end: defaultRange.end });
+      } else if (dateFilter.bounds) {
+        setCurrentDateRange({
+          start: dateFilter.bounds.min || '',
+          end: dateFilter.bounds.max || ''
+        });
+      }
+    }
   };
 
   const handleRemoveFilterValue = async (filterField: string, valueToRemove: string) => {
@@ -315,9 +380,108 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
     await handleFilterChange(updatedFilters);
   };
 
+  // Handle date filter changes - update query_obj.where and re-run queries
+  const handleDateChange = async (start: string, end: string) => {
+    if (!dateFilter || !modal.drillDownData?.charts) return;
+    
+    setLoading(true);
+    setLoadError(null);
+    setCurrentDateRange({ start, end });
+    
+    try {
+      const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+      
+      // Update query_obj.where for all drilldown charts
+      const updatedCharts = modal.drillDownData.charts.map((chart: any) => {
+        const queryObj = JSON.parse(JSON.stringify(chart.query_obj || chart.queryObject));
+        
+        // Find and update the date filter condition in where array
+        if (queryObj.where && Array.isArray(queryObj.where)) {
+          queryObj.where = queryObj.where.map((w: any) => {
+            const condition = w.condition || '';
+            
+            // Check if this condition contains the date field
+            if (condition.includes(dateFilter.field) || condition.includes('BETWEEN DATE')) {
+              // Extract the date expression (everything before BETWEEN)
+              const betweenMatch = condition.match(/^(.+?)\s+BETWEEN\s+DATE/);
+              if (betweenMatch) {
+                const dateExpr = betweenMatch[1].trim();
+                // Wrap in TRY_CAST to ensure DATE type
+                const castedDateExpr = `TRY_CAST(${dateExpr} AS DATE)`;
+                return {
+                  condition: `${castedDateExpr} BETWEEN DATE '${start}' AND DATE '${end}'`
+                };
+              } else {
+                // Fallback: construct proper date expression
+                const fieldName = `"${dateFilter.field}"`;
+                const dateExpr = `COALESCE(TRY_CAST(${fieldName} AS DATE), TRY_STRPTIME(CAST(${fieldName} AS VARCHAR), '%Y-%m-%d'), TRY_STRPTIME(CAST(${fieldName} AS VARCHAR), '%m/%d/%Y'), TRY_STRPTIME(CAST(${fieldName} AS VARCHAR), '%d/%m/%Y'), TRY_STRPTIME(CAST(${fieldName} AS VARCHAR), '%Y/%m/%d'), TRY_STRPTIME(CAST(${fieldName} AS VARCHAR), '%m-%d-%Y'), TRY_STRPTIME(CAST(${fieldName} AS VARCHAR), '%d-%m-%Y'))`;
+                const castedDateExpr = `TRY_CAST(${dateExpr} AS DATE)`;
+                return {
+                  condition: `${castedDateExpr} BETWEEN DATE '${start}' AND DATE '${end}'`
+                };
+              }
+            }
+            return w;
+          });
+        }
+        
+        return {
+          ...chart,
+          query_obj: queryObj,
+          queryObject: queryObj
+        };
+      });
+      
+      // Build and execute queries
+      const queries = updatedCharts.map((chart: any) => {
+        if (!chart.queryObject) return '';
+        const query = DynamicQueryBuilder.buildSQL(chart.queryObject, activeFilters);
+        return query;
+      });
+      
+      const validQueries = queries.filter(q => q !== '');
+      if (validQueries.length === 0) {
+        setLoadError('No valid queries');
+        setLoading(false);
+        return;
+      }
+      
+      // Execute queries
+      const results = await executeBatchQueries(validQueries);
+      
+      // Update chart data
+      const newChartData: Record<number, any[]> = {};
+      let validQueryIndex = 0;
+      
+      queries.forEach((query: string, idx: number) => {
+        if (query !== '') {
+          const data = results[validQueryIndex] || [];
+          const total = data.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
+          
+          newChartData[idx] = data.map((item: any) => ({
+            name: item.name,
+            value: item.value || 0,
+            percentage: total > 0 ? parseFloat(((item.value / total) * 100).toFixed(1)) : 0
+          }));
+          validQueryIndex++;
+        } else {
+          newChartData[idx] = [];
+        }
+      });
+      
+      setChartData(newChartData);
+      setLoading(false);
+      
+    } catch (error) {
+      console.error('Failed to update date filter:', error);
+      setLoadError('Failed to update date filter');
+      setLoading(false);
+    }
+  };
+
   if (!modal.isOpen || !modal.drillDownData) return null;
 
-  const { drillDownData } = modal;
+  const drillDownData = modal.drillDownData as NonNullable<typeof modal.drillDownData>;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -335,82 +499,105 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
         <div className="overflow-y-auto flex-1 px-6 py-6">
           <div className="space-y-6">
             
-            {/* Filters */}
-            {drillDownData.filters && drillDownData.filters.length > 0 && (
-              <FilterControls 
-                filters={drillDownData.filters} 
-                onFilterChange={handleFilterChange}
-                onClearFilters={handleClearFilters}
-                currentFilters={activeFilters}
-              />
-            )}
+            {/* Collapsible Filters section - open by default */}
+            <div className="border border-slate-200 rounded-lg bg-slate-50/50 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left font-semibold text-slate-700 hover:bg-slate-100/80 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-slate-600" />
+                  {filtersOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  Filters
+                </span>
+                {Object.keys(activeFilters).length > 0 && (
+                  <span className="text-sm font-normal text-slate-500">
+                    {Object.keys(activeFilters).length} active
+                  </span>
+                )}
+              </button>
+              {filtersOpen && (
+                <div className="px-4 pb-4 pt-1 space-y-4 border-t border-slate-200">
+                  {/* Single Filters section: date + other filters, ordered by drilldown relevance */}
+                  {orderedFilters.length > 0 && (
+                    <FilterControls
+                      filters={orderedFilters}
+                      onFilterChange={handleFilterChange}
+                      onClearFilters={handleClearFilters}
+                      currentFilters={activeFilters}
+                      dateRange={currentDateRange}
+                      onDateChange={dateFilter ? handleDateChange : undefined}
+                    />
+                  )}
 
-            {/* Active Filters Display */}
-            {Object.keys(activeFilters).length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-slate-700 flex items-center">
-                    Active Filters ({Object.keys(activeFilters).length})
-                  </h4>
-                  <button 
-                    onClick={handleClearFilters} 
-                    className="text-sm text-red-600 hover:text-red-800 font-medium"
-                  >
-                    Clear All
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {Object.entries(activeFilters).map(([field, filter]) => (
-                    <div key={field} className="flex items-start gap-2">
-                      <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
-                        {field}:
-                      </span>
-                      <div className="flex flex-wrap gap-2 flex-1">
-                        {/* Render individual badges based on operator type */}
-                        {filter.operator === 'IN' && Array.isArray(filter.value) ? (
-                          filter.value.map((val, idx) => (
-                            <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                              {val}
-                              <X 
-                                className="w-3 h-3 cursor-pointer hover:text-red-600" 
-                                onClick={() => handleRemoveFilterValue(field, val)}
-                              />
-                            </Badge>
-                          ))
-                        ) : filter.operator === 'BETWEEN' ? (
-                          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                            {filter.value.min} - {filter.value.max}
-                            <X 
-                              className="w-3 h-3 cursor-pointer hover:text-red-600" 
-                              onClick={() => handleRemoveFilterValue(field, '')}
-                            />
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                            {String(filter.value)}
-                            <X 
-                              className="w-3 h-3 cursor-pointer hover:text-red-600" 
-                              onClick={() => handleRemoveFilterValue(field, '')}
-                            />
-                          </Badge>
-                        )}
+                  {/* Active Filters Display */}
+                  {Object.keys(activeFilters).length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-slate-700 flex items-center">
+                          Active Filters ({Object.keys(activeFilters).length})
+                        </h4>
+                        <button 
+                          onClick={handleClearFilters} 
+                          className="text-sm text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Clear All
+                        </button>
                       </div>
-                      {/* Clear button for this specific filter */}
-                      <button
-                        onClick={async () => {
-                          const updatedFilters = { ...activeFilters };
-                          delete updatedFilters[field];
-                          await handleFilterChange(updatedFilters);
-                        }}
-                        className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
-                      >
-                        Clear
-                      </button>
+                      <div className="space-y-2">
+                        {Object.entries(activeFilters).map(([field, filter]) => (
+                          <div key={field} className="flex items-start gap-2">
+                            <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
+                              {field}:
+                            </span>
+                            <div className="flex flex-wrap gap-2 flex-1">
+                              {filter.operator === 'IN' && Array.isArray(filter.value) ? (
+                                filter.value.map((val: string, idx: number) => (
+                                  <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {val}
+                                    <X 
+                                      className="w-3 h-3 cursor-pointer hover:text-red-600" 
+                                      onClick={() => handleRemoveFilterValue(field, val)}
+                                    />
+                                  </Badge>
+                                ))
+                              ) : filter.operator === 'BETWEEN' ? (
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  {filter.value.min} - {filter.value.max}
+                                  <X 
+                                    className="w-3 h-3 cursor-pointer hover:text-red-600" 
+                                    onClick={() => handleRemoveFilterValue(field, '')}
+                                  />
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  {String(filter.value)}
+                                  <X 
+                                    className="w-3 h-3 cursor-pointer hover:text-red-600" 
+                                    onClick={() => handleRemoveFilterValue(field, '')}
+                                  />
+                                </Badge>
+                              )}
+                            </div>
+                            <button
+                              onClick={async () => {
+                                const updatedFilters = { ...activeFilters };
+                                delete updatedFilters[field];
+                                await handleFilterChange(updatedFilters);
+                              }}
+                              className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Loading */}
             {loading && (
@@ -452,7 +639,10 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
                       </h3>
                       {data.length > 0 ? (
                         <ResponsiveContainer width="100%" height={chart.height || 300}>
-                          {renderChart(data, chart)}
+                          {(() => {
+                            const content = renderChart(data, chart);
+                            return React.isValidElement(content) ? content : <div>No chart available</div>;
+                          })()}
                         </ResponsiveContainer>
                       ) : (
                         <div className="flex items-center justify-center h-64 text-slate-400">
