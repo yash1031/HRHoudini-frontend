@@ -812,7 +812,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ modal, onClose }
           <div className="space-y-6">
             
             {/* Collapsible Filters section - open by default */}
-            <div className="border border-slate-200 rounded-lg bg-slate-50/50 overflow-hidden">
+            <div className="border border-slate-200 rounded-lg bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => setFiltersOpen((prev) => !prev)}

@@ -543,7 +543,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
 
           {/* Main dashboard filters - same Filters section as drilldown modal */}
           {!chartsLoading && !chartsError && charts.length > 0 && mainFilters.length > 0 && (
-            <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50 overflow-hidden">
+            <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => setMainFiltersOpen((prev) => !prev)}

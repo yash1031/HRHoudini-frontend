@@ -199,8 +199,8 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
                 </div>
               </div>
 
-              {/* Options List */}
-              <div className="max-h-48 overflow-y-auto">
+              {/* Options List - scrollable, but not clipped by parent cards */}
+              <div className="max-h-72 overflow-y-auto">
                 <div className="p-1">
                   {(filter.options || []).map((option) => {
                     // const isSelected = (filterValues[filter.field] || []).includes(option);
