@@ -443,6 +443,8 @@ export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: 
             type,
             field,
             icon,
+            xLabel,
+            yLabel,
             data: dataWithPercentage, // Even if empty, return empty array
             colors: colors.slice(0, Math.max(data.length, 1)), // At least one color
             query_obj: query_obj, // Preserve query_obj for future updates
