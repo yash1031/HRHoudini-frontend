@@ -1,10 +1,11 @@
 "use client"
 
+import { Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { MailCheck, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export default function CheckEmailPage() {
+function CheckEmailContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -14,7 +15,7 @@ export default function CheckEmailPage() {
 
   const handleGoHome = () => {
     const target = email ? `/login?email=${encodeURIComponent(email)}` : "/login"
-    console.log("target in check-email page", target)   
+    console.log("target in check-email page", target)
     router.push(target)
   }
 
@@ -50,3 +51,10 @@ export default function CheckEmailPage() {
   )
 }
 
+export default function CheckEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckEmailContent />
+    </Suspense>
+  )
+}

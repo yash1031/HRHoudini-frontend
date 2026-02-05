@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { Suspense } from "react"
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,7 @@ import { setTokens } from "@/lib/auth/tokens";
 
 
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [email, setEmail] = useState<string>("")
   const [requestingToken, setRequestingToken] = useState<boolean>(false)
   const [creatingAccount, setCreatingAccount] = useState<boolean>(false)
@@ -811,5 +812,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
