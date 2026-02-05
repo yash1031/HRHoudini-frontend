@@ -171,7 +171,7 @@ function LoginPageContent() {
         console.log("Account created successfully:", createAccountData);
         setEmail(formData.companyEmail)
         setCreatingAccount(false)
-        router.push(`/check-email?email=${encodeURIComponent(formData.companyEmail)}`)
+        window.location.href = `/check-email?email=${encodeURIComponent(formData.companyEmail)}`
       } else {
         console.log("Error creating the account", createAccountData);
         // setIsLoading(false)
