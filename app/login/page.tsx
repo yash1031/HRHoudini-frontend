@@ -11,7 +11,7 @@ import { BarChart3, TrendingUp, Users, MessageCircle, CloudCog } from "lucide-re
 import { fetchAuthSession, signInWithRedirect} from 'aws-amplify/auth';
 import { useUserContext } from "@/contexts/user-context"
 import GoogleIcon from "@/public/google-icon"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { setTokens } from "@/lib/auth/tokens";
 
 
@@ -32,6 +32,8 @@ export default function LoginPage() {
   const [newsLetterSubscribed, setNewsLetterSubscribed] = useState<boolean>(false);
   const {updateUser} = useUserContext()
   const restrictAccountCreation= false
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
   useEffect(() => {
     const is_google_logged_in= localStorage.getItem("is-google-logged-in")==="true"?true: false;
@@ -41,6 +43,13 @@ export default function LoginPage() {
     }
     window.addEventListener('unload', () => {});
   }, [])
+
+  useEffect(() => {
+    const prefillEmail = searchParams.get("email")
+    if (prefillEmail) {
+      setEmail(prefillEmail)
+    }
+  }, [searchParams])
 
   const handleGoogleAuthComplete = async () => {
     // try {
@@ -160,10 +169,8 @@ export default function LoginPage() {
         // localStorage.setItem("user_id", createAccountData?.user?.user_id)
         console.log("Account created successfully:", createAccountData);
         setEmail(formData.companyEmail)
-        //Redirect to login or dashboard if needed
-        setIsSignup(false)
         setCreatingAccount(false)
-        // setIsLoading(false)
+        router.push(`/check-email?email=${encodeURIComponent(formData.companyEmail)}`)
       } else {
         console.log("Error creating the account", createAccountData);
         // setIsLoading(false)
@@ -522,9 +529,9 @@ export default function LoginPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 7.89a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
-                      <CardTitle className="text-2xl font-bold text-gray-900">Magic Link Login</CardTitle>
+                      <CardTitle className="text-2xl font-bold text-gray-900">Magic Code</CardTitle>
                       <CardDescription className="text-gray-600">
-                        Enter the 6-digit verification token from your email
+                        Enter the 6-digit verification code from your email
                         {/* Enter the 10-digit verification code from your email (format: XXX-XXX-XXXX) */}
                       </CardDescription>
                     </CardHeader>
@@ -616,7 +623,7 @@ export default function LoginPage() {
                             </div>
                             <div className="ml-2">
                               <p className="text-sm text-green-700">
-                                Please check your inbox. You would have receive a sign-in token. 
+                                Please check your inbox. You would have receive a sign-in code. 
                               </p>
                             </div>
                           </div>
