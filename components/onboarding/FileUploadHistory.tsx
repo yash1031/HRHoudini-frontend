@@ -78,11 +78,47 @@ interface FileUploadHistoryProps {
   fileUploadHistoryData: any;
 }
 
+// Helper to combine drilldown filters from charts into a single filters array,
+// similar to what the backend returns during initial upload.
+const extractFiltersFromCharts = (chartsQueries: any[]): any[] => {
+  if (!Array.isArray(chartsQueries)) return [];
+
+  const combined: any[] = [];
+  const seen = new Set<string>();
+
+  chartsQueries.forEach((chart: any) => {
+    if (!chart || typeof chart !== "object") return;
+    const drilldowns = chart.drilldowns || {};
+    const filters = drilldowns.filters || [];
+    if (!Array.isArray(filters)) return;
+
+    filters.forEach((f: any) => {
+      if (!f || typeof f !== "object") return;
+      const key = `${f.field || ""}::${f.type || ""}::${f.label || ""}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      combined.push(f);
+    });
+  });
+
+  return combined;
+};
+
 const FileUploadHistory = ({ onClose, isLoading, fileUploadHistoryData }: FileUploadHistoryProps) => {
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   // const [isLoading, setIsLoading] = useState(true);
   const router = useRouter()
-  const { setCardsState, setChartsState, setDrilldownsState, setMetadata, setMessages, setRecommendedQuestions} = useDashboard();
+  const { 
+    setCardsState, 
+    setChartsState, 
+    setDrilldownsState, 
+    setMetadata, 
+    setMessages, 
+    setRecommendedQuestions,
+    setFilters,
+    setDateFilter,
+    setCurrentDateRange
+  } = useDashboard();
   // Add state for delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -216,7 +252,16 @@ const FileUploadHistory = ({ onClose, isLoading, fileUploadHistoryData }: FileUp
     setEditValue('');
   };
 
-  const handleTileClick = (id: string, name: string, session_id: string, cardsQueries: any, chartsQueries: any, parquetUrl: string, aiSuggestedQuestions: string[], rowCount: number) => {
+  const handleTileClick = (
+    id: string, 
+    name: string, 
+    session_id: string, 
+    cardsQueries: any, 
+    chartsQueries: any, 
+    parquetUrl: string, 
+    aiSuggestedQuestions: string[], 
+    rowCount: number
+  ) => {
     if (editingId) return;
     // Navigate to dashboard-upload-only with specified parameters
     const params = new URLSearchParams({
@@ -250,7 +295,30 @@ const FileUploadHistory = ({ onClose, isLoading, fileUploadHistoryData }: FileUp
     console.log("Parquet URL Received on clicking side panel", parquetUrl)
     console.log("Sample_questions Received on clicking side panel", aiSuggestedQuestions)
 
-    //Setting Cards State
+    // Derive filters for this historical session from stored charts/drilldowns
+    const combinedFilters = extractFiltersFromCharts(chartsQueries || []);
+    setFilters(combinedFilters);
+
+    // Pick a date_range filter (if any) and hydrate currentDateRange
+    const dateFilterOption = combinedFilters.find((f: any) => f?.type === "date_range") || null;
+    setDateFilter(dateFilterOption || null);
+    if (dateFilterOption) {
+      const defaultRange = dateFilterOption.default;
+      if (defaultRange?.start && defaultRange?.end) {
+        setCurrentDateRange({ start: defaultRange.start, end: defaultRange.end });
+      } else if (dateFilterOption.bounds) {
+        setCurrentDateRange({
+          start: dateFilterOption.bounds.min || "",
+          end: dateFilterOption.bounds.max || ""
+        });
+      } else {
+        setCurrentDateRange(null);
+      }
+    } else {
+      setCurrentDateRange(null);
+    }
+
+    // Setting Cards State
     if(cardsQueries && cardsQueries.length>0){
       console.log("Starting to convert queries for KPI Cards, cardsQueries received", cardsQueries)
       setCardsState(prev => ({ ...prev, loading: true, error: null }));                  

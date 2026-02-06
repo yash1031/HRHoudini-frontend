@@ -115,7 +115,25 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
           value: finalValue
         };
     });
-    
+
+    // If a date_range filter is present and we have an active dateRange,
+    // also include it in the queryFilters so main charts can use it.
+    if (dateRange?.start && dateRange?.end) {
+      const dateFilterOption = filters.find(f => f.type === 'date_range');
+      if (dateFilterOption?.field) {
+        // Use BETWEEN with raw DATE literals so DuckDB parses correctly.
+        // DynamicQueryBuilder will emit:
+        //   <field> BETWEEN DATE 'start' AND DATE 'end'
+        queryFilters[dateFilterOption.field] = {
+          operator: 'BETWEEN',
+          value: {
+            min: `DATE '${dateRange.start}'`,
+            max: `DATE '${dateRange.end}'`,
+          }
+        };
+      }
+    }
+
     console.log('Applying filters:', queryFilters);
     onFilterChange(queryFilters);
 

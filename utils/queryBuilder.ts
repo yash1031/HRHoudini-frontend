@@ -55,10 +55,16 @@ export class DynamicQueryBuilder {
     const parquetUrl = queryObj.from.source;
     const replacePlaceholder = (text: string) => text?.replace(/\{\{?PARQUET_SOURCE\}\}?/g, `read_parquet('${parquetUrl}')`) || '';
     
-    // Detect numeric fields from BETWEEN filters
+    // Detect numeric fields from BETWEEN filters **only when the BETWEEN bounds are numeric**.
+    // This avoids incorrectly treating DATE BETWEEN bounds as numeric (which caused INTEGER vs DATE errors).
     const allNumericFields = [...new Set([
-      ...numericFields, 
-      ...Object.keys(filterValues).filter(f => filterValues[f]?.operator === 'BETWEEN')
+      ...numericFields,
+      ...Object.keys(filterValues).filter(f => {
+        const fv = filterValues[f];
+        return fv?.operator === 'BETWEEN'
+          && typeof fv.value?.min === 'number'
+          && typeof fv.value?.max === 'number';
+      })
     ])];
     
     const castField = (field: string) => allNumericFields.includes(field) ? `CAST("${field}" AS INTEGER)` : `"${field}"`;
@@ -98,7 +104,24 @@ export class DynamicQueryBuilder {
       const { operator, value } = filter;
       
       if (operator === 'BETWEEN' && value.min != null && value.max != null) {
-        whereConditions.push(`${castField(field)} BETWEEN ${value.min} AND ${value.max}`);
+        // Special handling:
+        // - If bounds are DATE literals (e.g. "DATE '2024-01-01'"), treat the field as DATE
+        //   and wrap with TRY_CAST(... AS DATE) to avoid INTEGER/DATE mismatches.
+        // - If bounds are numeric, treat the field as numeric and cast to INTEGER.
+        const isDateLiteral =
+          typeof value.min === 'string' &&
+          value.min.trim().toUpperCase().startsWith('DATE ');
+
+        if (isDateLiteral) {
+          const dateFieldExpr = `TRY_CAST("${field}" AS DATE)`;
+          whereConditions.push(`${dateFieldExpr} BETWEEN ${value.min} AND ${value.max}`);
+        } else if (typeof value.min === 'number' && typeof value.max === 'number') {
+          const numericFieldExpr = `CAST("${field}" AS INTEGER)`;
+          whereConditions.push(`${numericFieldExpr} BETWEEN ${value.min} AND ${value.max}`);
+        } else {
+          // Fallback: no special casting, rely on DuckDB implicit casts
+          whereConditions.push(`"${field}" BETWEEN ${value.min} AND ${value.max}`);
+        }
       } else if (operator === 'IN' && Array.isArray(value) && value.length) {
         const vals = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
         whereConditions.push(`"${field}" IN (${vals})`);
