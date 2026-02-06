@@ -364,6 +364,16 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
   const hasCards = kpiCards.length > 0;
   const isDashboardReady = !cardsLoading && !chartsLoading && (kpiCards.length > 0 || charts.length > 0);
 
+  // Keep only ONE date_range filter (the primary Date Range) in the main filters UI
+  const dateFilters = (mainFilters || []).filter(f => f.type === "date_range");
+  const primaryDateFilterOption = dateFilters[0] || null;
+  const nonDateFilters = (mainFilters || []).filter(f => f.type !== "date_range");
+
+  const visibleMainFilters = primaryDateFilterOption
+    ? [primaryDateFilterOption, ...nonDateFilters]
+    : nonDateFilters;
+
+
   return (
     <>
       <SkeletonStyles />
@@ -563,7 +573,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
               {mainFiltersOpen && (
                 <div className="px-4 pb-4 pt-1 space-y-4 border-t border-slate-200">
                   <FilterControls
-                    filters={mainFilters}
+                    filters={visibleMainFilters}
                     onFilterChange={handleMainFilterChange}
                     onClearFilters={handleClearMainFilters}
                     currentFilters={mainFiltersActive}
