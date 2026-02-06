@@ -16,6 +16,8 @@ import { apiFetch } from "@/lib/api/client";
 import { closeWebSocket } from '@/lib/ws';
 import { DashboardToasts, ToastStyles } from "@/components/dashboard/StatusToast";
 import type { ConfigurableDashboardProps } from "@/types/dashboard";
+import type { FilterState } from "@/types/dashboard";
+import { runMainChartsWithFilters } from "@/utils/parquetLoader";
 
 /**
  * Main Dashboard Page Component
@@ -34,7 +36,10 @@ export default function DashboardPage() {
     setDrilldownsState,
     metadata,
     setMetadata,
-    // setDashboard_data
+    filters: mainFilters,
+    dateFilter: mainDateFilter,
+    currentDateRange,
+    setCurrentDateRange,
   } = useDashboard();
 
   // Local state
@@ -160,6 +165,8 @@ export default function DashboardPage() {
       id: chart.id,
       title: chart.title,
       icon: chart.icon,
+      xLabel: chart.xLabel,
+      yLabel: chart.yLabel,
       type: chart.type === 'horizontalBar' ? 'bar' : chart.type,
       color: chart.colors?.[0] || '#3b82f6',
       colors: chart.colors,
@@ -191,6 +198,20 @@ export default function DashboardPage() {
   // ============================================
   // CHAT HEIGHT CALCULATION
   // ============================================
+
+  // Main dashboard filters: re-run main chart queries when user changes filters
+  const handleMainFilterChange = async (filterState: FilterState) => {
+    const charts = chartsState.data;
+    if (!charts?.length) return;
+    const parquetUrl = localStorage.getItem("presigned-parquet-url") || "";
+    if (!parquetUrl) return;
+    try {
+      const updatedCharts = await runMainChartsWithFilters(charts, filterState, parquetUrl);
+      setChartsState((prev) => ({ ...prev, data: updatedCharts }));
+    } catch (err) {
+      console.error("Failed to apply main dashboard filters:", err);
+    }
+  };
 
   const calculateChatHeight = () => {
     if (kpiGridRef.current) {
@@ -228,6 +249,8 @@ export default function DashboardPage() {
     setChartsState(prev => ({ ...prev, error: null }));
   };
 
+  // Date filter is only in drilldown modal; main dashboard shows full dataset (no date handler here).
+
   // ============================================
   // RENDER
   // ============================================
@@ -259,6 +282,8 @@ export default function DashboardPage() {
             onDismissChartsError={handleDismissChartsError}
           />
 
+          {/* Date filter UI only in drilldown modal; main dashboard shows full dataset */}
+
           {/* Dashboard with granular states */}
           <div ref={kpiGridRef}>
             <Generated_Dashboard 
@@ -268,6 +293,11 @@ export default function DashboardPage() {
               chartsLoading={chartsState.loading}
               chartsError={chartsState.error}
               drilldownsState={drilldownsState}
+              mainFilters={mainFilters}
+              mainDateFilter={mainDateFilter}
+              mainDateRange={currentDateRange}
+              onMainDateRangeChange={setCurrentDateRange}
+              onMainFilterChange={handleMainFilterChange}
             />
           </div>
 

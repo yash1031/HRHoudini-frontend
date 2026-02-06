@@ -6,17 +6,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain } from 'lucide-react';
+import { Sparkles, CheckCircle, FileText, Bot, Zap, Brain, Download, Loader2, AlertCircle, ChevronDown, ChevronRight, X, Filter } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig } from '@/types/dashboard';
+import type { ConfigurableDashboardProps, ModalState, KPICard, ChartConfig, FilterOption, FilterState } from '@/types/dashboard';
 import { KPICards } from "@/components/dashboard/KPICards";
 import { ChartGrid } from "@/components/dashboard/ChartGrid";
 import { DrillDownModal } from "@/components/dashboard/DrillDownModal";
 import { HTMLReportModal } from "@/components/dashboard/HTMLReportModal";
+import { PrintableDashboard } from "@/components/dashboard/PrintableDashboard";
+import { PrintStyles } from "@/components/dashboard/PrintStyles";
+import { FilterControls } from "@/components/dashboard/FilterControls";
 import { apiFetch } from '@/lib/api/client';
 import { CardsGridSkeleton, ChartsGridSkeleton, SkeletonStyles } from "@/components/dashboard/Skeletons";
 import { CardsError, ChartsError, SectionError, CompleteFailure } from "@/components/dashboard/ErrorStates";
 import { addListener, removeListener } from '@/lib/ws';
+import { generateComprehensivePDF } from '@/utils/pdfGenerator';
 
 interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   // Section states
@@ -25,6 +29,12 @@ interface GeneratedDashboardProps extends ConfigurableDashboardProps {
   chartsLoading?: boolean;
   chartsError?: string | null;
   drilldownsState?: Record<string, { loading: boolean; error: boolean }>;
+  // Main dashboard filters (from kpi.main.ready)
+  mainFilters?: FilterOption[];
+  mainDateFilter?: FilterOption | null;
+  mainDateRange?: { start: string; end: string } | null;
+  onMainDateRangeChange?: (range: { start: string; end: string } | null) => void;
+  onMainFilterChange?: (filters: FilterState) => void;
 }
 
 /**
@@ -41,7 +51,12 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
   cardsError = null,
   chartsLoading = false,
   chartsError = null,
-  drilldownsState = {}
+  drilldownsState = {},
+  mainFilters = [],
+  mainDateFilter = null,
+  mainDateRange = null,
+  onMainDateRangeChange,
+  onMainFilterChange,
 }) => {
   // Modal state for drilldown
   const [modal, setModal] = useState<ModalState>({
@@ -69,6 +84,25 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     error: null as string | null
   });
 
+  // PDF generation states
+  const [showPrintable, setShowPrintable] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState('');
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  // Main dashboard filter state (for FilterControls display)
+  const [mainFiltersOpen, setMainFiltersOpen] = useState(true);
+  const [mainFiltersActive, setMainFiltersActive] = useState<FilterState>({});
+
+  const handleMainFilterChange = (filters: FilterState) => {
+    setMainFiltersActive(filters);
+    onMainFilterChange?.(filters);
+  };
+
+  const handleClearMainFilters = () => {
+    setMainFiltersActive({});
+    onMainFilterChange?.({});
+  };
 
   /**
    * Handle KPI card click - open drilldown modal
@@ -269,7 +303,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     }
   };
 
-  // /**
+  // /** 
   //  * Close HTML report modal
   //  */
   const closeHtmlReportModal = (): void => {
@@ -283,9 +317,52 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
     });
   };
 
+  /**
+   * Handle PDF generation with progress tracking
+   */
+  const handleGeneratePDF = async (): Promise<void> => {
+    setPdfGenerating(true);
+    setPdfError(null);
+    setPdfProgress('Preparing dashboard for export...');
+
+    try {
+      // Show printable version
+      setShowPrintable(true);
+      
+      // Wait for render to complete (increased timeout for complex dashboards)
+      setPdfProgress('Rendering all charts and data...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Generate PDF
+      setPdfProgress('Generating PDF document...');
+      await generateComprehensivePDF({
+        filename: `${filename}_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        scale: 2,
+        chartQty: charts.length
+      });
+      
+      setPdfProgress('PDF generated successfully!');
+      
+      // Hide printable version
+      setTimeout(() => {
+        setShowPrintable(false);
+        setPdfGenerating(false);
+        setPdfProgress('');
+      }, 1000);
+      
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      setPdfError(error instanceof Error ? error.message : 'Failed to generate PDF');
+      setShowPrintable(false);
+      setPdfGenerating(false);
+      setPdfProgress('');
+    }
+  };
+
   // Extract summary data from first few cards (only if cards loaded)
   // const [card1, card2, card3] = kpiCards;
   const hasCards = kpiCards.length > 0;
+  const isDashboardReady = !cardsLoading && !chartsLoading && (kpiCards.length > 0 || charts.length > 0);
 
   return (
     <>
@@ -351,6 +428,25 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                 
                 {/* Status Badge */}
                 <div className="flex items-center space-x-3">
+                  {/* Generate PDF Button */}
+                  <button
+                    onClick={handleGeneratePDF}
+                    disabled={pdfGenerating || !isDashboardReady}
+                    className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-400 text-white px-4 py-2 rounded-lg transition-colors shadow-lg disabled:cursor-not-allowed"
+                  >
+                    {pdfGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="font-medium">Generating PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        <span className="font-medium">Download PDF Report</span>
+                      </>
+                    )}
+                  </button>
+
                   <div className="bg-white/10 rounded-lg px-4 py-2">
                     <div className="flex items-center space-x-2 text-white">
                       <CheckCircle className="h-4 w-4" />
@@ -402,16 +498,39 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
             </div>
           </div>
 
-          {/* Partial Success Messages or complete failure*/}
-          {/* {!cardsLoading && cardsError && !chartsLoading && !chartsError && charts.length > 0 && (
-            <SectionError message="KPI cards could not be generated, but charts are available and you can intercat with chatbot below" />
+          {/* PDF Progress Message */}
+          {pdfGenerating && pdfProgress && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                <div>
+                  <p className="text-blue-900 font-medium">{pdfProgress}</p>
+                  <p className="text-blue-700 text-sm mt-1">
+                    Please wait while we prepare your comprehensive report...
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
-          {!chartsLoading && chartsError && !cardsLoading && !cardsError && kpiCards.length > 0 && (
-            <SectionError message="Some charts could not be generated, but KPI cards are available and you can intercat with chatbot below" />
+
+          {/* PDF Error Message */}
+          {pdfError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                <div>
+                  <p className="text-red-900 font-medium">PDF Generation Error</p>
+                  <p className="text-red-700 text-sm mt-1">{pdfError}</p>
+                  <button
+                    onClick={() => setPdfError(null)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium mt-2 underline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
-          {!cardsLoading && !chartsLoading && cardsError && chartsError && (
-            <CompleteFailure message="Error generating the dashboard but you can still interact with chatbot below" />
-          )} */}
 
           {/* KPI Cards Section */}
           <div className={hasCards ? 'mb-6' : ''}>
@@ -421,6 +540,128 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
               <KPICards cards={kpiCards} onCardClick={handleKPIClick} />
             )}
           </div>
+
+          {/* Main dashboard filters - same Filters section as drilldown modal */}
+          {!chartsLoading && !chartsError && charts.length > 0 && mainFilters.length > 0 && (
+            <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setMainFiltersOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left font-semibold text-slate-700 hover:bg-slate-100/80 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-slate-600" />
+                  {mainFiltersOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  Filters
+                </span>
+                {Object.keys(mainFiltersActive).length > 0 && (
+                  <span className="text-sm font-normal text-slate-500">
+                    {Object.keys(mainFiltersActive).length} active
+                  </span>
+                )}
+              </button>
+              {mainFiltersOpen && (
+                <div className="px-4 pb-4 pt-1 space-y-4 border-t border-slate-200">
+                  <FilterControls
+                    filters={mainFilters}
+                    onFilterChange={handleMainFilterChange}
+                    onClearFilters={handleClearMainFilters}
+                    currentFilters={mainFiltersActive}
+                    dateRange={mainDateRange ?? undefined}
+                    // For main dashboard, updating date range should ONLY update state;
+                    // actual chart re-query (if any) should happen when Apply is clicked.
+                    onDateChange={
+                      mainDateFilter && onMainDateRangeChange
+                        ? (start, end) => onMainDateRangeChange({ start, end })
+                        : undefined
+                    }
+                    // If you later want main charts to re-query based on date,
+                    // pass a handler here that uses mainDateRange + filters.
+                    onApplyDateRange={undefined}
+                  />
+
+                  {/* Active Filters - same as drilldown: Clear All + per-filter Clear */}
+                  {Object.keys(mainFiltersActive).length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-slate-700 flex items-center">
+                          Active Filters ({Object.keys(mainFiltersActive).length})
+                        </h4>
+                        <button
+                          onClick={handleClearMainFilters}
+                          className="text-sm text-red-600 hover:text-red-800 font-medium"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {Object.entries(mainFiltersActive).map(([field, filter]) => (
+                          <div key={field} className="flex items-start gap-2">
+                            <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
+                              {field.replace(/_/g, ' ')}:
+                            </span>
+                            <div className="flex flex-wrap gap-2 flex-1">
+                              {filter?.operator === 'IN' && Array.isArray(filter?.value) ? (
+                                filter.value.map((val: string, idx: number) => (
+                                  <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {val}
+                                    <X
+                                      className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                      onClick={() => {
+                                        const updated = { ...mainFiltersActive };
+                                        const arr = (updated[field]?.value || []).filter((v: string) => v !== val);
+                                        if (arr.length === 0) delete updated[field];
+                                        else updated[field] = { ...updated[field], value: arr };
+                                        handleMainFilterChange(updated);
+                                      }}
+                                    />
+                                  </Badge>
+                                ))
+                              ) : filter?.operator === 'BETWEEN' && filter?.value ? (
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  {filter.value.min} - {filter.value.max}
+                                  <X
+                                    className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                    onClick={() => {
+                                      const updated = { ...mainFiltersActive };
+                                      delete updated[field];
+                                      handleMainFilterChange(updated);
+                                    }}
+                                  />
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  {String(filter?.value ?? '')}
+                                  <X
+                                    className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                    onClick={() => {
+                                      const updated = { ...mainFiltersActive };
+                                      delete updated[field];
+                                      handleMainFilterChange(updated);
+                                    }}
+                                  />
+                                </Badge>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => {
+                                const updated = { ...mainFiltersActive };
+                                delete updated[field];
+                                handleMainFilterChange(updated);
+                              }}
+                              className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Charts Section */}
           <div className={charts.length > 0 ? 'mt-6' : ''}>
@@ -449,6 +690,16 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
           isLoading={htmlReportModal.isLoading}
           error={htmlReportModal.error}
         />
+
+        {/* Hidden Printable Dashboard for PDF Generation */}
+        {showPrintable && (
+          <PrintableDashboard
+            kpiCards={kpiCards}
+            charts={charts}
+            filename={filename|| ""}
+            rowCount={Number(rowCount)}
+          />
+        )}
       </div>
     </>
   );

@@ -1,5 +1,6 @@
 //utils/parquetLoader.ts
 import * as duckdb from '@duckdb/duckdb-wasm';
+import { DynamicQueryBuilder } from '@/utils/queryBuilder';
 
 let db: duckdb.AsyncDuckDB | null = null;
 
@@ -91,6 +92,74 @@ export async function executeBatchQueries(queries: string[]): Promise<any[][]> {
     console.error('Batch execution failed:', error);
     throw error;
   }
+}
+
+/**
+ * Run main chart queries with applied filters and return charts with updated data.
+ * Used when the user changes filters on the main dashboard.
+ */
+export async function runMainChartsWithFilters(
+  charts: any[],
+  filterState: Record<string, any>,
+  parquetUrl: string
+): Promise<any[]> {
+  const chartsWithQueryObj = charts.filter((c) => c.query_obj || c.queryObject);
+  if (chartsWithQueryObj.length === 0) return charts;
+
+  const queries: string[] = [];
+  const chartIndices: number[] = []; // index into charts for each query
+  // Normalize orderBy like parquetLoader/buildQueryFromQueryObj so we never get "[object Object]"
+  const normalizeOrderBy = (orderBy: any[] | undefined): Array<{ position?: number; column?: string; alias?: string; direction: string }> | undefined => {
+    if (!orderBy?.length) return orderBy;
+    return orderBy.map((o: any) => {
+      if (typeof o === 'string' || typeof o === 'number') return o as any;
+      if (typeof o === 'object' && o != null) {
+        return {
+          position: o.position ?? o.Position,
+          column: o.column ?? o.Column,
+          alias: o.alias ?? o.Alias,
+          direction: (o.direction ?? o.Direction ?? 'ASC').toString(),
+        };
+      }
+      return { position: 1, direction: 'ASC' };
+    });
+  };
+
+  for (let i = 0; i < charts.length; i++) {
+    const chart = charts[i];
+    const qo = chart.query_obj || chart.queryObject;
+    if (!qo) continue;
+    const cloned = JSON.parse(JSON.stringify(qo));
+    const queryObjWithUrl = {
+      ...cloned,
+      from: { type: 'parquet', source: parquetUrl },
+      orderBy: normalizeOrderBy(cloned.orderBy) ?? cloned.orderBy,
+    };
+    const sql = DynamicQueryBuilder.buildSQL(queryObjWithUrl, filterState);
+    queries.push(sql);
+    chartIndices.push(i);
+  }
+
+  const results = await executeBatchQueries(queries);
+
+  const formatChartData = (data: any[]) => {
+    const total = data.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
+    return data.map((item: any) => ({
+      name: item.name,
+      value: typeof item.value === 'number' ? parseFloat(item.value.toFixed(2)) : (item.value || 0),
+      percentage: total > 0 ? parseFloat(((item.value || 0) / total * 100).toFixed(1)) : 0,
+    }));
+  };
+
+  const updatedCharts = [...charts];
+  chartIndices.forEach((chartIdx, resultIdx) => {
+    const data = results[resultIdx] || [];
+    updatedCharts[chartIdx] = {
+      ...updatedCharts[chartIdx],
+      data: formatChartData(data),
+    };
+  });
+  return updatedCharts;
 }
 
 /**
@@ -226,133 +295,208 @@ export async function generateChartsFromParquet(chartsQueries: any, parquetUrl: 
 
     // const config = typeof configJson === 'string' ? JSON.parse(configJson) : configJson;
 
-    const results = await Promise.all(
+    /**
+     * FIX: Some Bedrock-generated tenure expressions use invalid nesting:
+     *   ROUND(AVG(DATEDIFF('day', ... , ...) / 365.25, 2)
+     * DuckDB expects:
+     *   ROUND(AVG(DATEDIFF('day', ... , ...)) / 365.25, 2)
+     *
+     * This helper rewrites JUST that specific pattern so the parser
+     * sees balanced function calls and the query executes correctly.
+     */
+    const fixAverageTenureExpression = (expr: string): string => {
+      if (!expr) return expr;
+
+      // Pattern: ROUND(AVG(DATEDIFF('day', <args>) / 365.25, 2)
+      const tenureRegex = /ROUND\(AVG\(DATEDIFF\('day',([\s\S]*?)\)\s*\/\s*365\.25,\s*2\)/;
+
+      if (tenureRegex.test(expr)) {
+        // Rewrite to: ROUND(AVG(DATEDIFF('day', <args>)) / 365.25, 2)
+        return expr.replace(
+          tenureRegex,
+          "ROUND(AVG(DATEDIFF('day',$1)) / 365.25, 2"
+        );
+      }
+
+      return expr;
+    };
+
+    // CRITICAL FIX: Use Promise.allSettled instead of Promise.all to handle errors gracefully
+    // This ensures ALL charts are returned even if some queries fail or return empty data
+    const results = await Promise.allSettled(
       chartsQueries.map(async (chart: any) => {
-        const { query_obj, id, title, icon, type, field } = chart;
+        const { query_obj, id, title, icon, type, field, xLabel, yLabel, semantic_id } = chart;
 
-        const selectClause = query_obj.select.columns
-          .map((c: any) => {
-            const expression = c.expression.replace(/{PARQUET_SOURCE}/g, `read_parquet('${parquetUrl}')`);
-            return `${expression} AS ${c.alias}`;
-          })
-          .join(", ");
+        try {
+          const selectClause = query_obj.select.columns
+            .map((c: any) => {
+              const rawExpression = c.expression.replace(/{PARQUET_SOURCE}/g, `read_parquet('${parquetUrl}')`);
+              const fixedExpression = fixAverageTenureExpression(rawExpression);
+              return `${fixedExpression} AS ${c.alias}`;
+            })
+            .join(", ");
 
-        let whereClause = "";
-        if (query_obj.where && query_obj.where.length) {
-          const firstWhere = query_obj.where[0];
-          
-          if (typeof firstWhere === 'string') {
-            whereClause = "WHERE " + query_obj.where.join(" AND ");
-          } else if (firstWhere.condition) {
-            whereClause = "WHERE " + query_obj.where.map((w: any) => w.condition).join(" AND ");
-          } else if (firstWhere.column) {
-            whereClause = "WHERE " + query_obj.where
-              .map((w: any) => {
-                if (w.operator === "IS" && w.value === "NULL") {
-                  return `${w.column} IS NULL`;
-                }
-                if (w.operator === "IS NOT" && w.value === "NULL") {
-                  return `${w.column} IS NOT NULL`;
-                }
-                return `${w.column} ${w.operator} '${w.value}'`;
-              })
-              .join(" AND ");
-          }
-        }
-
-        const groupByClause = query_obj.groupBy && query_obj.groupBy.length
-          ? "GROUP BY " + query_obj.groupBy
-              .map((g: any) => {
-                if (typeof g === 'number') return g;
-                if (typeof g === 'string') return g;
-                return g.expression || g.column || g.position;
-              })
-              .join(", ")
-          : "";
-
-        const orderByClause = query_obj.orderBy && query_obj.orderBy.length
-          ? "ORDER BY " + query_obj.orderBy
-              .map((o: any) => {
-                if (typeof o === 'string') return o;
-                if (typeof o === 'number') return o;
-                
-                const col = o.position || o.column || o.alias;
-                const dir = o.direction || 'ASC';
-                return `${col} ${dir}`;
-              })
-              .join(", ")
-          : "";
-
-        const limitClause = query_obj.parameters?.limit 
-          ? `LIMIT ${query_obj.parameters.limit}` 
-          : "";
-
-        const query = `
-          SELECT ${selectClause}
-          FROM read_parquet('${parquetUrl}')
-          ${whereClause}
-          ${groupByClause}
-          ${orderByClause}
-          ${limitClause}
-        `.trim();
-
-        console.log(`Executing chart query for ${title}:`, query);
-
-        const result = await conn.query(query);
-        const data = result.toArray().map((row) => {
-          const obj = row.toJSON();
-          Object.keys(obj).forEach(key => {
-            if (typeof obj[key] === 'bigint') {
-              obj[key] = Number(obj[key]);
+          let whereClause = "";
+          if (query_obj.where && query_obj.where.length) {
+            const firstWhere = query_obj.where[0];
+            
+            if (typeof firstWhere === 'string') {
+              whereClause = "WHERE " + query_obj.where.join(" AND ");
+            } else if (firstWhere.condition) {
+              whereClause = "WHERE " + query_obj.where.map((w: any) => w.condition).join(" AND ");
+            } else if (firstWhere.column) {
+              whereClause = "WHERE " + query_obj.where
+                .map((w: any) => {
+                  if (w.operator === "IS" && w.value === "NULL") {
+                    return `${w.column} IS NULL`;
+                  }
+                  if (w.operator === "IS NOT" && w.value === "NULL") {
+                    return `${w.column} IS NOT NULL`;
+                  }
+                  return `${w.column} ${w.operator} '${w.value}'`;
+                })
+                .join(" AND ");
             }
-          });
-          return obj;
-        });
-
-        const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
-
-        const dataWithPercentage = data.map(item => {
-          let formattedName = item.name;
-          
-          // Handle timestamp conversion
-          if (typeof item.name === 'number' && item.name > 1000000000000) {
-            const date = new Date(item.name);
-            formattedName = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
-          } else if (typeof item.name === 'number') {
-            formattedName = item.name;
-          } else {
-            formattedName = String(item.name);
           }
-          
-          // ALWAYS round to 2 decimal places (fallback protection)
-          const roundedValue = typeof item.value === 'number' 
-            ? parseFloat(item.value.toFixed(2)) 
-            : 0;
-          
+
+          const groupByClause = query_obj.groupBy && query_obj.groupBy.length
+            ? "GROUP BY " + query_obj.groupBy
+                .map((g: any) => {
+                  if (typeof g === 'number') return g;
+                  if (typeof g === 'string') return g;
+                  return g.expression || g.column || g.position;
+                })
+                .join(", ")
+            : "";
+
+          const orderByClause = query_obj.orderBy && query_obj.orderBy.length
+            ? "ORDER BY " + query_obj.orderBy
+                .map((o: any) => {
+                  if (typeof o === 'string') return o;
+                  if (typeof o === 'number') return o;
+                  
+                  const col = o.position || o.column || o.alias;
+                  const dir = o.direction || 'ASC';
+                  return `${col} ${dir}`;
+                })
+                .join(", ")
+            : "";
+
+          const limitClause = query_obj.parameters?.limit 
+            ? `LIMIT ${query_obj.parameters.limit}` 
+            : "";
+
+          const query = `
+            SELECT ${selectClause}
+            FROM read_parquet('${parquetUrl}')
+            ${whereClause}
+            ${groupByClause}
+            ${orderByClause}
+            ${limitClause}
+          `.trim();
+
+          console.log(`Executing chart query for ${title}:`, query);
+
+          const result = await conn.query(query);
+          const data = result.toArray().map((row) => {
+            const obj = row.toJSON();
+            Object.keys(obj).forEach(key => {
+              if (typeof obj[key] === 'bigint') {
+                obj[key] = Number(obj[key]);
+              }
+            });
+            return obj;
+          });
+
+          const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
+
+          const dataWithPercentage = data.map(item => {
+            let formattedName = item.name;
+            
+            // Handle timestamp conversion
+            if (typeof item.name === 'number' && item.name > 1000000000000) {
+              const date = new Date(item.name);
+              formattedName = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+            } else if (typeof item.name === 'number') {
+              formattedName = item.name;
+            } else {
+              formattedName = String(item.name);
+            }
+            
+            // ALWAYS round to 2 decimal places (fallback protection)
+            const roundedValue = typeof item.value === 'number' 
+              ? parseFloat(item.value.toFixed(2)) 
+              : 0;
+            
+            return {
+              name: formattedName,
+              value: roundedValue,
+              percentage: total > 0 ? parseFloat(((roundedValue / total) * 100).toFixed(1)) : 0
+            };
+          });
+
+          const colors = ["#3b82f6", "#10b981", "#f43f5e", "#8b5cf6", "#22d3ee"];
+
           return {
-            name: formattedName,
-            value: roundedValue,
-            percentage: total > 0 ? parseFloat(((roundedValue / total) * 100).toFixed(1)) : 0
+            id: id || semantic_id,
+            title,
+            type,
+            field,
+            icon,
+            xLabel,
+            yLabel,
+            data: dataWithPercentage, // Even if empty, return empty array
+            colors: colors.slice(0, Math.max(data.length, 1)), // At least one color
+            query_obj: query_obj, // Preserve query_obj for future updates
+            semantic_id: semantic_id || id
           };
-        });
-
-        const colors = ["#3b82f6", "#10b981", "#f43f5e", "#8b5cf6", "#22d3ee"];
-
-        return {
-          id: id || chart.semantic_id,
-          title,
-          type,
-          field,
-          icon,
-          data: dataWithPercentage,
-          colors: colors.slice(0, data.length)
-        };
+        } catch (error) {
+          console.error(`Error generating chart ${title}:`, error);
+          // Return chart with empty data instead of failing
+          return {
+            id: id || semantic_id,
+            title,
+            type,
+            field,
+            icon,
+          xLabel,
+          yLabel,
+            data: [], // Empty data array
+            colors: ["#3b82f6"],
+            query_obj: query_obj,
+            semantic_id: semantic_id || id,
+            error: `No data available for selected date range`
+          };
+        }
       })
     );
 
+    // Extract successful results and handle failures
+    const successfulResults = results.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        // If a chart failed completely, return it with empty data
+        const chart = chartsQueries[index];
+        console.error(`Chart ${chart.title} failed:`, result.reason);
+        return {
+          id: chart.id || chart.semantic_id,
+          title: chart.title,
+          type: chart.type,
+          field: chart.field,
+          icon: chart.icon,
+          data: [],
+          colors: ["#3b82f6"],
+          query_obj: chart.query_obj,
+          semantic_id: chart.semantic_id || chart.id,
+          error: `Failed to load data: ${result.reason?.message || 'Unknown error'}`
+        };
+      }
+    });
+
     await conn.close();
-    console.log("Charts generated:", results);
-    return results;
+    console.log("Charts generated:", successfulResults);
+    return successfulResults;
 
   } catch (error) {
     console.error('Error generating charts:', error);
@@ -476,6 +620,8 @@ export async function generateDrilldownChartsData(
           type: chart.type,
           field: chart.field,
           icon: chart.icon,
+          xLabel: chart.xLabel,
+          yLabel: chart.yLabel,
           description: chart.description,
           data: dataWithPercentage,
           colors: ["#3b82f6", "#10b981", "#f43f5e", "#8b5cf6", "#22d3ee"],

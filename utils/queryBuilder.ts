@@ -133,13 +133,20 @@ export class DynamicQueryBuilder {
       parts.push(`GROUP BY ${queryObj.groupBy.map(resolveCol).join(', ')}`);
     }
 
-    // ORDER BY
+    // ORDER BY - must match parquetLoader (buildQueryFromQueryObj / generateChartsFromParquet)
+    // so main chart filters produce same SQL shape as drilldown and never get "[object Object]"
     if (queryObj.orderBy?.length) {
-      const orderParts = queryObj.orderBy.map(o => {
-        if (typeof o === 'object' && 'field' in o) {
-          return `${o.field || o.column || o.alias} ${o.direction || 'ASC'}`;
+      const orderParts = queryObj.orderBy.map((o: any) => {
+        if (typeof o === 'string') return o;
+        if (typeof o === 'number') return `${o} ASC`;
+        if (typeof o === 'object' && o !== null) {
+          const col = o.position ?? o.column ?? o.alias ?? o.field;
+          const dir = (o.direction ?? o.Direction ?? 'ASC').toString().toUpperCase();
+          if (col != null && col !== undefined) return `${col} ${dir}`;
+          // unexpected shape: avoid stringifying object
+          return '1 ASC';
         }
-        return resolveCol(o);
+        return typeof o === 'number' ? `${o} ASC` : '1 ASC';
       });
       parts.push(`ORDER BY ${orderParts.join(', ')}`);
     }

@@ -43,14 +43,38 @@ const getIcon = (iconName: string): React.ComponentType<any> => {
 };
 
 /**
+ * Light color palette for bar/line charts
+ * (single color per chart, different charts get different colors)
+ */
+const LIGHT_CHART_COLORS = [
+  '#3b82f6', // darker blue (was light blue)
+  '#10b981', // darker green (was light green)
+  '#f97316', // darker orange (was light orange)
+  '#8b5cf6', // darker purple (was light purple)
+  '#0ea5e9', // darker sky blue (was light sky)
+  '#ef4444', // darker red (was light red)
+  '#f59e0b', // darker amber (was light amber)
+  '#0284c7', // darker blue (was very light blue)
+  '#059669', // darker green (was very light green)
+  '#ec4899'  // darker pink (was light pink)
+];
+
+/**
+ * Deterministically get a light color for a chart so it stays
+ * consistent between renders and across dashboard / PDF views.
+ */
+const getChartColor = (): string => {
+  const idx= Math.floor(Math.random()*(LIGHT_CHART_COLORS.length));
+  return LIGHT_CHART_COLORS[idx];
+};
+
+/**
  * Generate unique colors for pie chart segments
  */
 const generatePieColors = (count: number): string[] => {
   const colors: string[] = [];
-  const step = 360 / count;
   for (let i = 0; i < count; i++) {
-    const hue = (step * i + Math.random() * 30) % 360;
-    colors.push(`hsl(${hue}, 70%, 75%)`);
+    colors.push(getChartColor());
   }
   return colors;
 };
@@ -62,7 +86,7 @@ const PieChartRenderer: React.FC<{ chartData: ChartDataItem[]; chartConfig: Char
 }) => {
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
     
-    // Process data to show top 10 + Others
+    // Process data to show top 5 + Others
     const processedChartData = React.useMemo(() => {
       const TOP_N = 5;
       
@@ -75,7 +99,7 @@ const PieChartRenderer: React.FC<{ chartData: ChartDataItem[]; chartConfig: Char
         return sortedData;
       }
       
-      // Take top 10
+      // Take top 5
       const topData = sortedData.slice(0, TOP_N);
       
       // Combine remaining into "Others"
@@ -226,6 +250,8 @@ const renderChart = (
   chartData: ChartDataItem[], 
   chartConfig: ChartConfig
 ): React.ReactNode => {
+
+  console.log("chartConfig for main charts", chartConfig);
   
   // PIE CHART
   if (chartConfig.type === 'pie') {
@@ -233,35 +259,68 @@ const renderChart = (
   }
 
   // LINE CHART
-
   if (chartConfig.type === 'line') {
     const dataPointCount = chartData.length;
     const shouldShowDots = dataPointCount <= 10;
-    const shouldSkipLabels = dataPointCount > 50; // Skip labels if more than 50 points
+    const maxXTicks = 12;
+    const shouldSkipLabels = dataPointCount > maxXTicks;
+
+    const xTickStyle: any = {
+      fill: '#64748b',
+      fontSize: 12
+    };
+
+    // Always incline category labels for line charts so
+    // appearance is consistent regardless of number of data points.
+    xTickStyle.angle = -50;
+    xTickStyle.textAnchor = 'end';
+
+    // Calculate maximum length of x-axis data point strings for proportional offset
+    const maxLabelLength = chartData.length > 0
+      ? Math.max(...chartData.map(item => {
+          const label = String(item[chartConfig.xDataKey || 'name'] || '');
+          return label.length;
+        }))
+      : 0;
+
+    // Calculate proportional offset: base offset + (maxLength * multiplier)
+    // Longer labels need more space, so offset becomes more negative
+    const xAxisLabelOffset = Math.min(-80, -80 - (maxLabelLength * 0.75));
+
+    const xLabelText = `${chartConfig.xLabel }`;
+    const yLabelText = `${chartConfig.yLabel }`;
+
+    const ticks = shouldSkipLabels
+      ? chartData
+          .map((_, idx) => idx)
+          .filter((_, idx) => {
+            const step = Math.ceil(dataPointCount / maxXTicks);
+            return idx === 0 || idx % step === 0 || idx === dataPointCount - 1;
+          })
+          .map(idx => chartData[idx][chartConfig.xDataKey || 'name'])
+      : undefined;
+
+    const lineColor = getChartColor();
     
     return (
       <LineChart 
         data={chartData}
-        margin={{ top: 20, right: 30, bottom: 20, left: 10 }}
+        margin={{ top: 20, right: 30, bottom: 130, left: 10 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
 
         {/* X-Axis with arrow indicator */}
         <XAxis 
           dataKey={chartConfig.xDataKey || 'name'} 
-          tick={{ fill: '#64748b', fontSize: 12 }}
+          tick={xTickStyle}
           tickLine={{ stroke: '#cbd5e1' }}
           axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
-          ticks={shouldSkipLabels ? chartData
-            .map((_, idx) => idx)
-            .filter((_, idx) => idx === 0 || idx % Math.ceil(dataPointCount / 10) === 0 || idx === dataPointCount - 1)
-            .map(idx => chartData[idx][chartConfig.xDataKey || 'name'])
-            : undefined}
+          ticks={ticks}
           label={{ 
-            value: `${chartConfig.xLabel || ''}${chartConfig.xUnit ? ` (${chartConfig.xUnit})` : ''}`,
+            value: xLabelText? xLabelText: "X-Axis-Label",
             position: 'insideBottom',
-            offset: -10,
-            style: { fill: '#475569', fontSize: 13, fontWeight: 600 }
+            offset: xAxisLabelOffset,
+            style: { fill: '#64748b', fontSize: 16 }
           }}
         />
 
@@ -271,11 +330,11 @@ const renderChart = (
           tickLine={{ stroke: '#cbd5e1' }}
           axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
           label={{ 
-            value: `${chartConfig.yLabel || ''}${chartConfig.yUnit ? ` (${chartConfig.yUnit})` : ''}`,
+            value: yLabelText? yLabelText: "Y-Axis-Label",
             angle: -90, 
             position: 'insideLeft',
-            offset: 5,
-            style: { fill: '#475569', fontSize: 13, fontWeight: 600, textAnchor: 'middle' }
+            offset: 15,
+            style: { fill: '#64748b', fontSize: 16, textAnchor: 'middle' }
           }}
         />
 
@@ -297,17 +356,17 @@ const renderChart = (
         <Line
           type="monotone"
           dataKey={chartConfig.yDataKey || 'value'}
-          stroke={chartConfig.color || '#f59e0b'}
+          stroke={lineColor}
           strokeWidth={shouldShowDots ? 2 : 2.5}
           dot={shouldShowDots ? { 
             r: 5, 
-            fill: chartConfig.color || '#f59e0b',
+            fill: lineColor,
             strokeWidth: 2,
             stroke: '#fff'
           } : false}
           activeDot={!shouldShowDots ? { 
             r: 6, 
-            fill: chartConfig.color || '#f59e0b',
+            fill: lineColor,
             stroke: '#fff',
             strokeWidth: 2
           } : { r: 7 }}
@@ -319,27 +378,128 @@ const renderChart = (
   // BAR CHART (default)
   const isHorizontal = chartConfig.layout === 'horizontal' || 
                        chartConfig.type === 'horizontalBar';
+
+  const dataPointCount = chartData.length;
+  const maxXTicks = 12;
+  const maxYTicks = 6;
+  const shouldSkipLabels = !isHorizontal && dataPointCount > maxXTicks;
+  const shouldSkipYLabels = isHorizontal && dataPointCount > maxYTicks;
+
+  const xTickStyle: any = {
+    fill: '#64748b',
+    fontSize: 12
+  };
+
+  // Always incline category labels for vertical bar charts so
+  // appearance is consistent regardless of number of data points.
+  if (!isHorizontal) {
+    xTickStyle.angle = -50;
+    xTickStyle.textAnchor = 'end';
+  }
+
+  // Calculate maximum length of x-axis data point strings for proportional offset
+  const maxLabelLength = chartData.length > 0
+    ? Math.max(...chartData.map(item => {
+        const label = String(item[chartConfig.xDataKey || 'name'] || '');
+        return label.length;
+      }))
+    : 0;
+
+  // Calculate proportional offset for vertical bar charts: base offset + (maxLength * multiplier)
+  // Longer labels need more space, so offset becomes more negative
+  const xAxisLabelOffset = !isHorizontal
+    ? Math.min(-80, -80 - (maxLabelLength * 0.75))
+    : -5;
+
+  // For horizontal bar charts, adjust Y-axis width proportionally to label length
+  const yAxisWidth = isHorizontal
+    ? Math.max(80, Math.min(150, 80 + (maxLabelLength * 4)))
+    : undefined;
+
+  // Adjust left margin for horizontal charts based on yAxisWidth
+  const leftMargin = isHorizontal 
+    ? Math.max(60, Math.min(120, 60 + (maxLabelLength * 3)))
+    : 10;
+
+  const xLabelText = `${chartConfig.xLabel }`;
+  const yLabelText = `${chartConfig.yLabel }`;
+
+  const barColor = getChartColor();
+
+  console.log("chartData is", chartData);
   
   return (
-    <BarChart data={chartData}>
+    <BarChart 
+      data={chartData}
+      layout={isHorizontal ? "vertical" : "horizontal"} 
+      margin={{
+        top: 20,
+        right: 30,
+        bottom: isHorizontal ? 30 : 130,
+        left: 60
+      }}
+    >
       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
       {isHorizontal ? (
         <>
-          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} />
+          <XAxis 
+            type="number" 
+            tick={{ fill: '#64748b', fontSize: 12 }} 
+            tickLine={{ stroke: '#cbd5e1' }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            label={
+              {
+                value: xLabelText? xLabelText: "X-Axis-Label",
+                position: 'insideBottom',
+                offset: xAxisLabelOffset,
+                style: { fill: '#64748b', fontSize: 16 }
+              }
+            }
+          />
           <YAxis 
-            dataKey={chartConfig.xDataKey || 'name'} 
+            dataKey={'name'} 
             type="category" 
             tick={{ fill: '#64748b', fontSize: 12 }} 
-            width={100} 
+            tickLine={{ stroke: '#cbd5e1' }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            interval={shouldSkipYLabels ? Math.max(Math.ceil(dataPointCount / maxYTicks) - 1, 0) : 0}
+            label={ {
+              value: yLabelText? yLabelText: "Y-Axis-Label",
+              angle: -90,
+              position: 'insideLeft',
+              offset: -30,
+              style: { fill: '#64748b', fontSize: 16, textAnchor: 'middle' }
+            } }
           />
         </>
       ) : (
         <>
           <XAxis 
-            dataKey={chartConfig.xDataKey || 'name'} 
-            tick={{ fill: '#64748b', fontSize: 12 }} 
+            dataKey={'name'} 
+            tick={xTickStyle} 
+            tickLine={{ stroke: '#cbd5e1' }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            interval={shouldSkipLabels ? Math.max(Math.ceil(dataPointCount / maxXTicks) - 1, 0) : 0}
+            label={
+              {
+                value: xLabelText? xLabelText: "X-Axis-Label",
+                position: 'insideBottom',
+                offset: xAxisLabelOffset,
+                style: { fill: '#64748b', fontSize: 16 }}
+            }
           />
-          <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+          <YAxis 
+            tick={{ fill: '#64748b', fontSize: 12 }} 
+            tickLine={{ stroke: '#cbd5e1' }}
+            axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+            label={ {
+              value: yLabelText? yLabelText: "Y-Axis-Label",
+              angle: -90,
+              position: 'insideLeft',
+              offset: 15,
+              style: { fill: '#64748b', fontSize: 16, textAnchor: 'middle' }
+            } }
+          />
         </>
       )}
       <Tooltip 
@@ -348,10 +508,16 @@ const renderChart = (
           border: '1px solid #e2e8f0', 
           borderRadius: '8px' 
         }} 
+        formatter={(value: any) => {
+          if (chartConfig.yUnit) {
+            return [value + ' ' + chartConfig.yUnit, chartConfig.yLabel || 'Value'];
+          }
+          return [value, isHorizontal ? chartConfig.xLabel || 'Value' : chartConfig.yLabel || 'Value'];
+        }}
       />
       <Bar
         dataKey="value"
-        fill={chartConfig.color || '#3b82f6'}
+        fill={barColor}
         radius={isHorizontal ? [0, 8, 8, 0] : [8, 8, 0, 0]}
       />
     </BarChart>
@@ -385,13 +551,11 @@ export const ChartGrid: React.FC<ChartGridProps> = ({
         const isDrilldownLoading = drilldownState?.loading || false;
         const isDrilldownError = drilldownState?.error || false;
 
-
-
         return (
           <div
             key={idx}
             className={`
-              bg-white rounded-lg shadow-md p-6 
+              bg-white rounded-lg shadow-md p-8 
               ${hasInteraction ? 'cursor-pointer hover:shadow-lg' : ''} 
               transition-shadow
             `}

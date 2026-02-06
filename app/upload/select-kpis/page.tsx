@@ -45,6 +45,9 @@ export default function SelectKPIsPage() {
     setChartsState,
     setDrilldownsState,
     setMessages,
+    setFilters,
+    setDateFilter,
+    setCurrentDateRange,
   } = useDashboard()
 
   // Get user context from localStorage
@@ -167,7 +170,25 @@ export default function SelectKPIsPage() {
             console.log("[STEP 2] Main Charts received")
 
             const mainChartsQueries = JSON.parse(msg?.payload?.charts?.text).charts
+            const filtersPayload = msg?.payload?.filters || []
             console.log("Queries received for charts generation:", mainChartsQueries)
+            console.log("Filters received:", filtersPayload)
+
+            // Save original chart queries for date filter re-runs
+            sessionStorage.setItem('originalChartQueries', JSON.stringify(mainChartsQueries))
+
+            // Extract and store filters
+            setFilters(filtersPayload)
+            
+            // Find date filter
+            const dateFilter = filtersPayload.find((f: any) => f.type === "date_range")
+            if (dateFilter) {
+              setDateFilter(dateFilter)
+              setCurrentDateRange({
+                start: dateFilter.default.start,
+                end: dateFilter.default.end
+              })
+            }
 
             const parquetUrl = localStorage.getItem("presigned-parquet-url") || ""
 
@@ -251,13 +272,19 @@ export default function SelectKPIsPage() {
 
             ;(async () => {
               try {
-                // Transform filters
+                // Transform filters - preserve ALL properties including date_range filters
                 const transformedFilters = drilldownFilters.map((filter: any) => ({
                   field: filter.field,
                   label: filter.label,
                   type: filter.type === "select" ? "multiselect" : filter.type,
                   options: filter.options || [],
                   whereClause: filter.whereClause,
+                  // Preserve date_range specific properties
+                  ...(filter.type === "date_range" && {
+                    bounds: filter.bounds,
+                    presets: filter.presets,
+                    default: filter.default
+                  })
                 }))
 
                 // Prepare queries

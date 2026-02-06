@@ -64,11 +64,27 @@ export interface WhereClause {
 export interface FilterOption {
   field: string;
   label: string;
-  type: 'multiselect' | 'select' | 'range';
+  type: 'multiselect' | 'select' | 'range' | 'date_range';
   options?: string[];
   min?: number;
   max?: number;
   whereClause?: WhereClause;
+  // Date range specific properties
+  bounds?: {
+    min: string;
+    max: string;
+  };
+  presets?: Array<{
+    id: string;
+    label: string;
+    start?: string;
+    end?: string;
+  }>;
+  default?: {
+    preset?: string;
+    start: string;
+    end: string;
+  };
 }
 
 export interface FilterState {
