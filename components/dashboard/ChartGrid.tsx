@@ -73,10 +73,8 @@ const getChartColor = (): string => {
  */
 const generatePieColors = (count: number): string[] => {
   const colors: string[] = [];
-  const step = 360 / count;
   for (let i = 0; i < count; i++) {
-    const hue = (step * i + Math.random() * 30) % 360;
-    colors.push(`hsl(${hue}, 70%, 75%)`);
+    colors.push(getChartColor());
   }
   return colors;
 };

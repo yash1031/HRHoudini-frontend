@@ -366,6 +366,125 @@ const FileUploadHistory = ({ onClose, isLoading, fileUploadHistoryData }: FileUp
             error: null,
             data: [...prev.data, ...result]  // ← Append new charts to existing
           }));
+
+          chartsQueries.map((chartQuery: any)=>{
+    
+            console.log("chartQuery Received in FileUploadHistory on clicking side", chartQuery)
+    
+            const {semantic_id, drilldowns} = chartQuery
+    
+            const parentChartId = semantic_id;
+            const drilldownCharts = drilldowns?.charts || [];
+            const drilldownFilters = drilldowns?.filters || [];
+            const drilldownInsights = drilldowns?.insights || [];
+            // const kpiId = drilldownPayload?.kpi_id;
+    
+            console.log("drilldownCharts in FileUploadHistory comp", drilldownCharts)
+            console.log("drilldownFilters in FileUploadHistory comp", drilldownFilters)
+            console.log("drilldownInsights in FileUploadHistory comp", drilldownInsights)
+            console.log("parentChartId in FileUploadHistory comp", parentChartId)
+            
+            if (parentChartId) {
+              setDrilldownsState(prev => ({
+                ...prev,
+                [parentChartId]: { loading: true, error: false }
+              }));
+            }
+            
+            (async () => {
+              try {
+                // Transform filters
+                const transformedFilters = drilldownFilters.map((filter: any) => ({
+                  field: filter.field,
+                  label: filter.label,
+                  type: filter.type === 'select' ? 'multiselect' : filter.type,
+                  options: filter.options || [],
+                  whereClause: filter.whereClause
+                }));
+                
+                // Prepare queries
+                const drilldownQueries = {
+                  charts: drilldownCharts.map((chart: any) => {
+                    const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
+                    
+                    if (queryObjWithUrl.from) {
+                      queryObjWithUrl.from.source = parquetUrl;
+                    } else {
+                      queryObjWithUrl.from = { type: 'parquet', source: parquetUrl };
+                    }
+                    
+                    return {
+                      ...chart,
+                      query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
+                      queryObject: queryObjWithUrl
+                    };
+                  })
+                };
+                
+                const chartDataResults = await generateDrilldownChartsData(
+                  drilldownQueries.charts, 
+                  parquetUrl
+                );
+                
+                console.log("Drilldown charts generated in FileUploadHistory:", chartDataResults);
+                
+                // Update drilldown state
+                if (parentChartId) {
+                  setDrilldownsState(prev => ({
+                    ...prev,
+                    [parentChartId]: { loading: false, error: false }
+                  }));
+                }
+                
+                // DIRECTLY update chartsState - find and modify the chart
+                setChartsState(prev => {
+                  const currentCharts = [...prev.data];
+    
+                  console.log("currentCharts in FileUploadHistory", currentCharts)
+                  
+                  // Find the parent chart by ID
+                  const chartIndex = currentCharts.findIndex(
+                    chart => (chart.id || chart.semantic_id) === parentChartId
+                  );
+                  
+                  if (chartIndex === -1) {
+                    console.warn("Parent chart not found in FileUploadHistory:", parentChartId);
+                    return prev;
+                  }
+    
+                  console.log("parentChart found at chartIndex in FileUploadHistory", chartIndex)
+                  
+                  // Attach drilldown to the chart
+                  currentCharts[chartIndex] = {
+                    ...currentCharts[chartIndex],
+                    drillDownData: {
+                      filters: transformedFilters,
+                      charts: chartDataResults,
+                      insights: drilldownInsights
+                    }
+                  };
+                  
+                  console.log("Drilldown attached to chart in FileUploadHistory:", parentChartId);
+                  console.log("Updated chartsState in FileUploadHistory", currentCharts)
+                  
+                  return {
+                    ...prev,
+                    data: currentCharts
+                  };
+                });
+                
+              } catch (error) {
+                console.error("Failed to process drilldown in FileUploadHistory:", error);
+                
+                if (parentChartId) {
+                  setDrilldownsState(prev => ({
+                    ...prev,
+                    [parentChartId]: { loading: false, error: true }
+                  }));
+                }
+              }
+            })();
+          })
         })
         .catch((error) => {
           console.error("Failed to generate charts:", error);
@@ -377,116 +496,6 @@ const FileUploadHistory = ({ onClose, isLoading, fileUploadHistoryData }: FileUp
             data: []
           });
         });
-
-      chartsQueries.map((chartQuery: any)=>{
-
-        console.log("chartQuery Received on clicking side", chartQuery)
-
-        const {semantic_id, drilldowns} = chartQuery
-
-        const parentChartId = semantic_id;
-        const drilldownCharts = drilldowns?.charts || [];
-        const drilldownFilters = drilldowns?.filters || [];
-        const drilldownInsights = drilldowns?.insights || [];
-        // const kpiId = drilldownPayload?.kpi_id;
-        
-        if (parentChartId) {
-          setDrilldownsState(prev => ({
-            ...prev,
-            [parentChartId]: { loading: true, error: false }
-          }));
-        }
-        
-        (async () => {
-          try {
-            // Transform filters
-            const transformedFilters = drilldownFilters.map((filter: any) => ({
-              field: filter.field,
-              label: filter.label,
-              type: filter.type === 'select' ? 'multiselect' : filter.type,
-              options: filter.options || [],
-              whereClause: filter.whereClause
-            }));
-            
-            // Prepare queries
-            const drilldownQueries = {
-              charts: drilldownCharts.map((chart: any) => {
-                const queryObjWithUrl = JSON.parse(JSON.stringify(chart.query_obj));
-                
-                if (queryObjWithUrl.from) {
-                  queryObjWithUrl.from.source = parquetUrl;
-                } else {
-                  queryObjWithUrl.from = { type: 'parquet', source: parquetUrl };
-                }
-                
-                return {
-                  ...chart,
-                  query: buildQueryFromQueryObj(queryObjWithUrl, parquetUrl),
-                  queryObject: queryObjWithUrl
-                };
-              })
-            };
-            
-            const chartDataResults = await generateDrilldownChartsData(
-              drilldownQueries.charts, 
-              parquetUrl
-            );
-            
-            console.log("Drilldown charts generated:", chartDataResults);
-            
-            // Update drilldown state
-            if (parentChartId) {
-              setDrilldownsState(prev => ({
-                ...prev,
-                [parentChartId]: { loading: false, error: false }
-              }));
-            }
-            
-            // DIRECTLY update chartsState - find and modify the chart
-            setChartsState(prev => {
-              const currentCharts = [...prev.data];
-              
-              // Find the parent chart by ID
-              const chartIndex = currentCharts.findIndex(
-                chart => (chart.id || chart.semantic_id) === parentChartId
-              );
-              
-              if (chartIndex === -1) {
-                console.warn("Parent chart not found:", parentChartId);
-                return prev;
-              }
-              
-              // Attach drilldown to the chart
-              currentCharts[chartIndex] = {
-                ...currentCharts[chartIndex],
-                drillDownData: {
-                  filters: transformedFilters,
-                  charts: chartDataResults,
-                  insights: drilldownInsights
-                }
-              };
-              
-              console.log("Drilldown attached to chart:", parentChartId);
-              console.log("Updated chartsState", currentCharts)
-              
-              return {
-                ...prev,
-                data: currentCharts
-              };
-            });
-            
-          } catch (error) {
-            console.error("Failed to process drilldown:", error);
-            
-            if (parentChartId) {
-              setDrilldownsState(prev => ({
-                ...prev,
-                [parentChartId]: { loading: false, error: true }
-              }));
-            }
-          }
-        })();
-      })
     }
     else{
       setChartsState({
