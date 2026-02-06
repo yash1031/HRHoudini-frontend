@@ -552,8 +552,18 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
           </div>
 
           {/* Main dashboard filters - same Filters section as drilldown modal */}
-          {!chartsLoading && !chartsError && charts.length > 0 && mainFilters.length > 0 && (
-            <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50">
+          {!chartsLoading && !chartsError && charts.length > 0 && mainFilters.length > 0 && (() => {
+            // Keep only ONE date_range filter (the primary Date Range) in the main filters UI
+            const dateFilters = (mainFilters || []).filter(f => f.type === 'date_range');
+            const primaryDateFilterOption = dateFilters[0] || null;
+            const nonDateFilters = (mainFilters || []).filter(f => f.type !== 'date_range');
+
+            const visibleMainFilters = primaryDateFilterOption
+              ? [primaryDateFilterOption, ...nonDateFilters]
+              : nonDateFilters;
+
+            return (
+              <div className="mb-6 border border-slate-200 rounded-lg bg-slate-50/50">
               <button
                 type="button"
                 onClick={() => setMainFiltersOpen((prev) => !prev)}
@@ -577,7 +587,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                     onFilterChange={handleMainFilterChange}
                     onClearFilters={handleClearMainFilters}
                     currentFilters={mainFiltersActive}
-                    dateRange={mainDateRange ?? undefined}
+                    dateRange={undefined}  // Always start empty for main dashboard
                     // For main dashboard, updating date range should ONLY update state;
                     // actual chart re-query (if any) should happen when Apply is clicked.
                     onDateChange={
@@ -588,90 +598,92 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                     // If you later want main charts to re-query based on date,
                     // pass a handler here that uses mainDateRange + filters.
                     onApplyDateRange={undefined}
+                    autoSelectDateDefault={false}
                   />
 
-                  {/* Active Filters - same as drilldown: Clear All + per-filter Clear */}
-                  {Object.keys(mainFiltersActive).length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-slate-700 flex items-center">
-                          Active Filters ({Object.keys(mainFiltersActive).length})
-                        </h4>
-                        <button
-                          onClick={handleClearMainFilters}
-                          className="text-sm text-red-600 hover:text-red-800 font-medium"
-                        >
-                          Clear All
-                        </button>
-                      </div>
-                      <div className="space-y-2">
-                        {Object.entries(mainFiltersActive).map(([field, filter]) => (
-                          <div key={field} className="flex items-start gap-2">
-                            <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
-                              {field.replace(/_/g, ' ')}:
-                            </span>
-                            <div className="flex flex-wrap gap-2 flex-1">
-                              {filter?.operator === 'IN' && Array.isArray(filter?.value) ? (
-                                filter.value.map((val: string, idx: number) => (
-                                  <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                                    {val}
+                    {/* Active Filters - same as drilldown: Clear All + per-filter Clear */}
+                    {Object.keys(mainFiltersActive).length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-slate-700 flex items-center">
+                            Active Filters ({Object.keys(mainFiltersActive).length})
+                          </h4>
+                          <button
+                            onClick={handleClearMainFilters}
+                            className="text-sm text-red-600 hover:text-red-800 font-medium"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {Object.entries(mainFiltersActive).map(([field, filter]) => (
+                            <div key={field} className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-slate-600 min-w-[100px] capitalize">
+                                {field.replace(/_/g, ' ')}:
+                              </span>
+                              <div className="flex flex-wrap gap-2 flex-1">
+                                {filter?.operator === 'IN' && Array.isArray(filter?.value) ? (
+                                  filter.value.map((val: string, idx: number) => (
+                                    <Badge key={idx} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                      {val}
+                                      <X
+                                        className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                        onClick={() => {
+                                          const updated = { ...mainFiltersActive };
+                                          const arr = (updated[field]?.value || []).filter((v: string) => v !== val);
+                                          if (arr.length === 0) delete updated[field];
+                                          else updated[field] = { ...updated[field], value: arr };
+                                          handleMainFilterChange(updated);
+                                        }}
+                                      />
+                                    </Badge>
+                                  ))
+                                ) : filter?.operator === 'BETWEEN' && filter?.value ? (
+                                  <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {filter.value.min} - {filter.value.max}
                                     <X
                                       className="w-3 h-3 cursor-pointer hover:text-red-600"
                                       onClick={() => {
                                         const updated = { ...mainFiltersActive };
-                                        const arr = (updated[field]?.value || []).filter((v: string) => v !== val);
-                                        if (arr.length === 0) delete updated[field];
-                                        else updated[field] = { ...updated[field], value: arr };
+                                        delete updated[field];
                                         handleMainFilterChange(updated);
                                       }}
                                     />
                                   </Badge>
-                                ))
-                              ) : filter?.operator === 'BETWEEN' && filter?.value ? (
-                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                                  {filter.value.min} - {filter.value.max}
-                                  <X
-                                    className="w-3 h-3 cursor-pointer hover:text-red-600"
-                                    onClick={() => {
-                                      const updated = { ...mainFiltersActive };
-                                      delete updated[field];
-                                      handleMainFilterChange(updated);
-                                    }}
-                                  />
-                                </Badge>
-                              ) : (
-                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
-                                  {String(filter?.value ?? '')}
-                                  <X
-                                    className="w-3 h-3 cursor-pointer hover:text-red-600"
-                                    onClick={() => {
-                                      const updated = { ...mainFiltersActive };
-                                      delete updated[field];
-                                      handleMainFilterChange(updated);
-                                    }}
-                                  />
-                                </Badge>
-                              )}
+                                ) : (
+                                  <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                                    {String(filter?.value ?? '')}
+                                    <X
+                                      className="w-3 h-3 cursor-pointer hover:text-red-600"
+                                      onClick={() => {
+                                        const updated = { ...mainFiltersActive };
+                                        delete updated[field];
+                                        handleMainFilterChange(updated);
+                                      }}
+                                    />
+                                  </Badge>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const updated = { ...mainFiltersActive };
+                                  delete updated[field];
+                                  handleMainFilterChange(updated);
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
+                              >
+                                Clear
+                              </button>
                             </div>
-                            <button
-                              onClick={() => {
-                                const updated = { ...mainFiltersActive };
-                                delete updated[field];
-                                handleMainFilterChange(updated);
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 font-medium ml-2"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Charts Section */}
           <div className={charts.length > 0 ? 'mt-6' : ''}>

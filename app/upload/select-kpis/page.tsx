@@ -144,6 +144,25 @@ export default function SelectKPIsPage() {
         console.log("Unable to create dashboard")
       }
 
+      // COMMENTED OUT: Non-blocking request to store agentic dashboard
+      // apiFetch("/api/store-agentic-dashboard", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({
+      //     source_file_path: `s3://${process.env.NEXT_PUBLIC_S3_FILE_UPLOAD_BUCKET}/${localStorage.getItem("s3Key")}`,
+      //     report_title: "Attrition Report",
+      //     report_description: "This dashboard shows the attrition rate of the employees",
+      //     report_s3_path: "s3://hr-houdini-customerdashboards-a/dashboard_templates/hr_dashboard_20251217_164451.html",
+      //     button_title: "Attrition Dashboard",
+      //   }),
+      // })
+      //   .then((response) => {
+      //     console.log("Successfully stored agentic dashboard:", response)
+      //   })
+      //   .catch((error) => {
+      //     console.log("Unable to Store agentic dashboard:", error)
+      //   })
+
       handler = async (msg: any) => {
         try {
           // MAIN CHARTS HANDLER
@@ -464,6 +483,40 @@ export default function SelectKPIsPage() {
           Select all the metrics those you track regularly to get personalized insights and automated alerts when trends
           change.
         </CardDescription>
+        {/* To select all KPIs at once */}
+        {/* <div className="flex items-center justify-end gap-3 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const allKpiIds = kpis.map((kpi) => kpi.id)
+              setSelectedKPIs(allKpiIds)
+
+              const allKpiDetails = kpis.map(({ id, label, description, category }) => ({
+                kpi_id: id,
+                label,
+                description,
+                category,
+              }))
+              setSelectedKPIWithDesc(allKpiDetails)
+            }}
+            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+          >
+            Select All
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelectedKPIs([])
+              setSelectedKPIWithDesc([])
+            }}
+            className="text-gray-600 border-gray-300 hover:bg-gray-50"
+          >
+            Clear All
+          </Button>
+        </div> */}
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">

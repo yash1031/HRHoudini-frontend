@@ -24,6 +24,11 @@ interface FilterControlsProps {
    * Use this to actually apply the current dateRange together with other filters.
    */
   onApplyDateRange?: (start: string, end: string) => void;
+  /**
+   * Whether to auto-select backend default for date filters.
+   * Default is true (drilldown behavior). Set to false for main dashboard.
+   */
+  autoSelectDateDefault?: boolean;
 }
 
 export const FilterControls: React.FC<FilterControlsProps> = ({ 
@@ -34,9 +39,12 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
   dateRange = null,
   onDateChange,
   onApplyDateRange,
+  autoSelectDateDefault = true,  // default = true (drilldown behavior)
 }) => {
   const [filterValues, setFilterValues] = useState<FilterState>(currentFilters);
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  // Local state for additional date_range filters (e.g., Hire Date Range, Termination Date Range)
+  const [dateRangesState, setDateRangesState] = useState<Record<string, { start: string; end: string }>>({});
 
   React.useEffect(() => {
     // Pre-populate filterValues with currently applied filters
@@ -157,16 +165,118 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     return true;
   }).length;
 
+  // Identify primary and special date_range filters for multi-date support
+  const primaryDateFilter = filters.find(f => f.type === 'date_range') || null;
+  const hireDateFilter = filters.find(
+    f => f.type === 'date_range' && (f.label === 'Hire Date Range' || f.label === 'Hire Date')
+  ) || null;
+  const terminationDateFilter = filters.find(
+    f => f.type === 'date_range' && (f.label === 'Termination Date Range' || f.label === 'Termination Date')
+  ) || null;
+
+  // Resolve the effective range for a given date_range filter (from props, local state, or defaults)
+  const resolveDateRangeForFilter = (filter: FilterOption): { start: string; end: string } | null => {
+    const isPrimary = primaryDateFilter && primaryDateFilter.field === filter.field;
+
+    if (isPrimary && dateRange?.start && dateRange?.end) {
+      return { start: dateRange.start, end: dateRange.end };
+    }
+
+    const stored = dateRangesState[filter.field];
+    if (stored?.start && stored?.end) {
+      return stored;
+    }
+
+    const anyFilter: any = filter;
+    const def = anyFilter.default;
+    const bounds = anyFilter.bounds;
+    if (def?.start && def?.end) {
+      return { start: def.start, end: def.end };
+    }
+    if (bounds?.min && bounds?.max) {
+      return { start: bounds.min, end: bounds.max };
+    }
+    return null;
+  };
+
+  // Update date range for a specific filter (primary uses onDateChange, others use local state)
+  const handleDateChangeForFilter = (filter: FilterOption, start: string, end: string) => {
+    const isPrimary = primaryDateFilter && primaryDateFilter.field === filter.field;
+    if (isPrimary && onDateChange) {
+      onDateChange(start, end);
+    } else {
+      setDateRangesState(prev => ({
+        ...prev,
+        [filter.field]: { start, end },
+      }));
+    }
+  };
+
   const renderFilter = (filter: FilterOption) => {
     // Date range: render inline in same Filters section
-    if (filter.type === 'date_range' && onDateChange && dateRange) {
+    // Support multiple date_range filters but only show the primary one unless explicitly configured
+    if (filter.type === 'date_range') {
+      // If we have BOTH Hire and Termination date filters, render them side-by-side in one row
+      if (
+        hireDateFilter &&
+        terminationDateFilter &&
+        filter.field === hireDateFilter.field
+      ) {
+        const hireRange = resolveDateRangeForFilter(hireDateFilter);
+        const termRange = resolveDateRangeForFilter(terminationDateFilter);
+        if (!hireRange || !termRange) {
+          return null;
+        }
+        return (
+          <div
+            key={`date-row-${hireDateFilter.field}-${terminationDateFilter.field}`}
+            className="w-full col-span-full grid grid-cols-1 md:grid-cols-2 gap-2"
+          >
+            <div>
+              <DateFilterBar
+                dateFilter={hireDateFilter as any}
+                currentStart={hireRange.start}
+                currentEnd={hireRange.end}
+                onDateChange={(start, end) => handleDateChangeForFilter(hireDateFilter, start, end)}
+                autoSelectDefault={autoSelectDateDefault}
+              />
+            </div>
+            <div>
+              <DateFilterBar
+                dateFilter={terminationDateFilter as any}
+                currentStart={termRange.start}
+                currentEnd={termRange.end}
+                onDateChange={(start, end) => handleDateChangeForFilter(terminationDateFilter, start, end)}
+                autoSelectDefault={autoSelectDateDefault}
+              />
+            </div>
+          </div>
+        );
+      }
+
+      // If this is the Termination filter and we've already rendered it together with Hire, skip it
+      if (
+        hireDateFilter &&
+        terminationDateFilter &&
+        filter.field === terminationDateFilter.field
+      ) {
+        return null;
+      }
+
+      // Fallback: single Date Range (primary or lone date filter)
+      const range = resolveDateRangeForFilter(filter);
+      if (!range) {
+        return null;
+      }
+
       return (
-        <div key={filter.field} className="w-full col-span-full">
+        <div key={`date-${filter.field}-${filter.label}`} className="w-full col-span-full">
           <DateFilterBar
             dateFilter={filter as any}
-            currentStart={dateRange.start}
-            currentEnd={dateRange.end}
-            onDateChange={onDateChange}
+            currentStart={range.start}
+            currentEnd={range.end}
+            onDateChange={(start, end) => handleDateChangeForFilter(filter, start, end)}
+            autoSelectDefault={autoSelectDateDefault}
           />
         </div>
       );
@@ -179,7 +289,7 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
       const isOpen = openDropdowns[filter.field];
 
       return (
-        <div key={filter.field} className="space-y-1.5 relative min-w-0" onClick={(e) => e.stopPropagation()}>
+        <div key={`${filter.field}-${filter.type}-${filter.label}`} className="space-y-1.5 relative min-w-0" onClick={(e) => e.stopPropagation()}>
           <label className="text-xs font-medium text-slate-700 truncate block">{filter.label}</label>
 
           {/* Dropdown Trigger */}
