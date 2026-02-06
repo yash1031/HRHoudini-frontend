@@ -34,13 +34,15 @@ interface DateFilterBarProps {
   onDateChange: (start: string, end: string) => void;
   currentStart?: string;
   currentEnd?: string;
+  autoSelectDefault?: boolean;
 }
 
 export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   dateFilter,
   onDateChange,
   currentStart,
-  currentEnd
+  currentEnd,
+  autoSelectDefault = true,  // default = true (for drilldowns)
 }) => {
   const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [customStart, setCustomStart] = useState<string>("");
@@ -51,15 +53,24 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   // Initialize from dateFilter defaults
   useEffect(() => {
     if (dateFilter) {
-      const defaultPreset = dateFilter.default.preset;
-      const defaultStart = currentStart || dateFilter.default.start;
-      const defaultEnd = currentEnd || dateFilter.default.end;
-      
-      setSelectedPreset(defaultPreset);
-      setCustomStart(defaultStart);
-      setCustomEnd(defaultEnd);
+      if (autoSelectDefault) {
+        // Current behavior: use backend default or currentStart/currentEnd
+        const defaultPreset = dateFilter.default.preset;
+        const defaultStart = currentStart || dateFilter.default.start;
+        const defaultEnd = currentEnd || dateFilter.default.end;
+        
+        setSelectedPreset(defaultPreset);
+        setCustomStart(defaultStart);
+        setCustomEnd(defaultEnd);
+      } else {
+        // New behavior: start with "no selection"
+        // If parent passes currentStart/currentEnd explicitly, respect them; otherwise blank.
+        setSelectedPreset("");
+        setCustomStart(currentStart || "");
+        setCustomEnd(currentEnd || "");
+      }
     }
-  }, [dateFilter, currentStart, currentEnd]);
+  }, [dateFilter, currentStart, currentEnd, autoSelectDefault]);
 
   if (!dateFilter) {
     return null;
