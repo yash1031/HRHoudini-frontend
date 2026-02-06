@@ -587,7 +587,7 @@ const Generated_Dashboard: React.FC<GeneratedDashboardProps> = ({
                     onFilterChange={handleMainFilterChange}
                     onClearFilters={handleClearMainFilters}
                     currentFilters={mainFiltersActive}
-                    dateRange={undefined}  // Always start empty for main dashboard
+                    dateRange={mainDateRange ?? undefined}
                     // For main dashboard, updating date range should ONLY update state;
                     // actual chart re-query (if any) should happen when Apply is clicked.
                     onDateChange={
