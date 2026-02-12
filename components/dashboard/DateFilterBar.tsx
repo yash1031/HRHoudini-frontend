@@ -76,11 +76,71 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
     return null;
   }
 
-  // Ensure "Custom Range" exists and is always FIRST so it's visible without scrolling
+  // Helper to build quarterly presets (Q1–Q4) for ALL years in the bounds range
+  const buildQuarterPresets = (): DatePreset[] => {
+    const minBoundStr = dateFilter.bounds?.min;
+    const maxBoundStr = dateFilter.bounds?.max;
+
+    if (!minBoundStr || !maxBoundStr) {
+      return [];
+    }
+
+    const minYear = new Date(minBoundStr).getFullYear();
+    const maxYear = new Date(maxBoundStr).getFullYear();
+
+    const toISODate = (year: number, month: number, day: number): string => {
+      const mm = String(month).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      return `${year}-${mm}-${dd}`;
+    };
+
+    const quarters: DatePreset[] = [];
+
+    for (let year = minYear; year <= maxYear; year++) {
+      quarters.push(
+        {
+          id: `q1-${year}`,
+          label: `Q1 ${year}`,
+          start: toISODate(year, 1, 1),
+          end: toISODate(year, 3, 31),
+        },
+        {
+          id: `q2-${year}`,
+          label: `Q2 ${year}`,
+          start: toISODate(year, 4, 1),
+          end: toISODate(year, 6, 30),
+        },
+        {
+          id: `q3-${year}`,
+          label: `Q3 ${year}`,
+          start: toISODate(year, 7, 1),
+          end: toISODate(year, 9, 30),
+        },
+        {
+          id: `q4-${year}`,
+          label: `Q4 ${year}`,
+          start: toISODate(year, 10, 1),
+          end: toISODate(year, 12, 31),
+        },
+      );
+    }
+
+    // Clamp each quarter to the overall min/max bounds
+    return quarters
+      .map((q) => {
+        const start = q.start! < minBoundStr ? minBoundStr : q.start!;
+        const end = q.end! > maxBoundStr ? maxBoundStr : q.end!;
+        return { ...q, start, end };
+      })
+      // Filter out any "empty" or inverted ranges
+      .filter((q) => q.start! <= q.end!);
+  };
+
+  // Ensure "Custom Range" exists and is always FIRST so it's visible without scrolling.
+  // Replace backend presets with quarterly options (Q1–Q4) for every year in the bounds.
   const customEntry: DatePreset = { id: 'custom', label: 'Custom Range' };
-  const fromBackend = Array.isArray(dateFilter.presets) ? dateFilter.presets : [];
-  const others = fromBackend.filter((p: DatePreset) => p.id !== 'custom');
-  const presets = [customEntry, ...others];
+  const quarterPresets = buildQuarterPresets();
+  const presets = [customEntry, ...quarterPresets];
 
   const handlePresetSelect = (preset: DatePreset) => {
     if (preset.start && preset.end) {
